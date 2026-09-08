@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel do Professor | SpyTeam</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; display: inline-block; vertical-align: top; margin-right: 20px; }
+        input, select, button { width: 100%; margin-bottom: 15px; padding: 10px; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        button:hover { background-color: #218838; }
+        .aluno-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+    <!-- Bloco 1: Cadastro de Alunos -->
+    <div class="container">
+        <h2>1. Cadastrar Novo Aluno</h2>
+        <form id="formAluno">
+            <label>Nome do Atleta:</label>
+            <input type="text" id="nome" required placeholder="Ex: Maria Silva">
+            
+            <label>Nível:</label>
+            <select id="nivel">
+                <option value="Iniciante">Iniciante</option>
+                <option value="Intermediário">Intermediário</option>
+                <option value="Avançado">Avançado</option>
+            </select>
+            
+            <button type="submit">Salvar Aluno</button>
+        </form>
+        <p id="mensagem" style="text-align: center; font-weight: bold; color: green;"></p>
+        
+        <h3 style="margin-top: 20px;">Meus Alunos</h3>
+        <div id="listaAlunos"></div>
+    </div>
+
+    <!-- Bloco 2: Agendamento Semanal -->
+    <div class="container" style="border-top: 4px solid #007bff;">
+        <h2>2. Enviar Treino (Semanal)</h2>
+        <form id="formAgendamento">
+            <label>Selecionar Aluno:</label>
+            <!-- O select captura automaticamente o aluno_id no envio -->
+            <select id="alunoSelect" required>
+                <option value="">Carregando alunos...</option>
+            </select>
+
+            <label>ID do Treino Base:</label>
+            <input type="number" id="treinoId" required placeholder="Ex: 1">
+
+            <label>Dia da Semana:</label>
+            <select id="diaSemana">
+                <option value="Segunda-feira">Segunda-feira</option>
+                <option value="Terça-feira">Terça-feira</option>
+                <option value="Quarta-feira">Quarta-feira</option>
+                <option value="Quinta-feira">Quinta-feira</option>
+                <option value="Sexta-feira">Sexta-feira</option>
+                <option value="Sábado">Sábado</option>
+                <option value="Domingo">Domingo</option>
+            </select>
+
+            <button type="submit" style="background-color: #007bff;">Agendar Treino</button>
+        </form>
+        <p id="msgAgendamento" style="text-align: center; font-weight: bold; color: #007bff;"></p>
+    </div>
+
+    <script>
+        // Função para buscar alunos e preencher a lista e o Dropdown (Seleção)
+        async function carregarAlunos() {
+            const resposta = await fetch('/api/alunos');
+            const alunos = await resposta.json();
+            
+            const divLista = document.getElementById('listaAlunos');
+            const selectAluno = document.getElementById('alunoSelect');
+            
+            divLista.innerHTML = ''; 
+            selectAluno.innerHTML = '<option value="">Escolha um aluno...</option>';
+            
+            alunos.forEach(aluno => {
+                // Preenche a lista visual
+                divLista.innerHTML += `
+                    <div class="aluno-item">
+                        <span>${aluno.nome}</span>
+                        <span style="color: #666; font-size: 0.9em;">ID: ${aluno.id}</span>
+                    </div>
+                `;
+                // Preenche o campo de seleção do formulário de agendamento
+                selectAluno.innerHTML += `<option value="${aluno.id}">${aluno.nome}</option>`;
+            });
+        }
+
+        // Lógica: Cadastrar Aluno
+        document.getElementById('formAluno').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const nome = document.getElementById('nome').value;
+            const nivel = document.getElementById('nivel').value;
+            
+            const resposta = await fetch('/api/alunos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: nome, nivel: nivel })
+            });
+
+            if(resposta.ok) {
+                document.getElementById('mensagem').innerText = "✅ Aluno salvo!";
+                document.getElementById('formAluno').reset();
+                carregarAlunos(); // Atualiza a lista e o dropdown instantaneamente
+                setTimeout(() => document.getElementById('mensagem').innerText = "", 3000);
+            }
+        });
+
+        // Lógica: Agendar Treino da Semana
+        document.getElementById('formAgendamento').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // O front-end captura os IDs e constrói o payload para o POST
+            const payload = {
+                aluno_id: parseInt(document.getElementById('alunoSelect').value),
+                treino_base_id: parseInt(document.getElementById('treinoId').value),
+                data_planejada: document.getElementById('diaSemana').value // Aqui enviamos o dia da semana!
+            };
+            
+            // Submete para a rota da API
+            const resposta = await fetch('/api/treinos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if(resposta.ok) {
+                document.getElementById('msgAgendamento').innerText = "💪 Treino agendado com sucesso!";
+                setTimeout(() => document.getElementById('msgAgendamento').innerText = "", 3000);
+            }
+        });
+
+        // Inicia carregando os alunos assim que a tela abre
+        carregarAlunos();
+    </script>
+</body>
+</html>
