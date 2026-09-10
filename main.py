@@ -9,8 +9,30 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 @app.get("/")
-def painel_professor():
-    return FileResponse("index.html")
+@app.get("/login")
+def pagina_login():
+    """Página inicial de login do sistema."""
+    return FileResponse("login.html")
+
+@app.get("/home")
+def home():
+    """Página principal com o menu de opções."""
+    return FileResponse("home.html")
+
+@app.get("/novo-aluno")
+def pagina_novo_aluno():
+    """Página dedicada ao cadastro de novos alunos."""
+    return FileResponse("novo_aluno.html")
+
+@app.get("/novo-treino")
+def pagina_novo_treino():
+    """Página dedicada ao agendamento de treinos."""
+    return FileResponse("novo_treino.html")
+
+@app.get("/novo-treino-base")
+def pagina_novo_treino_base():
+    """Página dedicada à criação de novos treinos no catálogo."""
+    return FileResponse("novo_treino_base.html")
 
 # Função que gerencia a abertura e fechamento da conexão com o banco
 def get_db():
@@ -19,6 +41,11 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# -----------------------------------------------------------------------------
+# Endpoints da API
+# -----------------------------------------------------------------------------
+
 # Rota que recebe o envio do professor e salva no banco
 @app.post("/api/treinos")
 def agendar_treino(treino: schemas.TreinoAgendadoCreate, db: Session = Depends(get_db)):
@@ -89,6 +116,19 @@ def listar_treinos_do_aluno(aluno_id: int, db: Session = Depends(get_db)):
         return {"mensagem": "Nenhum treino encontrado para este aluno."}
         
     return treinos
+
+@app.post("/api/treinos-base")
+def criar_treino_base(treino: schemas.TreinoBaseCreate, db: Session = Depends(get_db)):
+    novo_treino = models.TreinoBase(
+        titulo=treino.titulo,
+        modalidade=treino.modalidade,
+        descricao=treino.descricao,
+        ritmo_alvo=treino.ritmo_alvo
+    )
+    db.add(novo_treino)
+    db.commit()
+    db.refresh(novo_treino)
+    return novo_treino
 
 from fastapi import HTTPException
 
