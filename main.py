@@ -19,6 +19,11 @@ def home():
     """Página principal com o menu de opções."""
     return FileResponse("home.html")
 
+@app.get("/aluno")
+def aluno():
+    """Página principal do aluno."""
+    return FileResponse("aluno.html")
+
 @app.get("/novo-aluno")
 def pagina_novo_aluno():
     """Página dedicada ao cadastro de novos alunos."""
