@@ -1,142 +1,352 @@
-<!DOCTYPE html> <html lang="pt-BR"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Login - SpyTeam</title>
-<style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: 'Segoe UI', Roboto, sans-serif;
-    }
+<!DOCTYPE html>
 
-    body {
-        background-color: #06140d;
-        color: #ffffff;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 20px;
-    }
+<html lang="pt-BR">
 
-    .card {
-        background-color: #0c2016;
-        border: 1px solid #163827;
-        border-radius: 20px;
-        padding: 40px;
-        max-width: 450px;
-        width: 100%;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
+<head>
 
-    h1 {
-        color: #00ff66;
-        font-size: 2rem;
-        font-weight: 800;
-        margin-bottom: 10px;
-        text-align: center;
-    }
+    <meta charset="UTF-8">
 
-    .subtitle {
-        color: #8fa89b;
-        font-size: 0.9rem;
-        margin-bottom: 30px;
-        text-align: center;
-        line-height: 1.4;
-    }
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    .opcoes {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
+    <title>Login - SpyTeam</title>
 
-    .opcao {
-        width: 100%;
-        background-color: #122c1e;
-        border: 1px solid #1d4630;
-        color: #ffffff;
-        padding: 20px;
-        border-radius: 14px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        text-align: left;
-    }
+    <style>
 
-    .opcao:hover {
-        border-color: #00ff66;
-        background-color: #163824;
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,255,102,0.12);
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
 
-    .icone {
-        font-size: 2rem;
-        margin-bottom: 8px;
-    }
+        body {
+            background-color: #06140d;
+            color: #fff;
 
-    .titulo {
-        color: #00ff66;
-        font-size: 1rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 5px;
-    }
+            min-height: 100vh;
 
-    .descricao {
-        color: #8fa89b;
-        font-size: 0.85rem;
-    }
-</style>
+            display: flex;
+            justify-content: center;
+            align-items: center;
 
-</head> <body>
+            padding: 20px;
+        }
+
+        .card {
+
+            background-color: #0c2016;
+
+            border: 1px solid #163827;
+
+            border-radius: 20px;
+
+            padding: 40px;
+
+            max-width: 420px;
+
+            width: 100%;
+
+            box-shadow:
+                0 10px 30px rgba(0,0,0,.5);
+        }
+
+        h1 {
+
+            color: #00ff66;
+
+            text-align: center;
+
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+
+            color: #8fa89b;
+
+            text-align: center;
+
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+
+            margin-bottom: 18px;
+        }
+
+        label {
+
+            display: block;
+
+            color: #00ff66;
+
+            font-size: .75rem;
+
+            font-weight: 700;
+
+            text-transform: uppercase;
+
+            margin-bottom: 8px;
+        }
+
+        input {
+
+            width: 100%;
+
+            background: #122c1e;
+
+            border: 1px solid #1d4630;
+
+            color: #fff;
+
+            padding: 13px 15px;
+
+            border-radius: 10px;
+
+            outline: none;
+        }
+
+        input:focus {
+
+            border-color: #00ff66;
+        }
+
+        button {
+
+            width: 100%;
+
+            background: #00ff66;
+
+            color: #06140d;
+
+            border: none;
+
+            padding: 14px;
+
+            border-radius: 50px;
+
+            font-weight: 800;
+
+            text-transform: uppercase;
+
+            cursor: pointer;
+
+            margin-top: 8px;
+        }
+
+        #mensagem {
+
+            min-height: 22px;
+
+            margin-top: 15px;
+
+            text-align: center;
+
+            color: #ff8080;
+        }
+
+        .info {
+
+            margin-top: 22px;
+
+            padding-top: 18px;
+
+            border-top: 1px solid #163827;
+
+            color: #8fa89b;
+
+            font-size: .82rem;
+
+            line-height: 1.5;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
 <div class="card">
 
-    <h1>SpyTeam</h1>
+    <h1>
+        SpyTeam
+    </h1>
 
     <p class="subtitle">
-        Selecione como deseja acessar o sistema.
+        Entre com seu usuário e senha.
     </p>
 
-    <div class="opcoes">
 
-        <button class="opcao" onclick="entrarProfessor()">
-            <div class="icone">👨‍🏫</div>
+    <!-- FORMULÁRIO DE LOGIN -->
 
-            <div class="titulo">
-                Professor
-            </div>
+    <form id="formLogin">
 
-            <div class="descricao">
-                Gerencie alunos, treinos e agendamentos.
-            </div>
+        <!-- USUÁRIO -->
+
+        <div class="form-group">
+
+            <label for="usuario">
+                Usuário
+            </label>
+
+            <input
+                type="text"
+                id="usuario"
+                placeholder="Digite seu usuário"
+                required
+            >
+
+        </div>
+
+
+        <!-- SENHA -->
+
+        <div class="form-group">
+
+            <label for="senha">
+                Senha
+            </label>
+
+            <input
+                type="password"
+                id="senha"
+                placeholder="Digite sua senha"
+                required
+            >
+
+        </div>
+
+
+        <button type="submit">
+            Entrar
         </button>
 
-        <button class="opcao" onclick="entrarAluno()">
-            <div class="icone">🏃</div>
+    </form>
 
-            <div class="titulo">
-                Aluno
-            </div>
 
-            <div class="descricao">
-                Consulte seus treinos e acompanhe seu desempenho.
-            </div>
-        </button>
+    <!-- MENSAGEM DE ERRO -->
+
+    <div id="mensagem"></div>
+
+
+    <div class="info">
+
+        O sistema identifica automaticamente
+        se o acesso pertence a um professor
+        ou a um aluno.
 
     </div>
 
 </div>
 
+
 <script>
 
-    function entrarProfessor() {
-        window.location.href = '/home';
-    }
+    // ========================================================
+    // FORMULÁRIO
+    // ========================================================
 
-    function entrarAluno() {
-        window.location.href = '/aluno';
-    }
+    const form =
+        document.getElementById(
+            'formLogin'
+        );
+
+
+    // Elemento onde mostraremos erros
+    const mensagem =
+        document.getElementById(
+            'mensagem'
+        );
+
+
+    // ========================================================
+    // LOGIN
+    // ========================================================
+
+    form.addEventListener(
+        'submit',
+        async (e) => {
+
+            // Evita recarregar a página
+            e.preventDefault();
+
+
+            mensagem.textContent =
+                'Entrando...';
+
+
+            try {
+
+                // Envia login para API
+                const resposta =
+                    await fetch(
+                        '/api/login',
+                        {
+
+                            method: 'POST',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/json'
+                            },
+
+                            body:
+                                JSON.stringify({
+
+                                    usuario:
+                                        document
+                                        .getElementById(
+                                            'usuario'
+                                        )
+                                        .value,
+
+                                    senha:
+                                        document
+                                        .getElementById(
+                                            'senha'
+                                        )
+                                        .value
+                                })
+                        }
+                    );
+
+
+                const dados =
+                    await resposta.json();
+
+
+                // Login inválido
+                if (!resposta.ok) {
+
+                    mensagem.textContent =
+                        dados.detail
+                        ||
+                        'Usuário ou senha inválidos.';
+
+                    return;
+                }
+
+
+                // Login correto
+                // O backend já informou
+                // para onde devemos ir
+                window.location.href =
+                    dados.redirect;
+
+
+            } catch (erro) {
+
+                mensagem.textContent =
+                    'Não foi possível conectar ao servidor.';
+            }
+
+        }
+    );
 
 </script>
 
-</body> </html>
+</body>
+
+</html>

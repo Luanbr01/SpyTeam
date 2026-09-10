@@ -1,32 +1,242 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Professor</title>
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Painel do Professor - SpyTeam
+    </title>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
-        body { background-color: #06140d; color: #ffffff; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .card { background-color: #0c2016; border: 1px solid #163827; border-radius: 20px; padding: 40px; max-width: 460px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .logout-link { display: inline-block; color: #ff4d4d; text-decoration: none; font-weight: 700; font-size: 0.85rem; margin-bottom: 20px; transition: color 0.2s ease; }
-        .logout-link:hover { color: #ff1a1a; text-decoration: underline; }
-        h1 { color: #00ff66; font-size: 2.2rem; font-weight: 800; margin-bottom: 10px; letter-spacing: -0.5px; }
-        p.subtitle { color: #8fa89b; font-size: 0.95rem; margin-bottom: 30px; line-height: 1.4; }
-        .menu-options { display: flex; flex-direction: column; gap: 15px; }
-        .btn { display: block; text-align: center; background-color: #00ff66; color: #06140d; text-decoration: none; padding: 14px 24px; border-radius: 50px; font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; transition: all 0.2s ease; }
-        .btn:hover { background-color: #00cc52; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,255,102,0.2); }
+
+        * {
+
+            margin:0;
+
+            padding:0;
+
+            box-sizing:border-box;
+
+            font-family:
+                'Segoe UI',
+                Roboto,
+                sans-serif;
+        }
+
+        body {
+
+            background:#06140d;
+
+            color:#fff;
+
+            min-height:100vh;
+
+            display:flex;
+
+            justify-content:center;
+
+            align-items:center;
+
+            padding:20px;
+        }
+
+        .card {
+
+            background:#0c2016;
+
+            border:
+                1px solid
+                #163827;
+
+            border-radius:20px;
+
+            padding:40px;
+
+            max-width:500px;
+
+            width:100%;
+
+            box-shadow:
+                0 10px 30px
+                rgba(0,0,0,.5);
+        }
+
+        .logout {
+
+            display:inline-block;
+
+            color:#ff6666;
+
+            text-decoration:none;
+
+            font-weight:700;
+
+            margin-bottom:20px;
+        }
+
+        h1 {
+
+            color:#00ff66;
+
+            margin-bottom:10px;
+        }
+
+        .subtitle {
+
+            color:#8fa89b;
+
+            margin-bottom:25px;
+
+            line-height:1.5;
+        }
+
+        .menu {
+
+            display:flex;
+
+            flex-direction:column;
+
+            gap:12px;
+        }
+
+        .btn {
+
+            display:block;
+
+            text-align:center;
+
+            background:#00ff66;
+
+            color:#06140d;
+
+            text-decoration:none;
+
+            padding:14px 20px;
+
+            border-radius:50px;
+
+            font-weight:800;
+
+            text-transform:uppercase;
+        }
+
+        .btn:hover {
+
+            background:#00cc52;
+        }
+
     </style>
+
 </head>
+
 <body>
-    <div class="card">
-        <a href="/login" class="logout-link">Deslogar</a>
-        <h1>Painel do Professor</h1>
-        <p class="subtitle">Selecione uma das opções abaixo para gerenciar os cadastros e treinos da assessoria.</p>
-        <div class="menu-options">
-            <a href="/novo-aluno" class="btn">Cadastrar Novo Aluno</a>
-            <a href="/novo-treino-base" class="btn">Cadastrar Treino Base</a>
-            <a href="/novo-treino" class="btn">Agendar Novo Treino</a>
-        </div>
+
+<div class="card">
+
+
+    <!-- LOGOUT -->
+
+    <a
+        class="logout"
+        href="/login"
+        onclick="sair(event)"
+    >
+
+        Deslogar
+
+    </a>
+
+
+    <!-- TÍTULO -->
+
+    <h1>
+
+        Painel do Professor
+
+    </h1>
+
+
+    <p class="subtitle">
+
+        Gerencie alunos,
+        treinos e agendamentos.
+
+    </p>
+
+
+    <!-- MENU -->
+
+    <div class="menu">
+
+
+        <a
+            class="btn"
+            href="/novo-aluno"
+        >
+
+            Cadastrar Novo Aluno
+
+        </a>
+
+
+        <a
+            class="btn"
+            href="/novo-treino-base"
+        >
+
+            Cadastrar Treino Base
+
+        </a>
+
+
+        <a
+            class="btn"
+            href="/novo-treino"
+        >
+
+            Agendar Novo Treino
+
+        </a>
+
+
     </div>
+
+</div>
+
+
+<script>
+
+async function sair(event) {
+
+    // Impede que o link
+    // simplesmente abra /login
+    event.preventDefault();
+
+
+    // Faz logout
+    await fetch(
+        '/api/logout',
+        {
+            method:'POST'
+        }
+    );
+
+
+    // Volta para login
+    window.location.href =
+        '/login';
+}
+
+</script>
+
 </body>
+
 </html>
