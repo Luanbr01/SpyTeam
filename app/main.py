@@ -13,22 +13,23 @@ from fastapi import (
 )
 
 from fastapi.responses import (
-    FileResponse,
     JSONResponse,
     RedirectResponse
 )
 
+from fastapi.templating import Jinja2Templates
+
 from sqlalchemy.orm import Session
 
-from database import (
+from .database import (
     engine,
     SessionLocal
 )
 
-import models
-import schemas
+from . import models
+from . import schemas
 
-from auth import (
+from .auth import (
     COOKIE_NAME,
     criar_token,
     hash_senha,
@@ -59,6 +60,11 @@ models.Base.metadata.create_all(
 
 app = FastAPI(
     title="SpyTeam"
+)
+
+# HTMLs ficam dentro da pasta templates/
+templates = Jinja2Templates(
+    directory="templates"
 )
 
 
@@ -313,8 +319,9 @@ def pagina_login(
         )
 
     # Mostra login
-    return FileResponse(
-        "login.html"
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html"
     )
 
 
@@ -324,12 +331,14 @@ def pagina_login(
 
 @app.get("/home")
 def home(
+    request: Request,
     usuario: models.Usuario =
     Depends(require_professor)
 ):
 
-    return FileResponse(
-        "home.html"
+    return templates.TemplateResponse(
+        request=request,
+        name="home.html"
     )
 
 
@@ -339,12 +348,14 @@ def home(
 
 @app.get("/aluno")
 def aluno(
+    request: Request,
     usuario: models.Usuario =
     Depends(require_aluno)
 ):
 
-    return FileResponse(
-        "aluno.html"
+    return templates.TemplateResponse(
+        request=request,
+        name="aluno.html"
     )
 
 
@@ -354,12 +365,14 @@ def aluno(
 
 @app.get("/novo-aluno")
 def pagina_novo_aluno(
+    request: Request,
     usuario: models.Usuario =
     Depends(require_professor)
 ):
 
-    return FileResponse(
-        "novo_aluno.html"
+    return templates.TemplateResponse(
+        request=request,
+        name="alunos/novo_aluno.html"
     )
 
 
@@ -369,12 +382,14 @@ def pagina_novo_aluno(
 
 @app.get("/novo-treino")
 def pagina_novo_treino(
+    request: Request,
     usuario: models.Usuario =
     Depends(require_professor)
 ):
 
-    return FileResponse(
-        "novo_treino.html"
+    return templates.TemplateResponse(
+        request=request,
+        name="treinos/novo_treino.html"
     )
 
 
@@ -384,12 +399,14 @@ def pagina_novo_treino(
 
 @app.get("/novo-treino-base")
 def pagina_novo_treino_base(
+    request: Request,
     usuario: models.Usuario =
     Depends(require_professor)
 ):
 
-    return FileResponse(
-        "novo_treino_base.html"
+    return templates.TemplateResponse(
+        request=request,
+        name="treinos/novo_treino_base.html"
     )
 
 
@@ -1129,58 +1146,48 @@ def listar_treinos_do_aluno(
 
 @app.patch("/api/treinos/{treino_id}/concluir")
 def concluir_treino(
-
     treino_id: int,
-
-    db: Session =
-    Depends(get_db),
-
-    usuario: models.Usuario =
-    Depends(require_aluno)
+    feedback: schemas.FeedbackTreinoCreate,
+    db: Session = Depends(get_db)
 ):
 
-    # Procura o treino
-    #
-    # E, ao mesmo tempo, verifica se
-    # ele pertence ao aluno logado.
-    treino = (
+    treino = db.query(
+        models.TreinoAgendado
+    ).filter(
+        models.TreinoAgendado.id == treino_id
+    ).first()
 
-        db.query(
-            models.TreinoAgendado
-        )
-
-        .filter(
-
-            models.TreinoAgendado.id
-            == treino_id,
-
-            models.TreinoAgendado.aluno_id
-            == usuario.aluno_id
-
-        )
-
-        .first()
-    )
-
-    # Não encontrou
     if not treino:
-
         raise HTTPException(
-
             status_code=404,
-
-            detail=
-                "Treino não encontrado."
+            detail="Treino não encontrado."
         )
 
-    # Marca como concluído
+    if treino.concluido:
+        raise HTTPException(
+            status_code=400,
+            detail="Este treino já foi concluído."
+        )
+
+    # Validação da nota
+    if feedback.nota < 1 or feedback.nota > 5:
+        raise HTTPException(
+            status_code=400,
+            detail="A nota deve estar entre 1 e 5."
+        )
+
+    # Salva feedback
+    treino.feedback_nota = feedback.nota
+    treino.feedback_dificuldade = feedback.dificuldade
+    treino.feedback_comentario = feedback.comentario
+
+    # Marca treino como concluído
     treino.concluido = True
 
-    # Salva
     db.commit()
+    db.refresh(treino)
 
     return {
-
-        "mensagem":
-            "Treino marcado como concluído!"
+        "mensagem": "Treino concluído e feedback salvo!",
+        "treino": treino
     }

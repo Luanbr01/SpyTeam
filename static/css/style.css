@@ -1,0 +1,109 @@
+.semana {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.dia-card {
+    background: #0b2418;
+    border: 1px solid #16452e;
+    border-radius: 16px;
+    padding: 18px;
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease;
+}
+
+.dia-card:hover {
+    border-color: #00ff66;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 255, 102, 0.08);
+}
+
+.dia-nome {
+    color: #00ff66;
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 5px;
+}
+
+.dia-data {
+    color: #8fa89b;
+    font-size: 0.8rem;
+    margin-bottom: 18px;
+}
+
+.dia-sem-treino {
+    color: #6f8a7a;
+    font-size: 0.85rem;
+    margin-top: auto;
+    margin-bottom: auto;
+    text-align: center;
+}
+
+.treino-dia {
+    background: #122c1e;
+    border: 1px solid #1d4630;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.treino-dia h3 {
+    color: white;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.treino-dia p {
+    color: #9eb5a7;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    margin: 4px 0;
+}
+
+.btn-concluir {
+    width: 100%;
+    margin-top: 10px;
+    border: none;
+    background: #00ff66;
+    color: #06140d;
+    padding: 9px;
+    border-radius: 9px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.btn-concluir:hover {
+    background: #00cc52;
+}
+
+.treino-concluido {
+    border-color: #00ff66;
+    opacity: 0.75;
+}
+
+.badge-concluido {
+    display: inline-block;
+    background: #00ff66;
+    color: #06140d;
+    padding: 4px 7px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    margin-top: 7px;
+}
+
+@media (max-width: 1000px) {
+    .semana {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 650px) {
+    .semana {
+        grid-template-columns: 1fr;
+    }
+}

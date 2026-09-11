@@ -105,3 +105,17 @@ class TreinoEmMassaCreate(BaseModel):
     treino_base_id: int
 
     data_planejada: str
+
+class FeedbackTreinoCreate(BaseModel):
+    nota: int
+    dificuldade: str
+    comentario: str | None = None
+
+# ============================================================
+# FEEDBACK DO TREINO
+# ============================================================
+
+class FeedbackTreinoCreate(BaseModel):
+    nota: int
+    dificuldade: str
+    comentario: str | None = None
