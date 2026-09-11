@@ -68,24 +68,100 @@
             });
         }
 
-        document.getElementById('formTreino').addEventListener('submit', async (e) => {
+        document
+    .getElementById('formTreino')
+    .addEventListener(
+        'submit',
+        async (e) => {
+
             e.preventDefault();
-            const aluno_id = parseInt(document.getElementById('aluno').value);
-            const treino_base_id = parseInt(document.getElementById('treinoBase').value);
-            const data_planejada = document.getElementById('data').value;
 
-            const res = await fetch('/api/treinos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ aluno_id, treino_base_id, data_planejada })
-            });
+            const mensagem =
+                document.getElementById(
+                    'mensagem'
+                );
 
-            if (res.ok) {
-                document.getElementById('mensagem').innerText = "Treino agendado com sucesso!";
-            } else {
-                document.getElementById('mensagem').innerText = "Erro ao agendar treino.";
+            const aluno_id =
+                parseInt(
+                    document.getElementById(
+                        'aluno'
+                    ).value
+                );
+
+            const treino_base_id =
+                parseInt(
+                    document.getElementById(
+                        'treinoBase'
+                    ).value
+                );
+
+            const data_planejada =
+                document.getElementById(
+                    'data'
+                ).value;
+
+            try {
+
+                const res =
+                    await fetch(
+                        '/api/treinos',
+                        {
+                            method: 'POST',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/json'
+                            },
+
+                            body: JSON.stringify({
+                                aluno_id,
+                                treino_base_id,
+                                data_planejada
+                            })
+                        }
+                    );
+
+                const retorno =
+                    await res
+                        .json()
+                        .catch(() => ({}));
+
+                if (res.ok) {
+
+                    mensagem.textContent =
+                        'Treino agendado com sucesso!';
+
+                    mensagem.style.color =
+                        '#00ff66';
+
+                    document
+                        .getElementById(
+                            'formTreino'
+                        )
+                        .reset();
+
+                } else {
+
+                    mensagem.textContent =
+                        retorno.detail ||
+                        `Erro HTTP ${res.status}`;
+
+                    mensagem.style.color =
+                        '#ff6666';
+                }
+
+            } catch (erro) {
+
+                console.error(erro);
+
+                mensagem.textContent =
+                    'Erro de comunicação com o servidor.';
+
+                mensagem.style.color =
+                    '#ff6666';
             }
-        });
+        }
+    );
 
         carregarSelects();
     </script>

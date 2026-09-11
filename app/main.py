@@ -5,19 +5,15 @@
 
 import os
 
-from fastapi import (
-    FastAPI,
-    Depends,
-    HTTPException,
-    Request
-)
+from fastapi import FastAPI, Depends, HTTPException, Request
+
 
 from fastapi.responses import (
     JSONResponse,
     RedirectResponse
 )
 
-from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 from sqlalchemy.orm import Session
 
@@ -36,7 +32,6 @@ from .auth import (
     ler_token,
     verificar_senha
 )
-
 
 # ============================================================
 # CRIA AS TABELAS
@@ -58,15 +53,21 @@ models.Base.metadata.create_all(
 # FASTAPI
 # ============================================================
 
+from fastapi.templating import Jinja2Templates
+
 app = FastAPI(
     title="SpyTeam"
 )
 
-# HTMLs ficam dentro da pasta templates/
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static"
+)
+
 templates = Jinja2Templates(
     directory="templates"
 )
-
 
 # ============================================================
 # CONEXÃO COM BANCO
@@ -320,9 +321,10 @@ def pagina_login(
 
     # Mostra login
     return templates.TemplateResponse(
-        request=request,
-        name="login.html"
-    )
+    request=request,
+    name="login.html"
+)
+    
 
 
 # ============================================================
@@ -337,9 +339,9 @@ def home(
 ):
 
     return templates.TemplateResponse(
-        request=request,
-        name="home.html"
-    )
+    request=request,
+    name="home.html"
+)
 
 
 # ============================================================
@@ -354,9 +356,9 @@ def aluno(
 ):
 
     return templates.TemplateResponse(
-        request=request,
-        name="aluno.html"
-    )
+    request=request,
+    name="aluno.html"
+)
 
 
 # ============================================================
@@ -371,9 +373,9 @@ def pagina_novo_aluno(
 ):
 
     return templates.TemplateResponse(
-        request=request,
-        name="alunos/novo_aluno.html"
-    )
+    request=request,
+    name="alunos/novo_aluno.html"
+)
 
 
 # ============================================================
@@ -388,9 +390,9 @@ def pagina_novo_treino(
 ):
 
     return templates.TemplateResponse(
-        request=request,
-        name="treinos/novo_treino.html"
-    )
+    request=request,
+    name="treinos/novo_treino.html"
+)
 
 
 # ============================================================
@@ -405,9 +407,9 @@ def pagina_novo_treino_base(
 ):
 
     return templates.TemplateResponse(
-        request=request,
-        name="treinos/novo_treino_base.html"
-    )
+    request=request,
+    name="treinos/novo_treino_base.html"
+)
 
 
 # ============================================================
