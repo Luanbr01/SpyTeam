@@ -115,7 +115,3 @@ class FeedbackTreinoCreate(BaseModel):
 # FEEDBACK DO TREINO
 # ============================================================
 
-class FeedbackTreinoCreate(BaseModel):
-    nota: int
-    dificuldade: str
-    comentario: str | None = None

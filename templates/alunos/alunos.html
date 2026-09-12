@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Meus Alunos - SpyTeam
+    </title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+
+            margin: 0;
+
+            padding: 30px;
+
+            background: #06140d;
+
+            color: white;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+        }
+
+
+        .container {
+
+            max-width: 1100px;
+
+            margin: auto;
+        }
+
+
+        /* ==================================================
+           CABEÇALHO
+           ================================================== */
+
+        .topo {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            margin-bottom: 30px;
+        }
+
+
+        h1 {
+
+            color: #00ff66;
+
+            margin: 0 0 5px;
+        }
+
+
+        .subtitulo {
+
+            color: #8fa89b;
+
+            margin: 0;
+        }
+
+
+        .voltar {
+
+            text-decoration: none;
+
+            color: white;
+
+            background: #122c1e;
+
+            border: 1px solid #1d4630;
+
+            padding: 10px 18px;
+
+            border-radius: 10px;
+        }
+
+
+        /* ==================================================
+           LISTA DE ALUNOS
+           ================================================== */
+
+        #listaAlunos {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(280px, 1fr)
+                );
+
+            gap: 20px;
+        }
+
+
+        .aluno-card {
+
+            background: #0c2016;
+
+            border: 1px solid #163827;
+
+            border-radius: 18px;
+
+            padding: 20px;
+        }
+
+
+        .aluno-card h2 {
+
+            margin-top: 0;
+
+            color: #fff;
+        }
+
+
+        .aluno-card p {
+
+            color: #8fa89b;
+
+            margin: 8px 0;
+        }
+
+
+        .btn-ver {
+
+            margin-top: 15px;
+
+            width: 100%;
+
+            padding: 12px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            background: #00ff66;
+
+            color: #06140d;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+
+        /* ==================================================
+           DETALHES DO ALUNO
+           ================================================== */
+
+        #detalhes {
+
+            display: none;
+
+            margin-top: 30px;
+
+            background: #0c2016;
+
+            border: 1px solid #163827;
+
+            border-radius: 18px;
+
+            padding: 25px;
+        }
+
+
+        #nomeAluno {
+
+            color: #00ff66;
+        }
+
+
+        #nivelAluno {
+
+            color: #8fa89b;
+        }
+
+
+        /* ==================================================
+           TREINO
+           ================================================== */
+
+        .treino-card {
+
+            background: #122c1e;
+
+            border: 1px solid #1d4630;
+
+            border-radius: 14px;
+
+            padding: 18px;
+
+            margin-top: 15px;
+        }
+
+
+        .treino-card h3 {
+
+            margin-top: 0;
+
+            color: #fff;
+        }
+
+
+        .treino-card p {
+
+            color: #b4c5bb;
+
+            line-height: 1.5;
+        }
+
+
+        /* ==================================================
+           STATUS
+           ================================================== */
+
+        .status {
+
+            display: inline-block;
+
+            padding: 5px 10px;
+
+            border-radius: 20px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+        }
+
+
+        .concluido {
+
+            background: #00ff66;
+
+            color: #06140d;
+        }
+
+
+        .pendente {
+
+            background: #555;
+
+            color: white;
+        }
+
+
+        /* ==================================================
+           FEEDBACK
+           ================================================== */
+
+        .feedback {
+
+            margin-top: 15px;
+
+            padding: 15px;
+
+            background: #0c2016;
+
+            border-left: 3px solid #00ff66;
+
+            border-radius: 8px;
+        }
+
+
+        .feedback h4 {
+
+            color: #00ff66;
+
+            margin-top: 0;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- ==================================================
+         CABEÇALHO
+         ================================================== -->
+
+    <div class="topo">
+
+        <div>
+
+            <h1>
+                Meus Alunos
+            </h1>
+
+            <p class="subtitulo">
+
+                Consulte alunos,
+                treinos e feedbacks.
+
+            </p>
+
+        </div>
+
+
+        <a
+            href="/home"
+            class="voltar"
+        >
+
+            ← Voltar
+
+        </a>
+
+    </div>
+
+
+    <!-- ==================================================
+         LISTA DE ALUNOS
+         ================================================== -->
+
+    <div id="listaAlunos">
+
+        Carregando alunos...
+
+    </div>
+
+
+    <!-- ==================================================
+         DETALHES
+         ================================================== -->
+
+    <div id="detalhes">
+
+        <h2 id="nomeAluno"></h2>
+
+        <p id="nivelAluno"></p>
+
+
+        <h3>
+
+            Treinos enviados
+
+        </h3>
+
+
+        <div id="listaTreinos"></div>
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+
+// ==========================================================
+// LISTA DE ALUNOS
+// ==========================================================
+
+let alunos = [];
+
+
+// ==========================================================
+// CARREGAR ALUNOS
+// ==========================================================
+
+async function carregarAlunos() {
+
+    try {
+
+        const resposta =
+            await fetch(
+                '/api/alunos'
+            );
+
+
+        // --------------------------------------------------
+        // Verificar autenticação
+        // --------------------------------------------------
+
+        if (
+            resposta.status === 401
+            ||
+            resposta.status === 403
+        ) {
+
+            window.location.href =
+                '/login';
+
+            return;
+        }
+
+
+        // --------------------------------------------------
+        // Verificar erro
+        // --------------------------------------------------
+
+        if (!resposta.ok) {
+
+            document
+                .getElementById(
+                    'listaAlunos'
+                )
+                .innerHTML =
+
+                '<p>' +
+                'Erro ao carregar os alunos.' +
+                '</p>';
+
+            return;
+        }
+
+
+        // --------------------------------------------------
+        // Converter JSON
+        // --------------------------------------------------
+
+        alunos =
+            await resposta.json();
+
+
+        // --------------------------------------------------
+        // Mostrar
+        // --------------------------------------------------
+
+        mostrarAlunos();
+
+    }
+
+    catch (erro) {
+
+        console.error(
+            erro
+        );
+
+        document
+            .getElementById(
+                'listaAlunos'
+            )
+            .innerHTML =
+
+            '<p>' +
+            'Erro de conexão com o servidor.' +
+            '</p>';
+    }
+}
+
+
+// ==========================================================
+// MOSTRAR ALUNOS
+// ==========================================================
+
+function mostrarAlunos() {
+
+    const container =
+        document
+        .getElementById(
+            'listaAlunos'
+        );
+
+
+    // Nenhum aluno
+    if (!alunos.length) {
+
+        container.innerHTML =
+
+            '<p>' +
+            'Nenhum aluno cadastrado.' +
+            '</p>';
+
+        return;
+    }
+
+
+    // Cria os cards
+    container.innerHTML =
+
+        alunos.map(
+
+            aluno => `
+
+                <div class="aluno-card">
+
+                    <h2>
+                        ${escapeHtml(
+                            aluno.nome
+                        )}
+                    </h2>
+
+
+                    <p>
+
+                        <strong>
+                            Nível:
+                        </strong>
+
+                        ${escapeHtml(
+                            aluno.nivel
+                        )}
+
+                    </p>
+
+
+                    <p>
+
+                        <strong>
+                            Usuário:
+                        </strong>
+
+                        ${escapeHtml(
+                            aluno.usuario
+                            || '-'
+                        )}
+
+                    </p>
+
+
+                    <button
+                        class="btn-ver"
+                        onclick="
+                            verAluno(
+                                ${aluno.id}
+                            )
+                        "
+                    >
+
+                        Ver treinos e feedbacks
+
+                    </button>
+
+                </div>
+
+            `
+
+        ).join('');
+}
+
+
+// ==========================================================
+// VER ALUNO
+// ==========================================================
+
+async function verAluno(
+    alunoId
+) {
+
+    const aluno =
+        alunos.find(
+            a => a.id === alunoId
+        );
+
+
+    if (!aluno) {
+
+        return;
+    }
+
+
+    // ------------------------------------------------------
+    // Mostrar área de detalhes
+    // ------------------------------------------------------
+
+    document
+        .getElementById(
+            'detalhes'
+        )
+        .style.display =
+            'block';
+
+
+    // ------------------------------------------------------
+    // Nome
+    // ------------------------------------------------------
+
+    document
+        .getElementById(
+            'nomeAluno'
+        )
+        .textContent =
+            aluno.nome;
+
+
+    // ------------------------------------------------------
+    // Nível
+    // ------------------------------------------------------
+
+    document
+        .getElementById(
+            'nivelAluno'
+        )
+        .textContent =
+            `Nível: ${aluno.nivel}`;
+
+
+    // ------------------------------------------------------
+    // Mensagem inicial
+    // ------------------------------------------------------
+
+    const lista =
+        document
+        .getElementById(
+            'listaTreinos'
+        );
+
+
+    lista.innerHTML =
+        '<p>Carregando treinos...</p>';
+
+
+    // ------------------------------------------------------
+    // Buscar treinos
+    // ------------------------------------------------------
+
+    const resposta =
+        await fetch(
+
+            `/api/alunos/${alunoId}/treinos`
+
+        );
+
+
+    if (!resposta.ok) {
+
+        lista.innerHTML =
+            '<p>Erro ao carregar os treinos.</p>';
+
+        return;
+    }
+
+
+    const treinos =
+        await resposta.json();
+
+
+    // ------------------------------------------------------
+    // Mostrar treinos
+    // ------------------------------------------------------
+
+    mostrarTreinos(
+        treinos
+    );
+}
+
+
+// ==========================================================
+// MOSTRAR TREINOS
+// ==========================================================
+
+function mostrarTreinos(
+    treinos
+) {
+
+    const lista =
+        document
+        .getElementById(
+            'listaTreinos'
+        );
+
+
+    // Nenhum treino
+    if (!treinos.length) {
+
+        lista.innerHTML =
+            '<p>Nenhum treino enviado.</p>';
+
+        return;
+    }
+
+
+    // Cria os cards
+    lista.innerHTML =
+
+        treinos.map(
+
+            treino => `
+
+                <div class="treino-card">
+
+                    <h3>
+
+                        ${escapeHtml(
+                            treino.treino
+                        )}
+
+                    </h3>
+
+
+                    <p>
+
+                        <strong>
+                            Modalidade:
+                        </strong>
+
+                        ${escapeHtml(
+                            treino.modalidade
+                        )}
+
+                    </p>
+
+
+                    <p>
+
+                        <strong>
+                            Data:
+                        </strong>
+
+                        ${escapeHtml(
+                            treino.data_planejada
+                        )}
+
+                    </p>
+
+
+                    <p>
+
+                        <strong>
+                            Descrição:
+                        </strong>
+
+                        ${escapeHtml(
+                            treino.descricao
+                        )}
+
+                    </p>
+
+
+                    <p>
+
+                        <strong>
+                            Ritmo alvo:
+                        </strong>
+
+                        ${escapeHtml(
+                            treino.ritmo_alvo
+                            || '-'
+                        )}
+
+                    </p>
+
+
+                    ${
+                        treino.concluido
+
+                        ?
+
+                        `
+
+                            <span
+                                class="
+                                    status
+                                    concluido
+                                "
+                            >
+                                CONCLUÍDO
+                            </span>
+
+
+                            <div class="feedback">
+
+                                <h4>
+                                    Feedback do aluno
+                                </h4>
+
+
+                                <p>
+
+                                    <strong>
+                                        Nota:
+                                    </strong>
+
+                                    ${
+                                        treino
+                                        .feedback_nota
+                                        ?? '-'
+                                    }/5
+
+                                </p>
+
+
+                                <p>
+
+                                    <strong>
+                                        Dificuldade:
+                                    </strong>
+
+                                    ${escapeHtml(
+                                        treino
+                                        .feedback_dificuldade
+                                        || '-'
+                                    )}
+
+                                </p>
+
+
+                                <p>
+
+                                    <strong>
+                                        Comentário:
+                                    </strong>
+
+                                    ${escapeHtml(
+                                        treino
+                                        .feedback_comentario
+                                        || 'Sem comentário.'
+                                    )}
+
+                                </p>
+
+                            </div>
+
+                        `
+
+                        :
+
+                        `
+
+                            <span
+                                class="
+                                    status
+                                    pendente
+                                "
+                            >
+                                PENDENTE
+                            </span>
+
+                        `
+                    }
+
+                </div>
+
+            `
+
+        ).join('');
+}
+
+
+// ==========================================================
+// PROTEGER TEXTO
+// ==========================================================
+
+function escapeHtml(
+    texto
+) {
+
+    return String(
+        texto ?? ''
+    ).replace(
+
+        /[&<>'"]/g,
+
+        caractere => ({
+
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+
+        }[caractere])
+
+    );
+}
+
+
+// ==========================================================
+// INICIAR
+// ==========================================================
+
+carregarAlunos();
+
+</script>
+
+
+</body>
+
+</html>

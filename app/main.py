@@ -376,6 +376,26 @@ def pagina_novo_aluno(
     request=request,
     name="alunos/novo_aluno.html"
 )
+# ============================================================
+# PÁGINA DE ALUNOS
+# ============================================================
+
+@app.get("/alunos")
+def pagina_alunos(
+
+    request: Request,
+
+    professor: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    return templates.TemplateResponse(
+
+        request=request,
+
+        name="alunos/alunos.html"
+    )
 
 
 # ============================================================
@@ -803,7 +823,8 @@ def agendar_treino(
 
 
 # ============================================================
-# LISTAR TREINOS
+# LISTAR TODOS OS TREINOS
+# USADO PELO PROFESSOR
 # ============================================================
 
 @app.get("/api/treinos")
@@ -816,74 +837,148 @@ def listar_treinos_agendados(
     Depends(require_professor)
 ):
 
+    # --------------------------------------------------------
+    # BUSCAR TODOS OS TREINOS AGENDADOS
+    # --------------------------------------------------------
+
     treinos = (
+
         db.query(
             models.TreinoAgendado
         )
+
+        .order_by(
+            models.TreinoAgendado
+            .data_planejada
+            .asc()
+        )
+
         .all()
     )
+
+
+    # --------------------------------------------------------
+    # MONTAR RESPOSTA
+    # --------------------------------------------------------
 
     return [
 
         {
 
+            # ID do agendamento
             "id":
                 t.id,
 
+            # ID do aluno
             "aluno_id":
                 t.aluno_id,
 
+            # Nome do aluno
             "aluno":
                 t.aluno.nome,
 
+            # ID do treino base
             "treino_base_id":
                 t.treino_base_id,
 
+            # Nome do treino
             "treino":
                 t.treino_base.titulo,
 
+            # Modalidade
             "modalidade":
                 t.treino_base.modalidade,
 
+            # Descrição
             "descricao":
                 t.treino_base.descricao,
 
+            # Ritmo alvo
             "ritmo_alvo":
                 t.treino_base.ritmo_alvo,
 
+            # Data planejada
             "data_planejada":
                 t.data_planejada,
 
+            # Status
             "concluido":
-                t.concluido
+                t.concluido,
+
+
+            # =================================================
+            # FEEDBACK DO ALUNO
+            # =================================================
+
+            "feedback_nota":
+                t.feedback_nota,
+
+            "feedback_dificuldade":
+                t.feedback_dificuldade,
+
+            "feedback_comentario":
+                t.feedback_comentario
+
         }
 
         for t in treinos
     ]
 
-
 # ============================================================
 # LISTAR TREINOS BASE
+# USADO PELO PROFESSOR
 # ============================================================
 
 @app.get("/api/treinos-base")
 def listar_treinos_base(
 
     db: Session =
-    Depends(get_db),
+        Depends(get_db),
 
     professor: models.Usuario =
-    Depends(require_professor)
+        Depends(require_professor)
+
 ):
 
-    return (
+    # Busca todos os treinos base
+    treinos = (
+
         db.query(
             models.TreinoBase
         )
+
+        .order_by(
+            models.TreinoBase.id.asc()
+        )
+
         .all()
     )
 
 
+    # Retorna os treinos
+    return [
+
+        {
+
+            "id":
+                treino.id,
+
+            "titulo":
+                treino.titulo,
+
+            "modalidade":
+                treino.modalidade,
+
+            "descricao":
+                treino.descricao,
+
+            "ritmo_alvo":
+                treino.ritmo_alvo
+
+        }
+
+        for treino in treinos
+    ]
 # ============================================================
 # CRIAR TREINO BASE
 # ============================================================
@@ -1063,48 +1158,58 @@ def meus_treinos(
 
     return [
 
-        {
+    {
+
+        "id":
+            t.id,
+
+        "data_planejada":
+            t.data_planejada,
+
+        "concluido":
+            t.concluido,
+
+        "feedback_nota":
+            t.feedback_nota,
+
+        "feedback_dificuldade":
+            t.feedback_dificuldade,
+
+        "feedback_comentario":
+            t.feedback_comentario,
+
+        "treino": {
 
             "id":
-                t.id,
+                t.treino_base.id,
 
-            "data_planejada":
-                t.data_planejada,
+            "titulo":
+                t.treino_base.titulo,
 
-            "concluido":
-                t.concluido,
+            "modalidade":
+                t.treino_base.modalidade,
 
-            "treino": {
+            "descricao":
+                t.treino_base.descricao,
 
-                "id":
-                    t.treino_base.id,
-
-                "titulo":
-                    t.treino_base.titulo,
-
-                "modalidade":
-                    t.treino_base.modalidade,
-
-                "descricao":
-                    t.treino_base.descricao,
-
-                "ritmo_alvo":
-                    t.treino_base.ritmo_alvo
-            }
+            "ritmo_alvo":
+                t.treino_base.ritmo_alvo
         }
+    }
 
-        for t in treinos
-    ]
+    for t in treinos
+
+]
 
 
 # ============================================================
-# TREINOS DE UM ALUNO
+# LISTAR TREINOS DE UM ALUNO
+# SOMENTE PROFESSOR
 # ============================================================
-#
-# Essa rota continua existindo para o PROFESSOR.
-#
-# O professor pode consultar qualquer aluno.
-#
+
+# ============================================================
+# LISTAR TREINOS DE UM ALUNO
+# SOMENTE PROFESSOR
 # ============================================================
 
 @app.get("/api/alunos/{aluno_id}/treinos")
@@ -1113,13 +1218,47 @@ def listar_treinos_do_aluno(
     aluno_id: int,
 
     db: Session =
-    Depends(get_db),
+        Depends(get_db),
 
     professor: models.Usuario =
-    Depends(require_professor)
+        Depends(require_professor)
+
 ):
 
-    return (
+    # --------------------------------------------------------
+    # VERIFICAR SE O ALUNO EXISTE
+    # --------------------------------------------------------
+
+    aluno = (
+
+        db.query(
+            models.Aluno
+        )
+
+        .filter(
+            models.Aluno.id == aluno_id
+        )
+
+        .first()
+    )
+
+
+    # Se o aluno não existir
+    if not aluno:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail="Aluno não encontrado."
+        )
+
+
+    # --------------------------------------------------------
+    # BUSCAR TREINOS DO ALUNO
+    # --------------------------------------------------------
+
+    treinos = (
 
         db.query(
             models.TreinoAgendado
@@ -1133,24 +1272,151 @@ def listar_treinos_do_aluno(
         )
 
         .order_by(
+
             models.TreinoAgendado
             .data_planejada
             .asc()
+
         )
 
         .all()
     )
 
 
+    # --------------------------------------------------------
+    # MONTAR RESPOSTA
+    # --------------------------------------------------------
+
+    resultado = []
+
+
+    # Percorre cada treino
+    for t in treinos:
+
+        # ----------------------------------------------------
+        # VERIFICAR SE O TREINO BASE EXISTE
+        # ----------------------------------------------------
+
+        if t.treino_base is None:
+
+            # O agendamento existe,
+            # mas o treino base relacionado
+            # foi apagado ou não existe.
+
+            resultado.append({
+
+                "id":
+                    t.id,
+
+                "aluno_id":
+                    t.aluno_id,
+
+                "treino_base_id":
+                    t.treino_base_id,
+
+                "treino":
+                    "Treino não encontrado",
+
+                "modalidade":
+                    "-",
+
+                "descricao":
+                    "O treino base deste agendamento não existe.",
+
+                "ritmo_alvo":
+                    "-",
+
+                "data_planejada":
+                    t.data_planejada,
+
+                "concluido":
+                    t.concluido,
+
+                "feedback_nota":
+                    t.feedback_nota,
+
+                "feedback_dificuldade":
+                    t.feedback_dificuldade,
+
+                "feedback_comentario":
+                    t.feedback_comentario
+            })
+
+            # Passa para o próximo treino
+            continue
+
+
+        # ----------------------------------------------------
+        # TREINO BASE EXISTE
+        # ----------------------------------------------------
+
+        resultado.append({
+
+            "id":
+                t.id,
+
+            "aluno_id":
+                t.aluno_id,
+
+            "treino_base_id":
+                t.treino_base_id,
+
+            "treino":
+                t.treino_base.titulo,
+
+            "modalidade":
+                t.treino_base.modalidade,
+
+            "descricao":
+                t.treino_base.descricao,
+
+            "ritmo_alvo":
+                t.treino_base.ritmo_alvo,
+
+            "data_planejada":
+                t.data_planejada,
+
+            "concluido":
+                t.concluido,
+
+            # ------------------------------------------------
+            # FEEDBACK DO ALUNO
+            # ------------------------------------------------
+
+            "feedback_nota":
+                t.feedback_nota,
+
+            "feedback_dificuldade":
+                t.feedback_dificuldade,
+
+            "feedback_comentario":
+                t.feedback_comentario
+        })
+
+
+    # --------------------------------------------------------
+    # RETORNAR RESULTADO
+    # --------------------------------------------------------
+
+    return resultado
 # ============================================================
 # CONCLUIR TREINO
 # ============================================================
 
 @app.patch("/api/treinos/{treino_id}/concluir")
 def concluir_treino(
+
     treino_id: int,
-    feedback: schemas.FeedbackTreinoCreate,
-    db: Session = Depends(get_db)
+
+    feedback:
+        schemas.FeedbackTreinoCreate,
+
+    db: Session =
+        Depends(get_db),
+
+    usuario: models.Usuario =
+        Depends(require_aluno)
+
 ):
 
     treino = db.query(
@@ -1164,6 +1430,23 @@ def concluir_treino(
             status_code=404,
             detail="Treino não encontrado."
         )
+    # ============================================================
+# SEGURANÇA
+# ============================================================
+#
+# O aluno só pode concluir um treino
+# que realmente pertence a ele.
+#
+
+    if treino.aluno_id != usuario.aluno_id:
+
+        raise HTTPException(
+
+        status_code=403,
+
+        detail=
+            "Você não pode concluir este treino."
+    )
 
     if treino.concluido:
         raise HTTPException(
