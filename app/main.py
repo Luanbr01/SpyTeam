@@ -9,6 +9,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request
 
 
 from fastapi.responses import (
+    FileResponse,
     JSONResponse,
     RedirectResponse
 )
@@ -431,6 +432,19 @@ def pagina_novo_treino_base(
     name="treinos/novo_treino_base.html"
 )
 
+@app.get("/planejamento-semanal")
+def pagina_planejamento_semanal(
+    request: Request,
+    usuario: models.Usuario = Depends(require_professor)
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="planejamento_semanal.html",
+        context={
+            "request": request
+        }
+    )
+
 
 # ============================================================
 # LOGIN
@@ -639,7 +653,9 @@ def criar_aluno(
 
         nome=aluno.nome,
 
-        nivel=aluno.nivel
+        nivel=aluno.nivel,
+
+        modalidade=aluno.modalidade
     )
 
     db.add(
@@ -735,6 +751,9 @@ def listar_alunos(
 
             "nivel":
                 aluno.nivel,
+
+            "modalidade":
+                aluno.modalidade,
 
             "usuario":
                 usuario.usuario
@@ -1103,6 +1122,245 @@ def enviar_treino_em_massa(
 
         "total_enviados":
             len(alunos)
+    }
+
+# ============================================================
+# PLANEJAMENTO SEMANAL
+# ============================================================
+#
+# O professor informa os treinos de segunda a sexta.
+#
+# O sistema identifica a modalidade do treino base.
+#
+# Depois procura todos os alunos daquela modalidade
+# e cria um TreinoAgendado para cada um.
+#
+# ============================================================
+
+@app.post("/api/treinos/semana")
+def enviar_planejamento_semanal(
+
+    dados: list[schemas.TreinoDiaSemana],
+
+    data_segunda: str,
+
+    db: Session =
+        Depends(get_db),
+
+    professor: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    # --------------------------------------------------------
+    # IMPORTAR DATE
+    # --------------------------------------------------------
+
+    from datetime import datetime, timedelta
+
+
+    # --------------------------------------------------------
+    # CONVERTER A SEGUNDA-FEIRA
+    # --------------------------------------------------------
+
+    try:
+
+        segunda = datetime.strptime(
+            data_segunda,
+            "%Y-%m-%d"
+        ).date()
+
+    except ValueError:
+
+        raise HTTPException(
+
+            status_code=400,
+
+            detail=
+                "Data da segunda-feira inválida."
+        )
+
+
+    # --------------------------------------------------------
+    # VERIFICAR SE É SEGUNDA
+    # --------------------------------------------------------
+
+    if segunda.weekday() != 0:
+
+        raise HTTPException(
+
+            status_code=400,
+
+            detail=
+                "A data escolhida deve ser uma segunda-feira."
+        )
+
+
+    total_enviados = 0
+
+
+    # --------------------------------------------------------
+    # PROCESSAR CADA DIA
+    # --------------------------------------------------------
+
+    for item in dados:
+
+        # Verifica dia
+        if item.dia < 0 or item.dia > 6:
+
+            raise HTTPException(
+
+                status_code=400,
+
+                detail=
+                    "O dia deve estar entre 0 e 4."
+            )
+
+
+        # ----------------------------------------------------
+        # BUSCAR TREINO BASE
+        # ----------------------------------------------------
+
+        treino_base = (
+
+            db.query(
+                models.TreinoBase
+            )
+
+            .filter(
+
+                models.TreinoBase.id
+                == item.treino_base_id
+
+            )
+
+            .first()
+        )
+
+
+        if not treino_base:
+
+            raise HTTPException(
+
+                status_code=404,
+
+                detail=
+                    f"Treino base {item.treino_base_id} "
+                    f"não encontrado."
+            )
+
+
+        # ----------------------------------------------------
+        # DATA DO TREINO
+        # ----------------------------------------------------
+
+        data_treino = (
+            segunda
+            + timedelta(
+                days=item.dia
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # BUSCAR ALUNOS DA MODALIDADE
+        # ----------------------------------------------------
+
+        alunos = (
+
+            db.query(
+                models.Aluno
+            )
+
+            .filter(
+
+                models.Aluno.modalidade
+                == treino_base.modalidade
+
+            )
+
+            .all()
+        )
+
+
+        # ----------------------------------------------------
+        # ENVIAR PARA CADA ALUNO
+        # ----------------------------------------------------
+
+        for aluno in alunos:
+
+            # Evita duplicar exatamente o mesmo treino
+            # para o mesmo aluno no mesmo dia.
+
+            existente = (
+
+                db.query(
+                    models.TreinoAgendado
+                )
+
+                .filter(
+
+                    models.TreinoAgendado.aluno_id
+                    == aluno.id,
+
+                    models.TreinoAgendado
+                    .treino_base_id
+                    == treino_base.id,
+
+                    models.TreinoAgendado
+                    .data_planejada
+                    == data_treino.isoformat()
+
+                )
+
+                .first()
+            )
+
+
+            # Se já existir, não cria novamente
+            if existente:
+
+                continue
+
+
+            # Cria treino
+            novo_treino = (
+                models.TreinoAgendado(
+
+                    aluno_id=
+                        aluno.id,
+
+                    treino_base_id=
+                        treino_base.id,
+
+                    data_planejada=
+                        data_treino.isoformat()
+                )
+            )
+
+
+            db.add(
+                novo_treino
+            )
+
+
+            total_enviados += 1
+
+
+    # --------------------------------------------------------
+    # SALVAR
+    # --------------------------------------------------------
+
+    db.commit()
+
+
+    return {
+
+        "mensagem":
+            "Planejamento semanal enviado com sucesso!",
+
+        "total_enviados":
+            total_enviados
     }
 
 

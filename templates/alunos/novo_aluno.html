@@ -219,9 +219,36 @@
                 </option>
 
             </select>
+                </div>
 
+        <!-- MODALIDADE -->
+        <div class="group">
+            <label for="modalidade">
+                Modalidade
+            </label>
+
+            <select id="modalidade" required>
+                <option value="">
+                    Selecione a modalidade
+                </option>
+
+                <option value="Corrida">
+                    Corrida
+                </option>
+
+                <option value="Natação">
+                    Natação
+                </option>
+
+                <option value="Ciclismo">
+                    Ciclismo
+                </option>
+
+                <option value="Triathlon">
+                    Triathlon
+                </option>
+            </select>
         </div>
-
 
         <!-- USUÁRIO -->
 
@@ -297,33 +324,40 @@
                 // Dados que serão enviados
                 const dados = {
 
-                    nome:
-                        document
-                        .getElementById(
-                            'nome'
-                        )
-                        .value,
+                nome:
+                    document
+                    .getElementById(
+                        'nome'
+                    )
+                    .value,
 
-                    nivel:
-                        document
-                        .getElementById(
+                nivel:
+                    document
+                    .getElementById(
                             'nivel'
-                        )
-                        .value,
+                    )
+                    .value,
 
-                    usuario:
-                        document
-                        .getElementById(
-                            'usuario'
-                        )
-                        .value,
+                modalidade:
+                    document
+                    .getElementById(
+                        'modalidade'
+                    )
+                    .value,
 
-                    senha:
-                        document
-                        .getElementById(
-                            'senha'
-                        )
-                        .value
+                usuario:
+                    document
+                    .getElementById(
+                        'usuario'
+                    )
+                    .value,
+
+                senha:
+                    document
+                    .getElementById(
+                        'senha'
+                    )
+                    .value
                 };
 
 

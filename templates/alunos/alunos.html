@@ -506,7 +506,7 @@ function mostrarAlunos() {
                         )}
                     </h2>
 
-
+                    
                     <p>
 
                         <strong>
@@ -523,6 +523,19 @@ function mostrarAlunos() {
                     <p>
 
                         <strong>
+                            Modalidade:
+                        </strong>
+
+                        ${escapeHtml(
+                            aluno.modalidade
+                            || '-'
+                        )}
+
+                    </p>
+
+                    <p>
+
+                        <strong>
                             Usuário:
                         </strong>
 
@@ -532,7 +545,6 @@ function mostrarAlunos() {
                         )}
 
                     </p>
-
 
                     <button
                         class="btn-ver"

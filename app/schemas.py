@@ -43,6 +43,11 @@ class AlunoCreate(BaseModel):
         max_length=50
     )
 
+    modalidade: str = Field(
+    min_length=1,
+    max_length=50
+    )
+
     # Usuário para login
     usuario: str = Field(
         min_length=3,
@@ -114,4 +119,24 @@ class FeedbackTreinoCreate(BaseModel):
 # ============================================================
 # FEEDBACK DO TREINO
 # ============================================================
+
+# ============================================================
+# PLANEJAMENTO SEMANAL
+# ============================================================
+
+class TreinoDiaSemana(BaseModel):
+
+    # Dia da semana
+    # 0 = segunda
+    # 1 = terça
+    # 2 = quarta
+    # 3 = quinta
+    # 4 = sexta
+    # 5 = sábado
+    # 6 = domingo
+
+    dia: int
+
+    # ID do treino base
+    treino_base_id: int
 

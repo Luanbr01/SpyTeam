@@ -41,6 +41,11 @@ class Aluno(Base):
         nullable=False
     )
 
+    modalidade = Column(
+        String,
+        nullable=True
+    )
+
 
 # ============================================================
 # USUÁRIO

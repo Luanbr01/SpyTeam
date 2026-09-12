@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 # Define o arquivo do banco de dados local
-SQLALCHEMY_DATABASE_URL = "sqlite:///./assessoria.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./database/assessoria.db"
 
 # Cria o motor de conexão
 engine = create_engine(
