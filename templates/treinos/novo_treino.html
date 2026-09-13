@@ -1,169 +1,71 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agendar Treino</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
-        body { background-color: #06140d; color: #ffffff; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .card { background-color: #0c2016; border: 1px solid #163827; border-radius: 20px; padding: 40px; max-width: 440px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .back-link { display: inline-block; color: #00ff66; text-decoration: none; font-weight: 600; font-size: 0.85rem; margin-bottom: 20px; }
-        .back-link:hover { text-decoration: underline; }
-        h2 { color: #00ff66; font-size: 1.8rem; font-weight: 800; margin-bottom: 25px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; color: #00ff66; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-        input, select { width: 100%; background-color: #122c1e; border: 1px solid #1d4630; color: #ffffff; padding: 12px 16px; border-radius: 10px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
-        input:focus, select:focus { border-color: #00ff66; }
-        select option { background-color: #122c1e; color: #ffffff; }
-        button { width: 100%; background-color: #00ff66; color: #06140d; border: none; padding: 14px; border-radius: 50px; font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; cursor: pointer; margin-top: 10px; transition: all 0.2s ease; }
-        button:hover { background-color: #00cc52; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,255,102,0.2); }
-        #mensagem { margin-top: 15px; text-align: center; font-weight: 600; color: #00ff66; font-size: 0.9rem; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agendar Treino - SPY TEAM</title>
+<link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
 </head>
 <body>
-    <div class="card">
-        <a href="/home" class="back-link">← Voltar ao Menu</a>
-        <h2>Agendar Treino</h2>
+<div class="page">
+  <div class="topbar">
+    <a class="brand" href="/home"><span class="brand-mark"></span><span class="brand-wordmark"><strong>SPY</strong><span>TEAM</span></span></a>
+    <a class="btn btn-secondary" href="/home" style="text-decoration:none;">← Voltar</a>
+  </div>
+  <section class="panel" style="max-width:620px;margin:0 auto;">
+    <h1>Agendar treino</h1>
+    <p class="subtitle">Envie um treino específico para um aluno.</p>
+    <form id="formTreino">
+      <div class="form-group"><label for="aluno">Aluno</label><select id="aluno" required></select></div>
+      <div class="form-group"><label for="treinoBase">Treino base</label><select id="treinoBase" required></select></div>
+      <div class="form-group"><label for="data">Data planejada</label><input type="date" id="data" required></div>
+      <button class="btn btn-primary" type="submit">Agendar treino</button>
+    </form>
+    <div id="mensagem" class="message"></div>
+  </section>
+</div>
+<script>
+function esc(text){return String(text ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function carregarSelects(){
+  try{
+    const resAlunos=await fetch('/api/alunos');
+    if(!resAlunos.ok) throw new Error('Não foi possível carregar os alunos.');
+    const alunos=await resAlunos.json();
+    const selectAluno=document.getElementById('aluno');
+    selectAluno.innerHTML='<option value="">Selecione um aluno...</option>';
+    alunos.forEach(a=>selectAluno.innerHTML+=`<option value="${a.id}">${esc(a.nome)} (${esc(a.nivel)} • ${esc(a.modalidade || '-')})</option>`);
 
-        <form id="formTreino">
-            <div class="form-group">
-                <label for="aluno">Aluno</label>
-                <select id="aluno" required></select>
-            </div>
-
-            <div class="form-group">
-                <label for="treinoBase">Treino Base</label>
-                <select id="treinoBase" required></select>
-            </div>
-
-            <div class="form-group">
-                <label for="data">Data Planejada</label>
-                <input type="date" id="data" required>
-            </div>
-
-            <button type="submit">Agendar Treino</button>
-        </form>
-
-        <div id="mensagem"></div>
-    </div>
-
-    <script>
-        async function carregarSelects() {
-            const resAlunos = await fetch('/api/alunos');
-            const alunos = await resAlunos.json();
-            const selectAluno = document.getElementById('aluno');
-            selectAluno.innerHTML = '<option value="">Selecione um aluno...</option>';
-            alunos.forEach(a => {
-                selectAluno.innerHTML += `<option value="${a.id}">${a.nome} (${a.nivel})</option>`;
-            });
-
-            const resTreinos = await fetch('/api/treinos-base');
-            const treinos = await resTreinos.json();
-            const selectTreino = document.getElementById('treinoBase');
-            selectTreino.innerHTML = '<option value="">Selecione um treino...</option>';
-            treinos.forEach(t => {
-                selectTreino.innerHTML += `<option value="${t.id}">${t.titulo} - ${t.modalidade}</option>`;
-            });
-        }
-
-        document
-    .getElementById('formTreino')
-    .addEventListener(
-        'submit',
-        async (e) => {
-
-            e.preventDefault();
-
-            const mensagem =
-                document.getElementById(
-                    'mensagem'
-                );
-
-            const aluno_id =
-                parseInt(
-                    document.getElementById(
-                        'aluno'
-                    ).value
-                );
-
-            const treino_base_id =
-                parseInt(
-                    document.getElementById(
-                        'treinoBase'
-                    ).value
-                );
-
-            const data_planejada =
-                document.getElementById(
-                    'data'
-                ).value;
-
-            try {
-
-                const res =
-                    await fetch(
-                        '/api/treinos',
-                        {
-                            method: 'POST',
-
-                            headers: {
-                                'Content-Type':
-                                    'application/json'
-                            },
-
-                            body: JSON.stringify({
-                                aluno_id,
-                                treino_base_id,
-                                data_planejada
-                            })
-                        }
-                    );
-
-                const retorno =
-                    await res
-                        .json()
-                        .catch(() => ({}));
-
-                if (res.ok) {
-
-                    mensagem.textContent =
-                        'Treino agendado com sucesso!';
-
-                    mensagem.style.color =
-                        '#00ff66';
-
-                    document
-                        .getElementById(
-                            'formTreino'
-                        )
-                        .reset();
-
-                } else {
-
-                    mensagem.textContent =
-                        retorno.detail ||
-                        `Erro HTTP ${res.status}`;
-
-                    mensagem.style.color =
-                        '#ff6666';
-                }
-
-            } catch (erro) {
-
-                console.error(erro);
-
-                mensagem.textContent =
-                    'Erro de comunicação com o servidor.';
-
-                mensagem.style.color =
-                    '#ff6666';
-            }
-        }
-    );
-
-        carregarSelects();
-    </script>
+    const resTreinos=await fetch('/api/treinos-base');
+    if(!resTreinos.ok) throw new Error('Não foi possível carregar os treinos.');
+    const treinos=await resTreinos.json();
+    const selectTreino=document.getElementById('treinoBase');
+    selectTreino.innerHTML='<option value="">Selecione um treino...</option>';
+    treinos.forEach(t=>selectTreino.innerHTML+=`<option value="${t.id}">${esc(t.titulo)} — ${esc(t.modalidade)}</option>`);
+  }catch(e){
+    document.getElementById('mensagem').className='message error';
+    document.getElementById('mensagem').textContent=e.message;
+  }
+}
+document.getElementById('formTreino').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const mensagem=document.getElementById('mensagem');
+  try{
+    const res=await fetch('/api/treinos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      aluno_id:Number(document.getElementById('aluno').value),
+      treino_base_id:Number(document.getElementById('treinoBase').value),
+      data_planejada:document.getElementById('data').value
+    })});
+    const retorno=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(retorno.detail || `Erro HTTP ${res.status}`);
+    mensagem.className='message success';
+    mensagem.textContent='Treino agendado com sucesso!';
+    document.getElementById('formTreino').reset();
+  }catch(erro){
+    mensagem.className='message error';
+    mensagem.textContent=erro.message || 'Erro de comunicação com o servidor.';
+  }
+});
+carregarSelects();
+</script>
 </body>
 </html>

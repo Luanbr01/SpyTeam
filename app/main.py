@@ -4,6 +4,7 @@
 # ============================================================
 
 import os
+import unicodedata
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 
@@ -69,6 +70,20 @@ app.mount(
 templates = Jinja2Templates(
     directory="templates"
 )
+
+# ============================================================
+# NORMALIZAR MODALIDADE
+# ============================================================
+def normalizar_modalidade(valor: str) -> str:
+    """Compara modalidades sem diferença de maiúsculas/acentos."""
+    return (
+        unicodedata.normalize("NFD", str(valor or ""))
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .strip()
+        .lower()
+    )
+
 
 # ============================================================
 # CONEXÃO COM BANCO
@@ -1206,14 +1221,14 @@ def enviar_planejamento_semanal(
     for item in dados:
 
         # Verifica dia
-        if item.dia < 0 or item.dia > 6:
+        if item.dia < 0 or item.dia > 4:
 
             raise HTTPException(
 
                 status_code=400,
 
                 detail=
-                    "O dia deve estar entre 0 e 4."
+                    "O dia deve estar entre 0 e 4 (segunda a sexta)."
             )
 
 
@@ -1266,21 +1281,19 @@ def enviar_planejamento_semanal(
         # BUSCAR ALUNOS DA MODALIDADE
         # ----------------------------------------------------
 
-        alunos = (
-
-            db.query(
-                models.Aluno
-            )
-
-            .filter(
-
-                models.Aluno.modalidade
-                == treino_base.modalidade
-
-            )
-
+        # O SQLite não remove acentos automaticamente.
+        # Por isso normalizamos a modalidade em Python.
+        todos_alunos = (
+            db.query(models.Aluno)
             .all()
         )
+
+        alunos = [
+            aluno
+            for aluno in todos_alunos
+            if normalizar_modalidade(aluno.modalidade)
+            == normalizar_modalidade(treino_base.modalidade)
+        ]
 
 
         # ----------------------------------------------------

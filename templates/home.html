@@ -1,251 +1,60 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>
-        Painel do Professor - SpyTeam
-    </title>
-
-    <style>
-
-        * {
-
-            margin:0;
-
-            padding:0;
-
-            box-sizing:border-box;
-
-            font-family:
-                'Segoe UI',
-                Roboto,
-                sans-serif;
-        }
-
-        body {
-
-            background:#06140d;
-
-            color:#fff;
-
-            min-height:100vh;
-
-            display:flex;
-
-            justify-content:center;
-
-            align-items:center;
-
-            padding:20px;
-        }
-
-        .card {
-
-            background:#0c2016;
-
-            border:
-                1px solid
-                #163827;
-
-            border-radius:20px;
-
-            padding:40px;
-
-            max-width:500px;
-
-            width:100%;
-
-            box-shadow:
-                0 10px 30px
-                rgba(0,0,0,.5);
-        }
-
-        .logout {
-
-            display:inline-block;
-
-            color:#ff6666;
-
-            text-decoration:none;
-
-            font-weight:700;
-
-            margin-bottom:20px;
-        }
-
-        h1 {
-
-            color:#00ff66;
-
-            margin-bottom:10px;
-        }
-
-        .subtitle {
-
-            color:#8fa89b;
-
-            margin-bottom:25px;
-
-            line-height:1.5;
-        }
-
-        .menu {
-
-            display:flex;
-
-            flex-direction:column;
-
-            gap:12px;
-        }
-
-        .btn {
-
-            display:block;
-
-            text-align:center;
-
-            background:#00ff66;
-
-            color:#06140d;
-
-            text-decoration:none;
-
-            padding:14px 20px;
-
-            border-radius:50px;
-
-            font-weight:800;
-
-            text-transform:uppercase;
-        }
-
-        .btn:hover {
-
-            background:#00cc52;
-        }
-
-    </style>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Professor - SPY TEAM</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
 </head>
-
 <body>
+<div class="page">
+    <div class="topbar">
+        <a class="brand" href="/home">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span class="brand-wordmark"><strong>SPY</strong><span>TEAM</span></span>
+        </a>
+        <button class="btn btn-danger" onclick="sair(event)">Sair</button>
+    </div>
 
-<div class="card">
+    <section class="panel">
+        <h1>Painel do Professor</h1>
+        <p class="subtitle">Gerencie alunos, treinos e o planejamento semanal da sua assessoria.</p>
 
-
-    <!-- LOGOUT -->
-
-    <a
-        class="logout"
-        href="/login"
-        onclick="sair(event)"
-    >
-
-        Deslogar
-
-    </a>
-
-
-    <!-- TÍTULO -->
-
-    <h1>
-
-        Painel do Professor
-
-    </h1>
-
-
-    <p class="subtitle">
-
-        Gerencie alunos,
-        treinos e agendamentos.
-
-    </p>
-
-
-    <!-- MENU -->
-
-<div class="menu">
-
-    <a
-        class="btn"
-        href="/novo-aluno"
-    >
-        Cadastrar Novo Aluno
-    </a>
-
-
-    <a
-        class="btn"
-        href="/novo-treino-base"
-    >
-        Cadastrar Treino Base
-    </a>
-
-
-    <a
-        class="btn"
-        href="/novo-treino"
-    >
-        Agendar Novo Treino
-    </a>
-
-    <a
-    class="btn"
-    href="/planejamento-semanal"
-    >
-    Planejamento Semanal
-    </a>
-
-
-    <!-- ==================================================
-         NOVO BOTÃO
-         ================================================== -->
-
-    <a
-        class="btn"
-        href="/alunos"
-    >
-        Meus Alunos
-    </a>
-
+        <div class="menu-grid">
+            <a class="menu-card" href="/novo-aluno">
+                <div class="icon">👤</div>
+                <h3>Cadastrar aluno</h3>
+                <p>Crie o acesso do aluno e defina nível e modalidade.</p>
+            </a>
+            <a class="menu-card" href="/novo-treino-base">
+                <div class="icon">🏋️</div>
+                <h3>Cadastrar treino base</h3>
+                <p>Monte treinos reutilizáveis por modalidade.</p>
+            </a>
+            <a class="menu-card" href="/novo-treino">
+                <div class="icon">📅</div>
+                <h3>Agendar treino</h3>
+                <p>Envie um treino específico para um aluno.</p>
+            </a>
+            <a class="menu-card" href="/planejamento-semanal">
+                <div class="icon">🗓️</div>
+                <h3>Planejamento semanal</h3>
+                <p>Monte segunda a sexta e envie automaticamente por modalidade.</p>
+            </a>
+            <a class="menu-card" href="/alunos">
+                <div class="icon">👥</div>
+                <h3>Meus alunos</h3>
+                <p>Consulte alunos, treinos enviados e feedbacks.</p>
+            </a>
+        </div>
+    </section>
 </div>
-
-
 <script>
-
 async function sair(event) {
-
-    // Impede que o link
-    // simplesmente abra /login
-    event.preventDefault();
-
-
-    // Faz logout
-    await fetch(
-        '/api/logout',
-        {
-            method:'POST'
-        }
-    );
-
-
-    // Volta para login
-    window.location.href =
-        '/login';
+    if (event) event.preventDefault();
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
 }
-
 </script>
-
 </body>
-
 </html>
