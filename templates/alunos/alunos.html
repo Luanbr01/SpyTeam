@@ -9,6 +9,27 @@
 #detalhes { display:none; }
 #detalhes h2 { color:var(--primary); }
 #listaTreinos h3 { margin-bottom:8px; }
+.aluno-acoes {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
+}
+.btn-excluir {
+    border:none;
+    border-radius:10px;
+    padding:10px 14px;
+    background:#FEE2E2;
+    color:#B42318;
+    font-weight:700;
+    cursor:pointer;
+    transition:0.2s ease;
+}
+.btn-excluir:hover {
+    background:#FECACA;
+    transform:translateY(-1px);
+}
+
 .treino-card { background:#FBFDFF; border:1px solid var(--border); border-radius:12px; padding:16px; margin-top:12px; }
 .treino-card p { color:var(--text-2); line-height:1.5; }
 .feedback { margin-top:12px; padding:14px; background:var(--blue-soft); border-left:3px solid var(--accent); border-radius:8px; }
@@ -210,24 +231,197 @@ function mostrarAlunos() {
 
                     </p>
 
-                    <button
-                        class="btn-ver"
-                        onclick="
-                            verAluno(
-                                ${aluno.id}
-                            )
-                        "
-                    >
+                    <div class="aluno-acoes">
 
-                        Ver treinos e feedbacks
+                        <button
+                            class="btn-ver"
+                            onclick="
+                                verAluno(
+                                    ${aluno.id}
+                                )
+                            "
+                        >
 
-                    </button>
+                            Ver treinos e feedbacks
+
+                        </button>
+
+                        <button
+                            class="btn-excluir"
+                            onclick="
+                                excluirAluno(
+                                    ${aluno.id},
+                                    '${escapeJs(aluno.nome)}'
+                                )
+                            "
+                        >
+
+                            Excluir aluno
+
+                        </button>
+
+                    </div>
 
                 </div>
 
             `
 
         ).join('');
+}
+
+
+// ==========================================================
+// EXCLUIR ALUNO
+// ==========================================================
+
+async function excluirAluno(
+    alunoId,
+    nomeAluno
+) {
+
+    // ------------------------------------------------------
+    // CONFIRMAÇÃO
+    // ------------------------------------------------------
+
+    const confirmou = window.confirm(
+
+        `Tem certeza que deseja excluir o aluno "${nomeAluno}"?\n\n` +
+        'A conta de login, os treinos enviados e os feedbacks ' +
+        'desse aluno também serão excluídos.'
+
+    );
+
+
+    if (!confirmou) {
+
+        return;
+    }
+
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/api/alunos/${alunoId}`,
+                {
+                    method: 'DELETE'
+                }
+            );
+
+
+        // --------------------------------------------------
+        // Verificar autenticação
+        // --------------------------------------------------
+
+        if (
+            resposta.status === 401
+            ||
+            resposta.status === 403
+        ) {
+
+            window.location.href =
+                '/login';
+
+            return;
+        }
+
+
+        const dados =
+            await resposta.json();
+
+
+        // --------------------------------------------------
+        // Verificar erro
+        // --------------------------------------------------
+
+        if (!resposta.ok) {
+
+            alert(
+                dados.detail
+                ||
+                'Não foi possível excluir o aluno.'
+            );
+
+            return;
+        }
+
+
+        // --------------------------------------------------
+        // Remover da lista local
+        // --------------------------------------------------
+
+        alunos =
+            alunos.filter(
+                aluno =>
+                    aluno.id !== alunoId
+            );
+
+
+        // --------------------------------------------------
+        // Atualizar lista
+        // --------------------------------------------------
+
+        mostrarAlunos();
+
+
+        // --------------------------------------------------
+        // Fechar detalhes se estavam abertos
+        // --------------------------------------------------
+
+        document
+            .getElementById(
+                'detalhes'
+            )
+            .style.display =
+                'none';
+
+
+        alert(
+            'Aluno excluído com sucesso.'
+        );
+
+    }
+
+    catch (erro) {
+
+        console.error(
+            erro
+        );
+
+        alert(
+            'Erro de conexão com o servidor.'
+        );
+    }
+}
+
+
+// ==========================================================
+// PROTEGER TEXTO PARA JAVASCRIPT
+// ==========================================================
+
+function escapeJs(
+    texto
+) {
+
+    return String(
+        texto ?? ''
+    )
+    .replace(
+        /\\/g,
+        '\\\\'
+    )
+    .replace(
+        /'/g,
+        "\\'"
+    )
+    .replace(
+        /"/g,
+        '\\"'
+    )
+    .replace(
+        /\r?\n/g,
+        '\\n'
+    );
 }
 
 

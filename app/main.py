@@ -780,6 +780,80 @@ def listar_alunos(
 
 
 # ============================================================
+# EXCLUIR ALUNO
+# SOMENTE PROFESSOR
+# ============================================================
+
+@app.delete("/api/alunos/{aluno_id}")
+def excluir_aluno(
+    aluno_id: int,
+
+    db: Session =
+    Depends(get_db),
+
+    professor: models.Usuario =
+    Depends(require_professor)
+):
+
+    # --------------------------------------------------------
+    # BUSCAR O ALUNO
+    # --------------------------------------------------------
+
+    aluno = (
+        db.query(models.Aluno)
+        .filter(
+            models.Aluno.id == aluno_id
+        )
+        .first()
+    )
+
+    if not aluno:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Aluno não encontrado."
+        )
+
+    # --------------------------------------------------------
+    # REMOVER OS TREINOS AGENDADOS DO ALUNO
+    #
+    # Os treinos possuem uma chave estrangeira para alunos.
+    # Por isso removemos primeiro os registros relacionados.
+    # Os feedbacks estão dentro de TreinoAgendado e também
+    # serão removidos junto com o treino.
+    # --------------------------------------------------------
+
+    db.query(models.TreinoAgendado).filter(
+        models.TreinoAgendado.aluno_id == aluno_id
+    ).delete(
+        synchronize_session=False
+    )
+
+    # --------------------------------------------------------
+    # REMOVER A CONTA DE LOGIN DO ALUNO
+    # --------------------------------------------------------
+
+    db.query(models.Usuario).filter(
+        models.Usuario.aluno_id == aluno_id
+    ).delete(
+        synchronize_session=False
+    )
+
+    # --------------------------------------------------------
+    # REMOVER O ALUNO
+    # --------------------------------------------------------
+
+    db.delete(aluno)
+
+    db.commit()
+
+    return {
+        "mensagem": "Aluno excluído com sucesso.",
+        "id": aluno_id
+    }
+
+
+# ============================================================
 # AGENDAR TREINO
 # ============================================================
 
