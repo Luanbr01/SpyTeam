@@ -409,3 +409,53 @@ input:focus, select:focus, textarea:focus {
         width: 165px;
     }
 }
+
+
+/* =========================================================
+   SPY TEAM — LOGO OFICIAL AZUL E CLICÁVEL
+   ========================================================= */
+.brand-official {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    line-height: 0;
+    border-radius: 10px;
+    transition: transform .2s ease, opacity .2s ease;
+}
+
+.brand-official:hover {
+    transform: translateY(-1px);
+    opacity: .88;
+}
+
+.brand-official:focus-visible {
+    outline: 3px solid rgba(87, 192, 255, .45);
+    outline-offset: 5px;
+}
+
+.brand-official .brand-logo {
+    width: 155px;
+    height: auto;
+    max-height: 78px;
+    object-fit: contain;
+}
+
+/* Na tela de login, mantém o logo exatamente no local da marca antiga. */
+.auth-card .brand-official {
+    margin: 0 auto 28px;
+}
+
+.auth-card .brand-official .brand-logo {
+    width: 170px;
+}
+
+@media (max-width: 768px) {
+    .brand-official .brand-logo {
+        width: 135px;
+    }
+
+    .auth-card .brand-official .brand-logo {
+        width: 150px;
+    }
+}
