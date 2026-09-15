@@ -354,3 +354,58 @@ input:focus, select:focus, textarea:focus {
     .semana { grid-template-columns: 1fr; }
     .auth-card { padding: 28px 22px; }
 }
+
+
+/* =========================================================
+   SPY TEAM — LOGO OFICIAL
+   ========================================================= */
+.logo-spy-team {
+    display: block;
+    width: 150px;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.navbar .logo-spy-team,
+.navbar-brand .logo-spy-team {
+    width: 128px;
+    max-height: 44px;
+}
+
+.sidebar .logo-spy-team,
+.sidebar-header .logo-spy-team {
+    width: 145px;
+    max-height: 52px;
+}
+
+.login-logo .logo-spy-team,
+.auth-logo .logo-spy-team {
+    width: 190px;
+    max-height: 90px;
+    margin: 0 auto;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .navbar .logo-spy-team,
+    .navbar-brand .logo-spy-team {
+        width: 112px;
+    }
+
+    .sidebar .logo-spy-team,
+    .sidebar-header .logo-spy-team {
+        width: 125px;
+    }
+
+    .login-logo .logo-spy-team,
+    .auth-logo .logo-spy-team {
+        width: 165px;
+    }
+}
