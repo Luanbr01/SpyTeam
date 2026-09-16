@@ -20,9 +20,18 @@ import time
 #
 # Em desenvolvimento podemos deixar essa chave.
 # Em produção, troque por uma chave grande e aleatória.
-SECRET = os.getenv(
-    "SPYTEAM_SECRET",
-    "spyteam-chave-dev-troque-em-producao"
+_secret_configurado = os.getenv("SPYTEAM_SECRET")
+
+# No Railway, nunca usamos a chave padrão de desenvolvimento.
+if not _secret_configurado and os.getenv("RAILWAY_ENVIRONMENT_NAME"):
+    raise RuntimeError(
+        "SPYTEAM_SECRET não configurado. "
+        "Adicione essa variável na aba Variables do Railway."
+    )
+
+SECRET = (
+    _secret_configurado
+    or "spyteam-chave-dev-troque-em-producao"
 ).encode()
 
 

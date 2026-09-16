@@ -71,6 +71,31 @@ templates = Jinja2Templates(
     directory="templates"
 )
 
+
+# ============================================================
+# CONFIGURAÇÃO DE PRODUÇÃO
+# ============================================================
+
+def _env_bool(nome: str, padrao: bool = False) -> bool:
+    valor = os.getenv(nome)
+
+    if valor is None:
+        return padrao
+
+    return valor.strip().lower() in {
+        "1", "true", "sim", "yes", "on"
+    }
+
+
+EM_RAILWAY = bool(
+    os.getenv("RAILWAY_ENVIRONMENT_NAME")
+)
+
+COOKIE_SECURE = _env_bool(
+    "COOKIE_SECURE",
+    padrao=EM_RAILWAY
+)
+
 # ============================================================
 # NORMALIZAR MODALIDADE
 # ============================================================
@@ -207,42 +232,43 @@ def require_aluno(
 
 def seed_professor():
     """
-    Cria um professor automaticamente caso
-    nenhum professor exista.
+    Cria um professor automaticamente caso nenhum professor exista.
+
+    Em produção, usuário e senha precisam estar nas variáveis:
+    PROFESSOR_USUARIO e PROFESSOR_SENHA.
     """
 
     db = SessionLocal()
 
     try:
-
-        # Verifica se já existe professor
         existe = (
             db.query(models.Usuario)
             .filter(
-                models.Usuario.tipo
-                == "professor"
+                models.Usuario.tipo == "professor"
             )
             .first()
         )
 
-        # Se já existe, não faz nada
+        # Banco migrado com professor existente: não altera nada.
         if existe:
-
             return
 
-        # Usuário padrão
-        usuario = os.getenv(
-            "PROFESSOR_USUARIO",
-            "professor"
-        )
+        usuario = os.getenv("PROFESSOR_USUARIO")
+        senha = os.getenv("PROFESSOR_SENHA")
 
-        # Senha padrão
-        senha = os.getenv(
-            "PROFESSOR_SENHA",
-            "1234"
-        )
+        # No ambiente local mantemos os valores de desenvolvimento.
+        if not EM_RAILWAY:
+            usuario = usuario or "professor"
+            senha = senha or "1234"
 
-        # Cria a conta
+        # Em produção, não cria credenciais padrão conhecidas.
+        if not usuario or not senha:
+            print(
+                "[SpyTeam] Professor inicial não criado. "
+                "Configure PROFESSOR_USUARIO e PROFESSOR_SENHA."
+            )
+            return
+
         db.add(
             models.Usuario(
                 usuario=usuario,
@@ -251,16 +277,26 @@ def seed_professor():
             )
         )
 
-        # Salva
         db.commit()
 
     finally:
-
         db.close()
 
 
 # Executa criação do professor
 seed_professor()
+
+
+# ============================================================
+# HEALTHCHECK
+# ============================================================
+
+@app.get("/health", include_in_schema=False)
+def health():
+    return {
+        "status": "ok",
+        "app": "SpyTeam"
+    }
 
 
 # ============================================================
@@ -537,8 +573,8 @@ def login(
 
         samesite="lax",
 
-        # False para localhost
-        secure=False,
+        # False localmente e True no Railway/HTTPS
+        secure=COOKIE_SECURE,
 
         # 1 dia
         max_age=60 * 60 * 24
@@ -563,7 +599,10 @@ def logout():
 
     # Apaga o cookie
     resposta.delete_cookie(
-        COOKIE_NAME
+        key=COOKIE_NAME,
+        path="/",
+        secure=COOKIE_SECURE,
+        samesite="lax"
     )
 
     return resposta
