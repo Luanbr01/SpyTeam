@@ -48,7 +48,7 @@ Não publique essa chave no GitHub.
 
 Em Settings > Deploy > Start Command:
 
-    uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
 
 O projeto também inclui um Procfile com esse comando.
 
