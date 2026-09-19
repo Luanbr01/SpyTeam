@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico - SPY TEAM</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=20260919-design2">
+</head>
+
+<body class="app-body" data-aluno-page="historico">
+<div class="app-shell">
+
+    <aside class="app-sidebar student-sidebar">
+        <a class="sidebar-brand" href="/aluno" aria-label="SPY TEAM - Área do aluno">
+            <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
+        </a>
+
+        <nav class="app-nav" aria-label="Navegação do aluno">
+            <span class="app-nav-section">MEU ESPAÇO</span>
+            <a class="app-nav-item" href="/aluno"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span><span>Início</span></a>
+            <a class="app-nav-item active" href="/aluno/historico"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/><path d="M12 7v5l3 2"/></svg></span><span>Histórico</span></a>
+
+            <span class="app-nav-section">CONTA</span>
+            <a class="app-nav-item" href="/aluno/perfil"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-5 3-8 8-8s8 3 8 8"/></svg></span><span>Meu perfil</span></a>
+        </nav>
+
+        <div class="sidebar-profile">
+            <span class="sidebar-avatar" id="sidebarAvatar">A</span>
+            <span>
+                <strong id="sidebarName">Aluno</strong>
+                <small>SPY TEAM</small>
+            </span>
+        </div>
+    </aside>
+
+    <div class="app-workspace">
+
+        <header class="app-topbar">
+            <div class="app-topbar-copy">
+                <strong>Histórico</strong>
+                <span>Seus treinos concluídos</span>
+            </div>
+
+            <div class="app-topbar-actions">
+                <span class="top-status-dot" title="Online"></span>
+                <span class="top-avatar" id="topAvatar">A</span>
+                <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M10 17l5-5-5-5"/>
+                        <path d="M15 12H3"/>
+                        <path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-content">
+            <section class="dashboard-heading">
+                <div>
+                    <span class="eyebrow">EVOLUÇÃO</span>
+                    <h1>Histórico de treinos</h1>
+                    <p>Acompanhe os treinos que você já concluiu e seus feedbacks.</p>
+                </div>
+            </section>
+
+            <section class="history-summary">
+                <article class="metric-card">
+                    <span class="metric-icon metric-green">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M8 12l3 3 5-6"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <strong id="historicoTotal">0</strong>
+                        <span>Treinos concluídos</span>
+                    </div>
+                </article>
+            </section>
+
+            <section class="dashboard-card history-panel">
+                <div class="section-heading-row">
+                    <div>
+                        <span class="eyebrow">CONCLUÍDOS</span>
+                        <h2>Todos os treinos finalizados</h2>
+                        <p>Os mais recentes aparecem primeiro.</p>
+                    </div>
+                </div>
+
+                <div id="listaConcluidos" class="history-list">
+                    <p class="vazio">Carregando histórico...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+
+<script>
+async function sair(event) {
+    if (event) event.preventDefault();
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
+}
+</script>
+<script src="/static/js/aluno.js?v=20260919-design2"></script>
+</body>
+</html>

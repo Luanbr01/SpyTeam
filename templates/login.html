@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - SPY TEAM</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=20260915-2155">
-    <!-- SPYTEAM_DEPLOY_FIX_20260915-2155 -->
+    <link rel="stylesheet" href="/static/css/style.css?v=20260919-design3">
+    <!-- SPYTEAM_DEPLOY_FIX_20260919-design1 -->
 </head>
 <body>
 <div class="auth-page">
@@ -21,7 +21,29 @@
             </div>
             <div class="form-group">
                 <label for="senha">Senha</label>
-                <input type="password" id="senha" placeholder="Digite sua senha" required>
+
+                <div class="password-field">
+                    <input
+                        type="password"
+                        id="senha"
+                        placeholder="Digite sua senha"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                    <button
+                        class="password-toggle"
+                        type="button"
+                        onclick="alternarSenhaLogin()"
+                        aria-label="Mostrar senha"
+                        title="Mostrar senha"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/>
+                            <circle cx="12" cy="12" r="2.8"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <button class="btn btn-primary" type="submit">Entrar</button>
         </form>
@@ -31,6 +53,40 @@
     </div>
 </div>
 <script>
+function alternarSenhaLogin() {
+    const input = document.getElementById('senha');
+    const botao = document.querySelector(
+        '#formLogin .password-toggle'
+    );
+
+    const vaiMostrar =
+        input.type === 'password';
+
+    input.type =
+        vaiMostrar
+            ? 'text'
+            : 'password';
+
+    botao.classList.toggle(
+        'is-visible',
+        vaiMostrar
+    );
+
+    botao.setAttribute(
+        'aria-label',
+        vaiMostrar
+            ? 'Ocultar senha'
+            : 'Mostrar senha'
+    );
+
+    botao.setAttribute(
+        'title',
+        vaiMostrar
+            ? 'Ocultar senha'
+            : 'Mostrar senha'
+    );
+}
+
 const form = document.getElementById('formLogin');
 const mensagem = document.getElementById('mensagem');
 

@@ -1,10 +1,11 @@
 let treinos = [];
 let treinoSelecionado = null;
 let notaSelecionada = 0;
+let usuarioAtual = null;
 
 
 // ==========================================================
-// PROTEGER HTML
+// UTILITÁRIOS
 // ==========================================================
 
 function escapeHtml(text) {
@@ -20,21 +21,13 @@ function escapeHtml(text) {
     );
 }
 
-
-// ==========================================================
-// NORMALIZAR DATA
-// ==========================================================
-
 function normalizarData(data) {
     if (!data) return null;
 
     const parte = String(data).split('T')[0];
-
     const [ano, mes, dia] = parte.split('-');
 
-    if (!ano || !mes || !dia) {
-        return null;
-    }
+    if (!ano || !mes || !dia) return null;
 
     return new Date(
         Number(ano),
@@ -43,25 +36,71 @@ function normalizarData(data) {
     );
 }
 
+function formatarData(data) {
+    const d = normalizarData(data);
+
+    if (!d) return 'Data não informada';
+
+    return new Intl.DateTimeFormat(
+        'pt-BR',
+        {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        }
+    ).format(d);
+}
+
+function paginaAtual() {
+    return document.body.dataset.alunoPage || 'dashboard';
+}
+
+function primeiraLetra(nome) {
+    const valor = String(nome || 'A').trim();
+    return valor ? valor.charAt(0).toUpperCase() : 'A';
+}
+
+function preencherIdentidade(me) {
+    if (!me || !me.aluno) return;
+
+    const inicial = primeiraLetra(me.aluno.nome);
+
+    const sidebarName =
+        document.getElementById('sidebarName');
+
+    const sidebarAvatar =
+        document.getElementById('sidebarAvatar');
+
+    const topAvatar =
+        document.getElementById('topAvatar');
+
+    if (sidebarName) {
+        sidebarName.textContent = me.aluno.nome;
+    }
+
+    if (sidebarAvatar) {
+        sidebarAvatar.textContent = inicial;
+    }
+
+    if (topAvatar) {
+        topAvatar.textContent = inicial;
+    }
+}
+
 
 // ==========================================================
-// CRIAR SEMANA
+// SEMANA / DASHBOARD
 // ==========================================================
 
 function criarSemana() {
-
     const container =
         document.getElementById('semana');
 
-    if (!container) {
-        return;
-    }
+    if (!container) return;
 
     container.innerHTML = '';
 
     const hoje = new Date();
-
-    // Segunda-feira da semana atual
     const diaSemana = hoje.getDay();
 
     const diferenca =
@@ -80,13 +119,10 @@ function criarSemana() {
         'Terça',
         'Quarta',
         'Quinta',
-        'Sexta',
-        'Sábado',
-        'Domingo'
+        'Sexta'
     ];
 
-    for (let i = 0; i < 7; i++) {
-
+    for (let i = 0; i < 5; i++) {
         const data = new Date(segunda);
 
         data.setDate(
@@ -94,6 +130,7 @@ function criarSemana() {
         );
 
         const ano = data.getFullYear();
+
         const mes = String(
             data.getMonth() + 1
         ).padStart(2, '0');
@@ -107,9 +144,9 @@ function criarSemana() {
 
         const treinosDoDia =
             treinos.filter(t => {
-                return String(t.data_planejada)
-                    .split('T')[0]
-                    === dataISO;
+                return String(
+                    t.data_planejada
+                ).split('T')[0] === dataISO;
             });
 
         const card =
@@ -123,40 +160,30 @@ function criarSemana() {
             </div>
 
             <div class="dia-data">
-                ${String(data.getDate()).padStart(2, '0')}/${mes}
+                ${dia}/${mes}
             </div>
         `;
 
         if (!treinosDoDia.length) {
-
             card.innerHTML += `
                 <div class="dia-sem-treino">
                     Nenhum treino
                 </div>
             `;
-
         } else {
-
-            treinosDoDia.forEach(treino => {
-
-                card.innerHTML +=
-                    criarTreinoDia(treino);
-
-            });
-
+            treinosDoDia.forEach(
+                treino => {
+                    card.innerHTML +=
+                        criarTreinoDia(treino);
+                }
+            );
         }
 
         container.appendChild(card);
     }
 }
 
-
-// ==========================================================
-// CARD DO TREINO
-// ==========================================================
-
 function criarTreinoDia(t) {
-
     const concluido =
         Boolean(t.concluido);
 
@@ -224,151 +251,44 @@ function criarTreinoDia(t) {
                         </button>
                     `
             }
-
         </div>
     `;
 }
 
-
-// ==========================================================
-// CARREGAR DADOS
-// ==========================================================
-
-async function carregar() {
-
-    try {
-
-        const resMe =
-            await fetch('/api/me');
-
-        const resTreinos =
-            await fetch('/api/me/treinos');
-
-        if (
-            resMe.status === 401 ||
-            resTreinos.status === 401
-        ) {
-
-            window.location.href =
-                '/login';
-
-            return;
-        }
-
-        if (
-            !resMe.ok ||
-            !resTreinos.ok
-        ) {
-
-            throw new Error(
-                'Erro ao consultar API.'
-            );
-        }
-
-        const me =
-            await resMe.json();
-
-        treinos =
-            await resTreinos.json();
-
-        console.log("ME:", me);
-        console.log("TREINOS:", treinos);
-
-        // Dados do aluno
-        if (
-            !me.aluno
-        ) {
-
-            document
-                .getElementById('subtitulo')
-                .textContent =
-                    'Dados do aluno não encontrados.';
-
-            document
-                .getElementById('perfil')
-                .textContent =
-                    'Sua conta não está vinculada a um aluno.';
-
-            return;
-        }
-
-        document
-            .getElementById('subtitulo')
-            .textContent =
-                `Bem-vindo, ${me.aluno.nome}! ` +
-                `Nível: ${me.aluno.nivel}`;
-
-        document
-            .getElementById('perfil')
-            .innerHTML = `
-                Nome:
-                <b>${escapeHtml(
-                    me.aluno.nome
-                )}</b>
-
-                <br>
-
-                Nível:
-                <b>${escapeHtml(
-                    me.aluno.nivel
-                )}</b>
-
-                <br>
-
-                Usuário:
-                <b>${escapeHtml(
-                    me.usuario
-                )}</b>
-            `;
-
-        atualizarResumo();
-
-        criarSemana();
-
-        mostrarHistorico();
-
-    } catch (erro) {
-
-        console.error(erro);
-
-        document
-            .getElementById('subtitulo')
-            .textContent =
-                'Erro ao carregar seus dados.';
-    }
-}
-
-
-// ==========================================================
-// RESUMO
-// ==========================================================
-
 function atualizarResumo() {
+    const total =
+        document.getElementById('total');
 
     const pendentes =
+        document.getElementById('pendentes');
+
+    const concluidos =
+        document.getElementById('concluidos');
+
+    const listaPendentes =
         treinos.filter(
             t => !t.concluido
         );
 
-    const concluidos =
+    const listaConcluidos =
         treinos.filter(
             t => t.concluido
         );
 
-    document
-        .getElementById('total')
-        .textContent =
+    if (total) {
+        total.textContent =
             treinos.length;
+    }
 
-    document
-        .getElementById('pendentes')
-        .textContent =
-            pendentes.length;
+    if (pendentes) {
+        pendentes.textContent =
+            listaPendentes.length;
+    }
 
-    document
-        .getElementById('concluidos')
-        .textContent =
-            concluidos.length;
+    if (concluidos) {
+        concluidos.textContent =
+            listaConcluidos.length;
+    }
 }
 
 
@@ -377,58 +297,196 @@ function atualizarResumo() {
 // ==========================================================
 
 function mostrarHistorico() {
-
     const container =
         document.getElementById(
             'listaConcluidos'
         );
 
-    if (!container) {
-        return;
-    }
+    if (!container) return;
 
     const concluidos =
-        treinos.filter(
-            t => t.concluido
+        treinos
+            .filter(t => t.concluido)
+            .sort((a, b) => {
+                const dataA =
+                    normalizarData(
+                        a.data_planejada
+                    );
+
+                const dataB =
+                    normalizarData(
+                        b.data_planejada
+                    );
+
+                return (
+                    (dataB?.getTime() || 0) -
+                    (dataA?.getTime() || 0)
+                );
+            });
+
+    const total =
+        document.getElementById(
+            'historicoTotal'
         );
 
+    if (total) {
+        total.textContent =
+            concluidos.length;
+    }
+
     if (!concluidos.length) {
-
         container.innerHTML = `
-            <p class="vazio">
-                Nenhum treino concluído ainda.
-            </p>
+            <div class="empty-state">
+                <span class="empty-state-icon">✓</span>
+                <h3>Nenhum treino concluído ainda</h3>
+                <p>
+                    Quando você finalizar seus treinos,
+                    eles aparecerão aqui.
+                </p>
+                <a class="btn btn-primary" href="/aluno">
+                    Ver meus treinos
+                </a>
+            </div>
         `;
-
         return;
     }
 
     container.innerHTML =
-        concluidos.map(t => `
-            <div class="treino">
+        concluidos.map(t => {
+            const nota =
+                Number(t.feedback_nota || 0);
 
-                <h3>
-                    ${escapeHtml(
-                        t.treino.titulo
-                    )}
-                </h3>
+            const estrelas =
+                nota > 0
+                    ? '★'.repeat(nota) +
+                      '☆'.repeat(
+                          Math.max(
+                              0,
+                              5 - nota
+                          )
+                      )
+                    : 'Sem avaliação';
 
-                <p>
-                    <strong>
-                        Data:
-                    </strong>
+            return `
+                <article class="history-item">
+                    <div class="history-item-icon">
+                        ✓
+                    </div>
 
-                    ${escapeHtml(
-                        t.data_planejada
-                    )}
-                </p>
+                    <div class="history-item-main">
+                        <div class="history-item-heading">
+                            <div>
+                                <span class="history-modality">
+                                    ${escapeHtml(
+                                        t.treino.modalidade
+                                    )}
+                                </span>
 
-                <span class="badge">
-                    Concluído
-                </span>
+                                <h3>
+                                    ${escapeHtml(
+                                        t.treino.titulo
+                                    )}
+                                </h3>
+                            </div>
 
-            </div>
-        `).join('');
+                            <span class="history-date">
+                                ${formatarData(
+                                    t.data_planejada
+                                )}
+                            </span>
+                        </div>
+
+                        <p class="history-description">
+                            ${escapeHtml(
+                                t.treino.descricao
+                            )}
+                        </p>
+
+                        <div class="history-meta">
+                            <span class="history-chip success">
+                                ✓ Concluído
+                            </span>
+
+                            ${
+                                t.feedback_dificuldade
+                                    ? `
+                                        <span class="history-chip">
+                                            Dificuldade:
+                                            ${escapeHtml(
+                                                t.feedback_dificuldade
+                                            )}
+                                        </span>
+                                    `
+                                    : ''
+                            }
+
+                            <span class="history-stars">
+                                ${estrelas}
+                            </span>
+                        </div>
+
+                        ${
+                            t.feedback_comentario
+                                ? `
+                                    <div class="history-feedback">
+                                        <strong>Seu feedback</strong>
+                                        <p>
+                                            ${escapeHtml(
+                                                t.feedback_comentario
+                                            )}
+                                        </p>
+                                    </div>
+                                `
+                                : ''
+                        }
+                    </div>
+                </article>
+            `;
+        }).join('');
+}
+
+
+// ==========================================================
+// PERFIL
+// ==========================================================
+
+function mostrarPerfil(me) {
+    if (!me || !me.aluno) return;
+
+    const aluno = me.aluno;
+    const inicial =
+        primeiraLetra(aluno.nome);
+
+    const campos = {
+        profileAvatar: inicial,
+        profileName: aluno.nome,
+        profileSummary:
+            `${aluno.nivel || 'Nível não informado'} • ${
+                aluno.modalidade ||
+                'Modalidade não informada'
+            }`,
+        profileFullName: aluno.nome,
+        profileUsername: me.usuario,
+        profileLevel:
+            aluno.nivel ||
+            'Não informado',
+        profileModality:
+            aluno.modalidade ||
+            'Não informada'
+    };
+
+    Object.entries(campos)
+        .forEach(
+            ([id, valor]) => {
+                const elemento =
+                    document.getElementById(id);
+
+                if (elemento) {
+                    elemento.textContent =
+                        valor;
+                }
+            }
+        );
 }
 
 
@@ -440,7 +498,6 @@ function abrirFeedback(
     id,
     nomeTreino
 ) {
-
     treinoSelecionado = id;
     notaSelecionada = 0;
 
@@ -454,33 +511,38 @@ function abrirFeedback(
             'nomeTreinoFeedback'
         );
 
-    if (!modal) {
-        return;
+    if (!modal) return;
+
+    if (nome) {
+        nome.textContent =
+            `Como foi o treino "${nomeTreino}"?`;
     }
 
-    nome.textContent =
-        `Como foi o treino "${nomeTreino}"?`;
-
-    document
-        .getElementById(
+    const dificuldade =
+        document.getElementById(
             'feedbackDificuldade'
-        )
-        .value = 'Moderado';
+        );
 
-    document
-        .getElementById(
+    const comentario =
+        document.getElementById(
             'feedbackComentario'
-        )
-        .value = '';
+        );
+
+    if (dificuldade) {
+        dificuldade.value =
+            'Moderado';
+    }
+
+    if (comentario) {
+        comentario.value = '';
+    }
 
     atualizarEstrelas();
 
     modal.style.display = 'flex';
 }
 
-
 function fecharFeedback() {
-
     treinoSelecionado = null;
     notaSelecionada = 0;
 
@@ -490,21 +552,17 @@ function fecharFeedback() {
         );
 
     if (modal) {
-        modal.style.display = 'none';
+        modal.style.display =
+            'none';
     }
 }
 
-
 function selecionarNota(nota) {
-
     notaSelecionada = nota;
-
     atualizarEstrelas();
 }
 
-
 function atualizarEstrelas() {
-
     const botoes =
         document.querySelectorAll(
             '.estrelas button'
@@ -512,30 +570,19 @@ function atualizarEstrelas() {
 
     botoes.forEach(
         (botao, indice) => {
-
             botao.classList.toggle(
                 'selecionada',
-                indice <
-                    notaSelecionada
+                indice < notaSelecionada
             );
-
         }
     );
 }
 
-
-// ==========================================================
-// ENVIAR FEEDBACK
-// ==========================================================
-
 async function enviarFeedback() {
-
     if (!treinoSelecionado) {
-
         alert(
             'Nenhum treino selecionado.'
         );
-
         return;
     }
 
@@ -543,11 +590,9 @@ async function enviarFeedback() {
         notaSelecionada < 1 ||
         notaSelecionada > 5
     ) {
-
         alert(
             'Escolha uma nota de 1 a 5.'
         );
-
         return;
     }
 
@@ -591,12 +636,10 @@ async function enviarFeedback() {
             .catch(() => ({}));
 
     if (!resposta.ok) {
-
         alert(
             dados.detail ||
             'Não foi possível concluir o treino.'
         );
-
         return;
     }
 
@@ -609,38 +652,420 @@ async function enviarFeedback() {
 
     if (treino) {
         treino.concluido = true;
+        treino.feedback_nota =
+            notaSelecionada;
+        treino.feedback_dificuldade =
+            dificuldade;
+        treino.feedback_comentario =
+            comentario || null;
     }
 
     fecharFeedback();
-
     atualizarResumo();
-
     criarSemana();
-
-    mostrarHistorico();
 }
 
 
+
+
 // ==========================================================
-// SAIR
+// SEGURANÇA / ALTERAR SENHA
 // ==========================================================
 
-async function sair() {
+function alternarVisibilidadeSenha(
+    input,
+    botao
+) {
+    const vaiMostrar =
+        input.type === 'password';
 
-    await fetch(
-        '/api/logout',
-        {
-            method: 'POST'
-        }
+    input.type =
+        vaiMostrar
+            ? 'text'
+            : 'password';
+
+    botao.classList.toggle(
+        'is-visible',
+        vaiMostrar
     );
 
-    window.location.href =
-        '/login';
+    botao.setAttribute(
+        'aria-label',
+        vaiMostrar
+            ? 'Ocultar senha'
+            : 'Mostrar senha'
+    );
+
+    botao.setAttribute(
+        'title',
+        vaiMostrar
+            ? 'Ocultar senha'
+            : 'Mostrar senha'
+    );
+}
+
+
+function configurarOlhinhosSenha() {
+    document
+        .querySelectorAll(
+            '[data-password-target]'
+        )
+        .forEach(botao => {
+            if (
+                botao.dataset
+                    .passwordConfigured
+                === 'true'
+            ) {
+                return;
+            }
+
+            botao.dataset
+                .passwordConfigured =
+                'true';
+
+            botao.addEventListener(
+                'click',
+                () => {
+                    const input =
+                        document.getElementById(
+                            botao.dataset
+                                .passwordTarget
+                        );
+
+                    if (!input) return;
+
+                    alternarVisibilidadeSenha(
+                        input,
+                        botao
+                    );
+                }
+            );
+        });
+}
+
+
+function mostrarMensagemSenha(
+    texto,
+    tipo = ''
+) {
+    const mensagem =
+        document.getElementById(
+            'mensagemAlterarSenha'
+        );
+
+    if (!mensagem) return;
+
+    mensagem.textContent = texto;
+    mensagem.className =
+        'password-message';
+
+    if (tipo) {
+        mensagem.classList.add(tipo);
+    }
+}
+
+
+function configurarFormularioSenha() {
+    const form =
+        document.getElementById(
+            'formAlterarSenha'
+        );
+
+    if (!form) return;
+
+    configurarOlhinhosSenha();
+
+    if (
+        form.dataset.configured
+        === 'true'
+    ) {
+        return;
+    }
+
+    form.dataset.configured = 'true';
+
+    form.addEventListener(
+        'submit',
+        async event => {
+            event.preventDefault();
+
+            const senhaAtual =
+                document.getElementById(
+                    'senhaAtual'
+                ).value;
+
+            const novaSenha =
+                document.getElementById(
+                    'novaSenha'
+                ).value;
+
+            const confirmar =
+                document.getElementById(
+                    'confirmarNovaSenha'
+                ).value;
+
+            const botao =
+                document.getElementById(
+                    'btnAlterarSenha'
+                );
+
+            if (novaSenha.length < 4) {
+                mostrarMensagemSenha(
+                    'A nova senha precisa ter pelo menos 4 caracteres.',
+                    'error'
+                );
+                return;
+            }
+
+            if (
+                novaSenha
+                !== confirmar
+            ) {
+                mostrarMensagemSenha(
+                    'A confirmação da nova senha não confere.',
+                    'error'
+                );
+                return;
+            }
+
+            mostrarMensagemSenha(
+                'Alterando senha...'
+            );
+
+            if (botao) {
+                botao.disabled = true;
+                botao.textContent =
+                    'Alterando...';
+            }
+
+            try {
+                const resposta =
+                    await fetch(
+                        '/api/me/senha',
+                        {
+                            method: 'PATCH',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/json'
+                            },
+
+                            body: JSON.stringify({
+                                senha_atual:
+                                    senhaAtual,
+
+                                nova_senha:
+                                    novaSenha,
+
+                                confirmar_senha:
+                                    confirmar
+                            })
+                        }
+                    );
+
+                const dados =
+                    await resposta
+                        .json()
+                        .catch(() => ({}));
+
+                if (!resposta.ok) {
+                    mostrarMensagemSenha(
+                        dados.detail ||
+                        'Não foi possível alterar a senha.',
+                        'error'
+                    );
+                    return;
+                }
+
+                form.reset();
+
+                document
+                    .querySelectorAll(
+                        '[data-password-target]'
+                    )
+                    .forEach(toggle => {
+                        const input =
+                            document.getElementById(
+                                toggle.dataset
+                                    .passwordTarget
+                            );
+
+                        if (input) {
+                            input.type =
+                                'password';
+                        }
+
+                        toggle.classList.remove(
+                            'is-visible'
+                        );
+                    });
+
+                mostrarMensagemSenha(
+                    dados.mensagem ||
+                    'Senha alterada com sucesso.',
+                    'success'
+                );
+
+            } catch (erro) {
+                console.error(erro);
+
+                mostrarMensagemSenha(
+                    'Não foi possível conectar ao servidor.',
+                    'error'
+                );
+
+            } finally {
+                if (botao) {
+                    botao.disabled = false;
+                    botao.textContent =
+                        'Alterar senha';
+                }
+            }
+        }
+    );
 }
 
 
 // ==========================================================
-// INICIAR
+// CARREGAMENTO
 // ==========================================================
+
+async function obterUsuario() {
+    const resposta =
+        await fetch('/api/me');
+
+    if (resposta.status === 401) {
+        window.location.href =
+            '/login';
+
+        return null;
+    }
+
+    if (!resposta.ok) {
+        throw new Error(
+            'Erro ao consultar usuário.'
+        );
+    }
+
+    return await resposta.json();
+}
+
+async function obterTreinos() {
+    const resposta =
+        await fetch('/api/me/treinos');
+
+    if (resposta.status === 401) {
+        window.location.href =
+            '/login';
+
+        return null;
+    }
+
+    if (!resposta.ok) {
+        throw new Error(
+            'Erro ao consultar treinos.'
+        );
+    }
+
+    return await resposta.json();
+}
+
+async function carregar() {
+    try {
+        const pagina =
+            paginaAtual();
+
+        usuarioAtual =
+            await obterUsuario();
+
+        if (!usuarioAtual) return;
+
+        preencherIdentidade(
+            usuarioAtual
+        );
+
+        if (!usuarioAtual.aluno) {
+            const subtitulo =
+                document.getElementById(
+                    'subtitulo'
+                );
+
+            if (subtitulo) {
+                subtitulo.textContent =
+                    'Sua conta não está vinculada a um aluno.';
+            }
+
+            return;
+        }
+
+        if (pagina === 'perfil') {
+            mostrarPerfil(
+                usuarioAtual
+            );
+
+            configurarFormularioSenha();
+
+            return;
+        }
+
+        treinos =
+            await obterTreinos();
+
+        if (!treinos) return;
+
+        if (pagina === 'historico') {
+            mostrarHistorico();
+            return;
+        }
+
+        const titulo =
+            document.getElementById(
+                'titulo'
+            );
+
+        const subtitulo =
+            document.getElementById(
+                'subtitulo'
+            );
+
+        if (titulo) {
+            titulo.textContent =
+                `Olá, ${usuarioAtual.aluno.nome} 👋`;
+        }
+
+        if (subtitulo) {
+            subtitulo.textContent =
+                `Aqui está seu treinamento de hoje. Nível: ${
+                    usuarioAtual.aluno.nivel
+                }`;
+        }
+
+        atualizarResumo();
+        criarSemana();
+
+    } catch (erro) {
+        console.error(erro);
+
+        const subtitulo =
+            document.getElementById(
+                'subtitulo'
+            );
+
+        if (subtitulo) {
+            subtitulo.textContent =
+                'Erro ao carregar seus dados.';
+        }
+
+        const lista =
+            document.getElementById(
+                'listaConcluidos'
+            );
+
+        if (lista) {
+            lista.innerHTML =
+                '<p class="vazio">Erro ao carregar o histórico.</p>';
+        }
+    }
+}
 
 carregar();

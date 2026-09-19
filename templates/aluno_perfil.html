@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu perfil - SPY TEAM</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=20260919-design3">
+</head>
+
+<body class="app-body" data-aluno-page="perfil">
+<div class="app-shell">
+
+    <aside class="app-sidebar student-sidebar">
+        <a class="sidebar-brand" href="/aluno" aria-label="SPY TEAM - Área do aluno">
+            <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
+        </a>
+
+        <nav class="app-nav" aria-label="Navegação do aluno">
+            <span class="app-nav-section">MEU ESPAÇO</span>
+            <a class="app-nav-item" href="/aluno"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span><span>Início</span></a>
+            <a class="app-nav-item" href="/aluno/historico"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/><path d="M12 7v5l3 2"/></svg></span><span>Histórico</span></a>
+
+            <span class="app-nav-section">CONTA</span>
+            <a class="app-nav-item active" href="/aluno/perfil"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-5 3-8 8-8s8 3 8 8"/></svg></span><span>Meu perfil</span></a>
+        </nav>
+
+        <div class="sidebar-profile">
+            <span class="sidebar-avatar" id="sidebarAvatar">A</span>
+            <span>
+                <strong id="sidebarName">Aluno</strong>
+                <small>SPY TEAM</small>
+            </span>
+        </div>
+    </aside>
+
+    <div class="app-workspace">
+
+        <header class="app-topbar">
+            <div class="app-topbar-copy">
+                <strong>Meu perfil</strong>
+                <span>Informações da sua conta</span>
+            </div>
+
+            <div class="app-topbar-actions">
+                <span class="top-status-dot" title="Online"></span>
+                <span class="top-avatar" id="topAvatar">A</span>
+                <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M10 17l5-5-5-5"/>
+                        <path d="M15 12H3"/>
+                        <path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-content">
+            <section class="dashboard-heading">
+                <div>
+                    <span class="eyebrow">CONTA</span>
+                    <h1>Meu perfil</h1>
+                    <p>Consulte seus dados de acesso e informações esportivas.</p>
+                </div>
+            </section>
+
+            <section class="student-profile-layout">
+                <article class="dashboard-card student-profile-hero">
+                    <div class="student-profile-avatar" id="profileAvatar">A</div>
+                    <div>
+                        <span class="profile-role">ALUNO</span>
+                        <h2 id="profileName">Carregando...</h2>
+                        <p id="profileSummary">SPY TEAM</p>
+                    </div>
+                </article>
+
+                <article class="dashboard-card student-profile-info">
+                    <div class="section-heading-row">
+                        <div>
+                            <span class="eyebrow">DADOS</span>
+                            <h2>Informações do perfil</h2>
+                        </div>
+                    </div>
+
+                    <div class="profile-data-grid">
+                        <div class="profile-data-item">
+                            <span>Nome</span>
+                            <strong id="profileFullName">—</strong>
+                        </div>
+
+                        <div class="profile-data-item">
+                            <span>Usuário</span>
+                            <strong id="profileUsername">—</strong>
+                        </div>
+
+                        <div class="profile-data-item">
+                            <span>Nível</span>
+                            <strong id="profileLevel">—</strong>
+                        </div>
+
+                        <div class="profile-data-item">
+                            <span>Modalidade</span>
+                            <strong id="profileModality">—</strong>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="dashboard-card password-change-card">
+                    <div class="section-heading-row">
+                        <div>
+                            <span class="eyebrow">SEGURANÇA</span>
+                            <h2>Alterar senha</h2>
+                            <p>
+                                Digite sua senha atual e escolha
+                                uma nova senha para sua conta.
+                            </p>
+                        </div>
+                    </div>
+
+                    <form id="formAlterarSenha" class="password-change-form">
+                        <div class="form-group">
+                            <label for="senhaAtual">Senha atual</label>
+
+                            <div class="password-field">
+                                <input
+                                    type="password"
+                                    id="senhaAtual"
+                                    autocomplete="current-password"
+                                    placeholder="Digite sua senha atual"
+                                    required
+                                >
+
+                                <button
+                                    class="password-toggle"
+                                    type="button"
+                                    data-password-target="senhaAtual"
+                                    aria-label="Mostrar senha atual"
+                                    title="Mostrar senha"
+                                >
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/>
+                                        <circle cx="12" cy="12" r="2.8"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="novaSenha">Nova senha</label>
+
+                            <div class="password-field">
+                                <input
+                                    type="password"
+                                    id="novaSenha"
+                                    minlength="4"
+                                    autocomplete="new-password"
+                                    placeholder="Digite a nova senha"
+                                    required
+                                >
+
+                                <button
+                                    class="password-toggle"
+                                    type="button"
+                                    data-password-target="novaSenha"
+                                    aria-label="Mostrar nova senha"
+                                    title="Mostrar senha"
+                                >
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/>
+                                        <circle cx="12" cy="12" r="2.8"/>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <small class="password-hint">
+                                Use pelo menos 4 caracteres.
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmarNovaSenha">
+                                Confirmar nova senha
+                            </label>
+
+                            <div class="password-field">
+                                <input
+                                    type="password"
+                                    id="confirmarNovaSenha"
+                                    minlength="4"
+                                    autocomplete="new-password"
+                                    placeholder="Digite a nova senha novamente"
+                                    required
+                                >
+
+                                <button
+                                    class="password-toggle"
+                                    type="button"
+                                    data-password-target="confirmarNovaSenha"
+                                    aria-label="Mostrar confirmação da senha"
+                                    title="Mostrar senha"
+                                >
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/>
+                                        <circle cx="12" cy="12" r="2.8"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div
+                            id="mensagemAlterarSenha"
+                            class="password-message"
+                            role="status"
+                            aria-live="polite"
+                        ></div>
+
+                        <button
+                            id="btnAlterarSenha"
+                            class="btn btn-primary password-submit"
+                            type="submit"
+                        >
+                            Alterar senha
+                        </button>
+                    </form>
+                </article>
+            </section>
+        </main>
+    </div>
+</div>
+
+
+<script>
+async function sair(event) {
+    if (event) event.preventDefault();
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
+}
+</script>
+<script src="/static/js/aluno.js?v=20260919-design3"></script>
+</body>
+</html>

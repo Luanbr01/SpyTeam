@@ -4,48 +4,94 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do Professor - SPY TEAM</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=20260915-2155">
-    <!-- SPYTEAM_DEPLOY_FIX_20260915-2155 -->
+    <link rel="stylesheet" href="/static/css/style.css?v=20260919-design1">
 </head>
-<body>
-<div class="page">
-    <div class="topbar">
-        <a class="brand brand-official" href="/" aria-label="Ir para a página inicial"><img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="logo-spy-team brand-logo"></a>
-        <button class="btn btn-danger" onclick="sair(event)">Sair</button>
-    </div>
-
-    <section class="panel">
-        <h1>Painel do Professor</h1>
-        <p class="subtitle">Gerencie alunos, treinos e o planejamento semanal da sua assessoria.</p>
-
-        <div class="menu-grid">
-            <a class="menu-card" href="/novo-aluno">
-                <div class="icon">👤</div>
-                <h3>Cadastrar aluno</h3>
-                <p>Crie o acesso do aluno e defina nível e modalidade.</p>
-            </a>
-            <a class="menu-card" href="/novo-treino-base">
-                <div class="icon">🏋️</div>
-                <h3>Cadastrar treino base</h3>
-                <p>Monte treinos reutilizáveis por modalidade.</p>
-            </a>
-            <a class="menu-card" href="/novo-treino">
-                <div class="icon">📅</div>
-                <h3>Agendar treino</h3>
-                <p>Envie um treino específico para um aluno.</p>
-            </a>
-            <a class="menu-card" href="/planejamento-semanal">
-                <div class="icon">🗓️</div>
-                <h3>Planejamento semanal</h3>
-                <p>Monte segunda a sexta e envie automaticamente por modalidade.</p>
-            </a>
-            <a class="menu-card" href="/alunos">
-                <div class="icon">👥</div>
-                <h3>Meus alunos</h3>
-                <p>Consulte alunos, treinos enviados e feedbacks.</p>
-            </a>
+<body class="app-body">
+<div class="app-shell">
+    <aside class="app-sidebar professor-sidebar">
+        <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
+            <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
+        </a>
+        <nav class="app-nav" aria-label="Navegação principal">
+            <span class="app-nav-section">GERAL</span>
+            <a class="app-nav-item active" href="/home"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span><span>Dashboard</span></a>
+            <span class="app-nav-section">TREINAMENTO</span>
+            <a class="app-nav-item" href="/novo-treino-base"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14"/><path d="M7 5v6M17 5v6"/><path d="M4 16h16"/><path d="M7 13v6M17 13v6"/></svg></span><span>Treinos</span></a>
+            <a class="app-nav-item" href="/planejamento-semanal"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><span>Agenda</span></a>
+            <a class="app-nav-item" href="/alunos"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-7 6-7s6 3 6 7"/><circle cx="17" cy="9" r="2"/><path d="M15 14c3 0 5 2 5 5"/></svg></span><span>Alunos</span></a>
+            <a class="app-nav-item" href="/novo-aluno"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-7 6-7s6 3 6 7"/><path d="M18 7v6M15 10h6"/></svg></span><span>Novo aluno</span></a>
+            <span class="app-nav-section">GESTÃO</span>
+            <a class="app-nav-item" href="/novo-treino"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l18-8-7 18-3-7-8-3z"/><path d="M11 14L21 3"/></svg></span><span>Agendar treino</span></a>
+        </nav>
+        <div class="sidebar-profile">
+            <span class="sidebar-avatar">P</span>
+            <span><strong>Professor</strong><small>SPY TEAM</small></span>
         </div>
-    </section>
+    </aside>
+    <div class="app-workspace">
+        <header class="app-topbar">
+        <div class="app-topbar-copy">
+            <strong>Dashboard</strong>
+            <span>Visão geral da assessoria</span>
+        </div>
+        <div class="app-topbar-actions">
+            <span class="top-status-dot" title="Online"></span>
+            <span class="top-avatar">P</span>
+            <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/></svg></button>
+        </div>
+    </header>
+        <main class="app-content">
+            <section class="dashboard-heading">
+                <div>
+                    <span class="eyebrow">VISÃO GERAL</span>
+                    <h1>Olá, Professor <span class="wave">👋</span></h1>
+                    <p>Acompanhe seus alunos, treinos e planejamento em um só lugar.</p>
+                </div>
+                <a href="/novo-treino-base" class="btn btn-primary btn-with-icon"><span>＋</span> Criar treino</a>
+            </section>
+
+            <section class="dashboard-stats" aria-label="Resumo">
+                <article class="metric-card">
+                    <span class="metric-icon metric-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-7 6-7s6 3 6 7"/><circle cx="17" cy="9" r="2"/><path d="M15 14c3 0 5 2 5 5"/></svg></span>
+                    <div><strong id="profTotalAlunos">0</strong><span>Alunos</span></div>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-icon metric-green"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg></span>
+                    <div><strong id="profAtivos">0</strong><span>Ativos</span></div>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-icon metric-cyan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20V8"/></svg></span>
+                    <div><strong id="profTreinos">0</strong><span>Treinos</span></div>
+                </article>
+            </section>
+
+            <section class="dashboard-card">
+                <div class="section-heading-row">
+                    <div>
+                        <span class="eyebrow">TREINAMENTO</span>
+                        <h2>Treinos por modalidade</h2>
+                    </div>
+                    <a href="/planejamento-semanal" class="btn btn-primary btn-compact">＋ Planejar semana</a>
+                </div>
+                <div id="modalidadeCards" class="training-list">
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line"></div>
+                </div>
+            </section>
+
+            <section class="dashboard-card">
+                <div class="section-heading-row">
+                    <div><span class="eyebrow">ACESSO RÁPIDO</span><h2>Gerenciar assessoria</h2></div>
+                </div>
+                <div class="quick-grid">
+                    <a class="quick-card" href="/novo-aluno"><span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-7 6-7s6 3 6 7"/><path d="M18 7v6M15 10h6"/></svg></span><span><strong>Cadastrar aluno</strong><small>Crie acesso, nível e modalidade</small></span></a>
+                    <a class="quick-card" href="/novo-treino"><span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l18-8-7 18-3-7-8-3z"/><path d="M11 14L21 3"/></svg></span><span><strong>Agendar treino</strong><small>Envie um treino para um aluno</small></span></a>
+                    <a class="quick-card" href="/alunos"><span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-7 6-7s6 3 6 7"/><circle cx="17" cy="9" r="2"/><path d="M15 14c3 0 5 2 5 5"/></svg></span><span><strong>Meus alunos</strong><small>Treinos, status e feedbacks</small></span></a>
+                </div>
+            </section>
+        </main>
+    </div>
 </div>
 <script>
 async function sair(event) {
@@ -53,6 +99,47 @@ async function sair(event) {
     await fetch('/api/logout', { method: 'POST' });
     window.location.href = '/login';
 }
+
+function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function carregarDashboardProfessor() {
+    try {
+        const [rAlunos, rBases, rTreinos] = await Promise.all([
+            fetch('/api/alunos'), fetch('/api/treinos-base'), fetch('/api/treinos')
+        ]);
+        if ([rAlunos, rBases, rTreinos].some(r => r.status === 401 || r.status === 403)) {
+            window.location.href = '/login'; return;
+        }
+        const alunos = rAlunos.ok ? await rAlunos.json() : [];
+        const bases = rBases.ok ? await rBases.json() : [];
+        const treinos = rTreinos.ok ? await rTreinos.json() : [];
+        document.getElementById('profTotalAlunos').textContent = alunos.length;
+        document.getElementById('profAtivos').textContent = alunos.length;
+        document.getElementById('profTreinos').textContent = bases.length;
+
+        const modalidades = [
+            ['Corrida','🏃','run'], ['Natação','🏊','swim'], ['Ciclismo','🚴','bike'], ['Triathlon','🏅','tri']
+        ];
+        const container = document.getElementById('modalidadeCards');
+        container.innerHTML = modalidades.map(([nome, emoji, classe]) => {
+            const qtdAlunos = alunos.filter(a => String(a.modalidade || '').toLowerCase() === nome.toLowerCase()).length;
+            const qtdTreinos = bases.filter(t => String(t.modalidade || '').toLowerCase() === nome.toLowerCase()).length;
+            const concluidos = treinos.filter(t => String(t.modalidade || '').toLowerCase() === nome.toLowerCase() && t.concluido).length;
+            return `<article class="training-row">
+                <span class="sport-icon ${classe}">${emoji}</span>
+                <div class="training-main"><strong>${esc(nome)}</strong><span>${qtdTreinos} treino${qtdTreinos === 1 ? '' : 's'} base</span><small>${concluidos} concluído${concluidos === 1 ? '' : 's'}</small></div>
+                <div class="training-count"><strong>${qtdAlunos}</strong><span>alunos</span></div>
+                <a class="btn btn-outline btn-compact" href="/planejamento-semanal">Planejar</a>
+            </article>`;
+        }).join('');
+    } catch (e) {
+        console.error(e);
+        document.getElementById('modalidadeCards').innerHTML = '<p class="vazio">Não foi possível carregar o resumo agora.</p>';
+    }
+}
+carregarDashboardProfessor();
 </script>
 </body>
 </html>

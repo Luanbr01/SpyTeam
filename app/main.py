@@ -414,6 +414,40 @@ def aluno(
 
 
 # ============================================================
+# HISTÓRICO DO ALUNO
+# ============================================================
+
+@app.get("/aluno/historico")
+def aluno_historico(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_aluno)
+):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="aluno_historico.html"
+    )
+
+
+# ============================================================
+# PERFIL DO ALUNO
+# ============================================================
+
+@app.get("/aluno/perfil")
+def aluno_perfil(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_aluno)
+):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="aluno_perfil.html"
+    )
+
+
+# ============================================================
 # NOVO ALUNO
 # ============================================================
 
@@ -661,10 +695,90 @@ def me(
                     aluno_db.nome,
 
                 "nivel":
-                    aluno_db.nivel
+                    aluno_db.nivel,
+
+                "modalidade":
+                    aluno_db.modalidade
             }
 
     return dados
+
+
+
+
+# ============================================================
+# ALTERAR SENHA DO ALUNO LOGADO
+# ============================================================
+
+@app.patch("/api/me/senha")
+def alterar_senha_aluno(
+    dados: schemas.AlterarSenhaAluno,
+
+    db: Session =
+    Depends(get_db),
+
+    aluno_logado: models.Usuario =
+    Depends(require_aluno)
+):
+
+    usuario_db = (
+        db.query(models.Usuario)
+        .filter(
+            models.Usuario.id
+            == aluno_logado.id
+        )
+        .first()
+    )
+
+    if not usuario_db:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuário não encontrado."
+        )
+
+    if not verificar_senha(
+        dados.senha_atual,
+        usuario_db.senha_hash
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Senha atual incorreta."
+        )
+
+    if (
+        dados.nova_senha
+        != dados.confirmar_senha
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "A confirmação da nova senha "
+                "não confere."
+            )
+        )
+
+    if verificar_senha(
+        dados.nova_senha,
+        usuario_db.senha_hash
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "A nova senha precisa ser "
+                "diferente da senha atual."
+            )
+        )
+
+    usuario_db.senha_hash = hash_senha(
+        dados.nova_senha
+    )
+
+    db.commit()
+
+    return {
+        "mensagem":
+            "Senha alterada com sucesso."
+    }
 
 
 # ============================================================

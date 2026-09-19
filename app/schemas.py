@@ -25,6 +25,30 @@ class Login(BaseModel):
     )
 
 
+
+
+# ============================================================
+# ALTERAR SENHA DO ALUNO
+# ============================================================
+
+class AlterarSenhaAluno(BaseModel):
+
+    senha_atual: str = Field(
+        min_length=1,
+        max_length=200
+    )
+
+    nova_senha: str = Field(
+        min_length=4,
+        max_length=200
+    )
+
+    confirmar_senha: str = Field(
+        min_length=4,
+        max_length=200
+    )
+
+
 # ============================================================
 # CADASTRO DO ALUNO
 # ============================================================

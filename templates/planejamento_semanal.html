@@ -1,73 +1,35 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planejamento Semanal - SPY TEAM</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=20260915-2155">
-    <style>
-        .week-table-wrap { overflow-x:auto; }
-        .week-table { width:100%; min-width:820px; border-collapse:collapse; }
-        .week-table th, .week-table td { padding:14px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
-        .week-table th { color:var(--primary); text-align:center; background:var(--blue-soft); }
-        .week-table th:first-child, .week-table td:first-child { text-align:left; width:180px; }
-        .week-table td:not(:first-child) { min-width:145px; }
-        .modalidade-cell { font-weight:800; }
-        .modalidade-icon { display:inline-grid; place-items:center; width:34px; height:34px; border-radius:10px; background:var(--blue-soft); margin-right:8px; }
-        .acoes { display:flex; justify-content:flex-end; margin-top:20px; }
-        .hint { padding:12px 14px; border-radius:10px; background:var(--blue-soft); color:var(--text-2); font-size:.85rem; line-height:1.5; margin-top:14px; }
-    </style>
-    <!-- SPYTEAM_DEPLOY_FIX_20260915-2155 -->
-</head>
-<body>
-<div class="page">
-    <div class="topbar">
-        <div>
-            <a class="brand brand-official" href="/" aria-label="Ir para a página inicial"><img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="logo-spy-team brand-logo"></a>
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Planejamento Semanal - SPY TEAM</title><link rel="stylesheet" href="/static/css/style.css?v=20260919-design1"></head><body class="app-body"><div class="app-shell"><aside class="app-sidebar professor-sidebar">
+        <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
+            <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
+        </a>
+        <nav class="app-nav" aria-label="Navegação principal">
+            <span class="app-nav-section">GERAL</span>
+            <a class="app-nav-item" href="/home"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span><span>Dashboard</span></a>
+            <span class="app-nav-section">TREINAMENTO</span>
+            <a class="app-nav-item" href="/novo-treino-base"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14"/><path d="M7 5v6M17 5v6"/><path d="M4 16h16"/><path d="M7 13v6M17 13v6"/></svg></span><span>Treinos</span></a>
+            <a class="app-nav-item active" href="/planejamento-semanal"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><span>Agenda</span></a>
+            <a class="app-nav-item" href="/alunos"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-7 6-7s6 3 6 7"/><circle cx="17" cy="9" r="2"/><path d="M15 14c3 0 5 2 5 5"/></svg></span><span>Alunos</span></a>
+            <a class="app-nav-item" href="/novo-aluno"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-7 6-7s6 3 6 7"/><path d="M18 7v6M15 10h6"/></svg></span><span>Novo aluno</span></a>
+            <span class="app-nav-section">GESTÃO</span>
+            <a class="app-nav-item" href="/novo-treino"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l18-8-7 18-3-7-8-3z"/><path d="M11 14L21 3"/></svg></span><span>Agendar treino</span></a>
+        </nav>
+        <div class="sidebar-profile">
+            <span class="sidebar-avatar">P</span>
+            <span><strong>Professor</strong><small>SPY TEAM</small></span>
         </div>
-        <a href="/home" class="btn btn-secondary" style="text-decoration:none;">← Voltar</a>
-    </div>
-
-    <section class="panel">
-        <h1>Planejamento semanal</h1>
-        <p class="subtitle">Escolha um treino para cada dia. O sistema enviará automaticamente o treino aos alunos da mesma modalidade.</p>
-
-        <div class="grid grid-2" style="align-items:end;">
-            <div>
-                <label for="dataSegunda">Segunda-feira da semana</label>
-                <input type="date" id="dataSegunda">
-            </div>
-            <div>
-                <div class="hint">📌 O planejamento funciona de <strong>segunda a sexta</strong>. Ex.: o treino de Corrida de terça será enviado somente aos alunos de Corrida.</div>
-            </div>
+    </aside><div class="app-workspace"><header class="app-topbar">
+        <div class="app-topbar-copy">
+            <strong>Agenda</strong>
+            <span>Planejamento de segunda a sexta</span>
         </div>
-    </section>
-
-    <section class="panel">
-        <div class="week-table-wrap">
-            <table class="week-table">
-                <thead>
-                    <tr>
-                        <th>Modalidade</th>
-                        <th>Segunda<br><small id="data-0">-</small></th>
-                        <th>Terça<br><small id="data-1">-</small></th>
-                        <th>Quarta<br><small id="data-2">-</small></th>
-                        <th>Quinta<br><small id="data-3">-</small></th>
-                        <th>Sexta<br><small id="data-4">-</small></th>
-                    </tr>
-                </thead>
-                <tbody id="corpoTabela"></tbody>
-            </table>
+        <div class="app-topbar-actions">
+            <span class="top-status-dot" title="Online"></span>
+            <span class="top-avatar">P</span>
+            <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/></svg></button>
         </div>
-
-        <div class="acoes">
-            <button id="btnEnviar" class="btn btn-primary" onclick="enviarPlanejamento()">Enviar planejamento semanal</button>
-        </div>
-        <div id="mensagem" class="message"></div>
-    </section>
-</div>
-
-<script>
+    </header><main class="app-content"><section class="form-page-heading"><a href="/home" class="back-link">← Voltar</a><span class="eyebrow">PLANEJAMENTO</span><h1>Planejamento semanal</h1><p>Escolha um treino para cada dia. O sistema envia automaticamente aos alunos da mesma modalidade.</p></section>
+<section class="dashboard-card planning-header-card"><div class="planning-date"><label for="dataSegunda">Segunda-feira da semana</label><input type="date" id="dataSegunda"></div><div class="hint"><strong>Segunda a sexta</strong><span>Corrida vai para alunos de Corrida; Natação para Natação e assim por diante.</span></div></section>
+<section class="dashboard-card"><div class="week-table-wrap"><table class="week-table"><thead><tr><th>Modalidade</th><th>SEG<br><small id="data-0">-</small></th><th>TER<br><small id="data-1">-</small></th><th>QUA<br><small id="data-2">-</small></th><th>QUI<br><small id="data-3">-</small></th><th>SEX<br><small id="data-4">-</small></th></tr></thead><tbody id="corpoTabela"></tbody></table></div><div class="form-actions planning-actions"><a class="btn btn-secondary" href="/home">Cancelar</a><button id="btnEnviar" class="btn btn-primary" onclick="enviarPlanejamento()">Enviar planejamento semanal →</button></div><div id="mensagem" class="message"></div></section></main></div></div><script>async function sair(event){if(event)event.preventDefault();await fetch('/api/logout',{method:'POST'});window.location.href='/login';}</script><script>
 const modalidades = ["Corrida", "Natação", "Ciclismo", "Triathlon"];
 const dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
 let treinosBase = [];
@@ -246,6 +208,4 @@ document.addEventListener("DOMContentLoaded", () => {
     carregarTreinos();
     definirSegundaAtual();
 });
-</script>
-</body>
-</html>
+</script></body></html>
