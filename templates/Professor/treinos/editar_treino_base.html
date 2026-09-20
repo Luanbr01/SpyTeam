@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Editar treino - SPY TEAM</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css?v=20260919-design1"
+    >
+</head>
+
+<body class="app-body">
+
+<div class="app-shell">
+
+    <aside class="app-sidebar professor-sidebar">
+
+        <a
+            class="sidebar-brand"
+            href="/home"
+            aria-label="SPY TEAM - Dashboard"
+        >
+            <img
+                src="/static/img/logo-spy-team.svg"
+                alt="SPY TEAM"
+                class="sidebar-logo"
+            >
+        </a>
+
+        {% include "componentes/sidebar.html" %}
+
+        <div class="sidebar-profile">
+
+            <span class="sidebar-avatar">
+                P
+            </span>
+
+            <span>
+                <strong>Professor</strong>
+                <small>SPY TEAM</small>
+            </span>
+
+        </div>
+
+    </aside>
+
+
+    <div class="app-workspace">
+
+        <header class="app-topbar">
+
+            <div class="app-topbar-copy">
+
+                <strong>
+                    Editar treino
+                </strong>
+
+                <span>
+                    Altere os dados do treino base.
+                </span>
+
+            </div>
+
+
+            <div class="app-topbar-actions">
+
+                <span
+                    class="top-status-dot"
+                    title="Online"
+                ></span>
+
+                <span class="top-avatar">
+                    P
+                </span>
+
+                <button
+                    class="top-logout"
+                    onclick="sair(event)"
+                    title="Sair"
+                    aria-label="Sair"
+                >
+                    ↪
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <main class="app-content">
+
+            <section class="form-page-heading">
+
+                <a
+                    href="/treinos-base"
+                    class="back-link"
+                >
+                    ← Voltar para treinos
+                </a>
+
+                <span class="eyebrow">
+                    SPY TEAM
+                </span>
+
+                <h1>
+                    Editar treino base
+                </h1>
+
+                <p>
+                    As alterações serão utilizadas apenas
+                    nos próximos agendamentos.
+                </p>
+
+            </section>
+
+
+            <section class="dashboard-card form-card">
+
+                <form
+                    id="formEditarTreino"
+                    class="stack-form"
+                >
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label for="titulo">
+                                Título do treino
+                            </label>
+
+                            <input
+                                id="titulo"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="modalidade">
+                                Modalidade
+                            </label>
+
+                            <select
+                                id="modalidade"
+                                required
+                            >
+
+                                <option value="Corrida">
+                                    Corrida
+                                </option>
+
+                                <option value="Natação">
+                                    Natação
+                                </option>
+
+                                <option value="Ciclismo">
+                                    Ciclismo
+                                </option>
+
+                                <option value="Triathlon">
+                                    Triathlon
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="descricao">
+                            Descrição
+                        </label>
+
+                        <textarea
+                            id="descricao"
+                            required
+                        ></textarea>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="ritmo_alvo">
+                            Ritmo alvo
+                            <span class="label-muted">
+                                (opcional)
+                            </span>
+                        </label>
+
+                        <input
+                            id="ritmo_alvo"
+                            placeholder="Ex.: 4:30 min/km"
+                        >
+
+                    </div>
+
+
+                    <div class="form-actions">
+
+                        <a
+                            class="btn btn-secondary"
+                            href="/treinos-base"
+                        >
+                            Cancelar
+                        </a>
+
+                        <button
+                            class="btn btn-primary"
+                            type="submit"
+                        >
+                            Salvar alterações →
+                        </button>
+
+                    </div>
+
+                </form>
+
+
+                <div
+                    id="mensagem"
+                    class="message"
+                ></div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const treinoId =
+    window.location.pathname
+        .split('/')
+        .pop();
+
+
+async function sair(event) {
+
+    if (event) {
+        event.preventDefault();
+    }
+
+    await fetch(
+        '/api/logout',
+        {
+            method: 'POST'
+        }
+    );
+
+    window.location.href = '/login';
+}
+
+
+async function carregarTreino() {
+
+    const mensagem =
+        document.getElementById(
+            'mensagem'
+        );
+
+    try {
+
+        const resposta =
+            await fetch(
+                '/api/treinos-base'
+            );
+
+        const treinos =
+            await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                treinos.detail
+                || 'Erro ao carregar treinos.'
+            );
+        }
+
+
+        const treino =
+            treinos.find(
+                item =>
+                    item.id === Number(treinoId)
+            );
+
+
+        if (!treino) {
+
+            throw new Error(
+                'Treino base não encontrado.'
+            );
+        }
+
+
+        document.getElementById(
+            'titulo'
+        ).value =
+            treino.titulo || '';
+
+
+        document.getElementById(
+            'modalidade'
+        ).value =
+            treino.modalidade || '';
+
+
+        document.getElementById(
+            'descricao'
+        ).value =
+            treino.descricao || '';
+
+
+        document.getElementById(
+            'ritmo_alvo'
+        ).value =
+            treino.ritmo_alvo || '';
+
+    }
+
+    catch (erro) {
+
+        mensagem.className =
+            'message error';
+
+        mensagem.textContent =
+            erro.message;
+    }
+}
+
+
+document
+    .getElementById(
+        'formEditarTreino'
+    )
+    .addEventListener(
+        'submit',
+        async (event) => {
+
+            event.preventDefault();
+
+            const mensagem =
+                document.getElementById(
+                    'mensagem'
+                );
+
+
+            const dados = {
+
+                titulo:
+                    document.getElementById(
+                        'titulo'
+                    ).value,
+
+                modalidade:
+                    document.getElementById(
+                        'modalidade'
+                    ).value,
+
+                descricao:
+                    document.getElementById(
+                        'descricao'
+                    ).value,
+
+                ritmo_alvo:
+                    document.getElementById(
+                        'ritmo_alvo'
+                    ).value
+                    || null
+
+            };
+
+
+            try {
+
+                const resposta =
+                    await fetch(
+                        `/api/treinos-base/${treinoId}`,
+                        {
+                            method: 'PATCH',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/json'
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    dados
+                                )
+                        }
+                    );
+
+
+                const retorno =
+                    await resposta.json();
+
+
+                if (!resposta.ok) {
+
+                    throw new Error(
+                        retorno.detail
+                        || 'Erro ao atualizar treino.'
+                    );
+                }
+
+
+                mensagem.className =
+                    'message success';
+
+                mensagem.textContent =
+                    'Treino base atualizado com sucesso!';
+
+
+            }
+
+            catch (erro) {
+
+                mensagem.className =
+                    'message error';
+
+                mensagem.textContent =
+                    erro.message;
+            }
+
+        }
+    );
+
+
+carregarTreino();
+
+</script>
+
+</body>
+</html>

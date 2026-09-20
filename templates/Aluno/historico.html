@@ -10,28 +10,7 @@
 <body class="app-body" data-aluno-page="historico">
 <div class="app-shell">
 
-    <aside class="app-sidebar student-sidebar">
-        <a class="sidebar-brand" href="/aluno" aria-label="SPY TEAM - Área do aluno">
-            <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
-        </a>
-
-        <nav class="app-nav" aria-label="Navegação do aluno">
-            <span class="app-nav-section">MEU ESPAÇO</span>
-            <a class="app-nav-item" href="/aluno"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span><span>Início</span></a>
-            <a class="app-nav-item active" href="/aluno/historico"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/><path d="M12 7v5l3 2"/></svg></span><span>Histórico</span></a>
-
-            <span class="app-nav-section">CONTA</span>
-            <a class="app-nav-item" href="/aluno/perfil"><span class="app-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-5 3-8 8-8s8 3 8 8"/></svg></span><span>Meu perfil</span></a>
-        </nav>
-
-        <div class="sidebar-profile">
-            <span class="sidebar-avatar" id="sidebarAvatar">A</span>
-            <span>
-                <strong id="sidebarName">Aluno</strong>
-                <small>SPY TEAM</small>
-            </span>
-        </div>
-    </aside>
+    {% include "componentes/sidebar_aluno.html" %}
 
     <div class="app-workspace">
 

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Treinos base - SPY TEAM</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css?v=20260919-design1"
+    >
+</head>
+
+<body class="app-body">
+
+<div class="app-shell">
+
+    <aside class="app-sidebar professor-sidebar">
+
+        <a
+            class="sidebar-brand"
+            href="/home"
+            aria-label="SPY TEAM - Dashboard"
+        >
+            <img
+                src="/static/img/logo-spy-team.svg"
+                alt="SPY TEAM"
+                class="sidebar-logo"
+            >
+        </a>
+
+        {% include "componentes/sidebar.html" %}
+
+        <div class="sidebar-profile">
+
+            <span class="sidebar-avatar">
+                P
+            </span>
+
+            <span>
+                <strong>Professor</strong>
+                <small>SPY TEAM</small>
+            </span>
+
+        </div>
+
+    </aside>
+
+
+    <div class="app-workspace">
+
+        <header class="app-topbar">
+
+            <div class="app-topbar-copy">
+
+                <strong>
+                    Treinos base
+                </strong>
+
+                <span>
+                    Gerencie os treinos disponíveis para o planejamento.
+                </span>
+
+            </div>
+
+
+            <div class="app-topbar-actions">
+
+                <span
+                    class="top-status-dot"
+                    title="Online"
+                ></span>
+
+                <span class="top-avatar">
+                    P
+                </span>
+
+                <button
+                    class="top-logout"
+                    onclick="sair(event)"
+                    title="Sair"
+                    aria-label="Sair"
+                >
+                    ↪
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <main class="app-content">
+
+            <section class="form-page-heading">
+
+                <a
+                    href="/home"
+                    class="back-link"
+                >
+                    ← Voltar
+                </a>
+
+                <span class="eyebrow">
+                    SPY TEAM
+                </span>
+
+                <h1>
+                    Treinos base
+                </h1>
+
+                <p>
+                    Crie, edite e gerencie os treinos utilizados
+                    no planejamento dos alunos.
+                </p>
+
+            </section>
+
+
+            <section class="dashboard-card">
+
+                <div class="form-actions">
+
+                    <a
+                        class="btn btn-primary"
+                        href="/novo-treino-base"
+                    >
+                        + Criar novo treino
+                    </a>
+
+                </div>
+
+
+                <div
+                    id="mensagem"
+                    class="message"
+                ></div>
+
+
+                <div
+                    id="listaTreinos"
+                    style="margin-top: 24px;"
+                >
+                    Carregando treinos...
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</div>
+
+
+<script>
+
+async function sair(event) {
+
+    if (event) {
+        event.preventDefault();
+    }
+
+    await fetch(
+        '/api/logout',
+        {
+            method: 'POST'
+        }
+    );
+
+    window.location.href = '/login';
+}
+
+
+async function carregarTreinos() {
+
+    const lista =
+        document.getElementById(
+            'listaTreinos'
+        );
+
+    try {
+
+        const resposta =
+            await fetch(
+                '/api/treinos-base'
+            );
+
+        const treinos =
+            await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                treinos.detail
+                || 'Erro ao carregar treinos.'
+            );
+        }
+
+
+        if (treinos.length === 0) {
+
+            lista.innerHTML = `
+                <p>
+                    Nenhum treino base cadastrado.
+                </p>
+            `;
+
+            return;
+        }
+
+
+        lista.innerHTML =
+            treinos.map(treino => `
+
+                <div
+                    style="
+                        border: 1px solid #ddd;
+                        border-radius: 12px;
+                        padding: 20px;
+                        margin-bottom: 16px;
+                    "
+                >
+
+                    <div
+                        style="
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 20px;
+                            align-items: flex-start;
+                        "
+                    >
+
+                        <div>
+
+                            <h3
+                                style="
+                                    margin-top: 0;
+                                    margin-bottom: 8px;
+                                "
+                            >
+                                ${escapeHtml(
+                                    treino.titulo
+                                )}
+                            </h3>
+
+                            <strong>
+                                ${escapeHtml(
+                                    treino.modalidade
+                                )}
+                            </strong>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                display: flex;
+                                gap: 8px;
+                            "
+                        >
+
+                            <a
+                                class="btn btn-secondary"
+                                href="/editar-treino-base/${treino.id}"
+                            >
+                                Editar
+                            </a>
+
+                            <button
+                                class="btn btn-secondary"
+                                onclick="excluirTreino(${treino.id})"
+                            >
+                                Excluir
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <p>
+                        ${escapeHtml(
+                            treino.descricao
+                        )}
+                    </p>
+
+
+                    ${
+                        treino.ritmo_alvo
+                        ? `
+                            <small>
+                                <strong>
+                                    Ritmo alvo:
+                                </strong>
+
+                                ${escapeHtml(
+                                    treino.ritmo_alvo
+                                )}
+                            </small>
+                        `
+                        : ''
+                    }
+
+                </div>
+
+            `).join('');
+
+    }
+
+    catch (erro) {
+
+        lista.innerHTML = `
+            <div class="message error">
+                ${escapeHtml(
+                    erro.message
+                )}
+            </div>
+        `;
+    }
+}
+
+
+async function excluirTreino(id) {
+
+    const confirmar =
+        confirm(
+            'Tem certeza que deseja excluir este treino base?'
+        );
+
+    if (!confirmar) {
+        return;
+    }
+
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/api/treinos-base/${id}`,
+                {
+                    method: 'DELETE'
+                }
+            );
+
+
+        const retorno =
+            await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                retorno.detail
+                || 'Não foi possível excluir o treino.'
+            );
+        }
+
+
+        const mensagem =
+            document.getElementById(
+                'mensagem'
+            );
+
+        mensagem.className =
+            'message success';
+
+        mensagem.textContent =
+            retorno.mensagem;
+
+
+        carregarTreinos();
+
+    }
+
+    catch (erro) {
+
+        const mensagem =
+            document.getElementById(
+                'mensagem'
+            );
+
+        mensagem.className =
+            'message error';
+
+        mensagem.textContent =
+            erro.message;
+    }
+}
+
+
+function escapeHtml(valor) {
+
+    return String(valor ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+
+carregarTreinos();
+
+</script>
+
+</body>
+</html>

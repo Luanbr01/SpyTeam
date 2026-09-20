@@ -570,11 +570,27 @@ input:focus, select:focus, textarea:focus {
     font-weight: 600;
     transition: .18s ease;
 }
-.app-nav-item:hover { color:#fff; background: rgba(255,255,255,.09); transform: translateX(2px); }
-.app-nav-item.active {
+
+.app-nav-item:hover {
     color: #fff;
-    background: linear-gradient(90deg, #29A8F5, #3CCAF8);
-    box-shadow: 0 8px 20px rgba(2,180,245,.24);
+    background: rgba(255,255,255,.09);
+    transform: translateX(2px);
+}
+
+/* ITEM SELECIONADO */
+.app-nav-item.active,
+.app-nav-item.active:hover,
+a.app-nav-item.active {
+    background: #FFFFFF !important;
+    color: #1558D6 !important;
+    box-shadow: 0 6px 16px rgba(8, 21, 47, .10) !important;
+    transform: translateX(0) !important;
+}
+
+a.app-nav-item.active .app-nav-icon,
+a.app-nav-item.active .app-nav-icon svg {
+    color: #1558D6 !important;
+    stroke: #1558D6 !important;
 }
 .app-nav-icon { width: 20px; height: 20px; flex: 0 0 auto; display:grid; place-items:center; }
 .app-nav-icon svg { width: 19px; height: 19px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }

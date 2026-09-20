@@ -4,7 +4,7 @@
 # ============================================================
 
 from pydantic import BaseModel, Field
-
+from typing import Optional
 
 # ============================================================
 # LOGIN
@@ -163,4 +163,3 @@ class TreinoDiaSemana(BaseModel):
 
     # ID do treino base
     treino_base_id: int
-

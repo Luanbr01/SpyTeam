@@ -152,6 +152,32 @@ class TreinoAgendado(Base):
         nullable=False
     )
 
+    # ========================================================
+    # SNAPSHOT DO TREINO BASE
+    # ========================================================
+    # Guarda como o treino era no momento do agendamento.
+    # Assim, editar o treino base no futuro não altera os treinos que já foram enviados aos alunos.
+
+    titulo = Column(
+        String,
+        nullable=False
+    )
+
+    modalidade = Column(
+        String,
+        nullable=False
+    )
+
+    descricao = Column(
+        String,
+        nullable=False
+    )
+
+    ritmo_alvo = Column(
+        String,
+        nullable=True
+    )
+
     data_planejada = Column(
         String,
         nullable=False
