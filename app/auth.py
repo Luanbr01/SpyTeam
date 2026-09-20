@@ -252,3 +252,18 @@ def ler_token(
     ):
 
         return None
+
+# ============================================================
+# TOKEN DE RECUPERAÇÃO DE SENHA
+# ============================================================
+
+def criar_token_recuperacao() -> str:
+    """Cria um token aleatório que pode ser enviado por e-mail."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_token_recuperacao(token: str) -> str:
+    """Guarda apenas o hash do token no banco."""
+    return hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()

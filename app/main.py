@@ -4,6 +4,8 @@
 # ============================================================
 
 import os
+import re
+import time
 import unicodedata
 
 from fastapi import FastAPI, Depends, HTTPException, Request, status
@@ -16,6 +18,7 @@ from fastapi.responses import (
 
 from fastapi.staticfiles import StaticFiles
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .database import (
@@ -29,9 +32,15 @@ from . import schemas
 from .auth import (
     COOKIE_NAME,
     criar_token,
+    criar_token_recuperacao,
     hash_senha,
+    hash_token_recuperacao,
     ler_token,
     verificar_senha
+)
+
+from .email_service import (
+    enviar_email_recuperacao
 )
 
 # ============================================================
@@ -48,6 +57,39 @@ from .auth import (
 models.Base.metadata.create_all(
     bind=engine
 )
+
+
+# ============================================================
+# MIGRAÇÃO LEVE DO SQLITE
+# ============================================================
+
+def migrar_banco():
+    """Adiciona colunas novas sem apagar os dados existentes."""
+
+    with engine.begin() as conexao:
+        colunas = {
+            linha[1]
+            for linha in conexao.exec_driver_sql(
+                "PRAGMA table_info(usuarios)"
+            ).fetchall()
+        }
+
+        if "email" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios ADD COLUMN email VARCHAR"
+            )
+
+        conexao.exec_driver_sql(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            ux_usuarios_email_nocase
+            ON usuarios(email COLLATE NOCASE)
+            WHERE email IS NOT NULL AND email <> ''
+            """
+        )
+
+
+migrar_banco()
 
 
 # ============================================================
@@ -107,6 +149,50 @@ def normalizar_modalidade(valor: str) -> str:
         .strip()
         .lower()
     )
+
+
+# ============================================================
+# NORMALIZAR USUÁRIO E E-MAIL
+# ============================================================
+
+def normalizar_usuario(valor: str) -> str:
+    """
+    Usuários não diferenciam maiúsculas/minúsculas.
+    Espaços no começo/fim são ignorados e espaços internos
+    não são permitidos.
+    """
+
+    usuario = str(valor or "").strip()
+
+    if not usuario:
+        raise ValueError("Usuário inválido.")
+
+    if any(caractere.isspace() for caractere in usuario):
+        raise ValueError(
+            "O usuário não pode conter espaços."
+        )
+
+    return usuario.casefold()
+
+
+EMAIL_REGEX = re.compile(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
+)
+
+
+def normalizar_email(valor: str) -> str:
+    email = str(valor or "").strip().casefold()
+
+    if not EMAIL_REGEX.fullmatch(email):
+        raise ValueError("Informe um e-mail válido.")
+
+    return email
+
+
+def aluno_sem_email(usuario: models.Usuario) -> bool:
+    return not str(usuario.email or "").strip()
 
 
 # ============================================================
@@ -226,6 +312,27 @@ def require_aluno(
 
 
 # ============================================================
+# EXIGIR ALUNO COM E-MAIL CADASTRADO
+# ============================================================
+
+def require_aluno_com_email(
+    usuario: models.Usuario =
+    Depends(require_aluno)
+):
+
+    if aluno_sem_email(usuario):
+        raise HTTPException(
+            status_code=428,
+            detail=(
+                "Cadastre seu e-mail antes "
+                "de continuar."
+            )
+        )
+
+    return usuario
+
+
+# ============================================================
 # PROFESSOR INICIAL
 # ============================================================
 
@@ -268,9 +375,20 @@ def seed_professor():
             )
             return
 
+        try:
+            usuario_normalizado = normalizar_usuario(
+                usuario
+            )
+        except ValueError as erro:
+            print(
+                "[SpyTeam] PROFESSOR_USUARIO inválido:",
+                erro
+            )
+            return
+
         db.add(
             models.Usuario(
-                usuario=usuario,
+                usuario=usuario_normalizado,
                 senha_hash=hash_senha(senha),
                 tipo="professor"
             )
@@ -332,6 +450,25 @@ def index(
         )
 
     # Aluno
+    usuario_db = (
+        db.query(models.Usuario)
+        .filter(
+            models.Usuario.id
+            == int(payload["sub"])
+        )
+        .first()
+    )
+
+    if (
+        usuario_db
+        and usuario_db.tipo == "aluno"
+        and aluno_sem_email(usuario_db)
+    ):
+        return RedirectResponse(
+            "/aluno/cadastrar-email",
+            status_code=303
+        )
+
     return RedirectResponse(
         "/aluno",
         status_code=303
@@ -379,6 +516,53 @@ def pagina_login(
 
 
 # ============================================================
+# RECUPERAÇÃO DE SENHA - PÁGINAS PÚBLICAS
+# ============================================================
+
+@app.get("/esqueci-senha")
+def pagina_esqueci_senha(
+    request: Request
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="esqueci_senha.html"
+    )
+
+
+@app.get("/redefinir-senha")
+def pagina_redefinir_senha(
+    request: Request
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="redefinir_senha.html"
+    )
+
+
+# ============================================================
+# PRIMEIRO ACESSO - CADASTRAR E-MAIL
+# ============================================================
+
+@app.get("/aluno/cadastrar-email")
+def pagina_cadastrar_email(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_aluno)
+):
+
+    if not aluno_sem_email(usuario):
+        return RedirectResponse(
+            "/aluno",
+            status_code=303
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="Aluno/cadastrar_email.html"
+    )
+
+
+# ============================================================
 # HOME DO PROFESSOR
 # ============================================================
 
@@ -406,6 +590,12 @@ def aluno(
     Depends(require_aluno)
 ):
 
+    if aluno_sem_email(usuario):
+        return RedirectResponse(
+            "/aluno/cadastrar-email",
+            status_code=303
+        )
+
     return templates.TemplateResponse(
     request=request,
     name="Aluno/home.html"
@@ -423,6 +613,12 @@ def aluno_historico(
     Depends(require_aluno)
 ):
 
+    if aluno_sem_email(usuario):
+        return RedirectResponse(
+            "/aluno/cadastrar-email",
+            status_code=303
+        )
+
     return templates.TemplateResponse(
         request=request,
         name="Aluno/historico.html"
@@ -439,6 +635,12 @@ def aluno_perfil(
     usuario: models.Usuario =
     Depends(require_aluno)
 ):
+
+    if aluno_sem_email(usuario):
+        return RedirectResponse(
+            "/aluno/cadastrar-email",
+            status_code=303
+        )
 
     return templates.TemplateResponse(
         request=request,
@@ -583,12 +785,26 @@ def login(
     db: Session = Depends(get_db)
 ):
 
-    # Procura usuário
+    # Usuário é case-insensitive e não aceita espaços internos.
+    try:
+        usuario_normalizado = normalizar_usuario(
+            dados.usuario
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=401,
+            detail="Usuário ou senha inválidos."
+        )
+
     usuario = (
         db.query(models.Usuario)
         .filter(
-            models.Usuario.usuario
-            == dados.usuario
+            func.lower(
+                func.trim(
+                    models.Usuario.usuario
+                )
+            )
+            == usuario_normalizado
         )
         .first()
     )
@@ -620,7 +836,11 @@ def login(
 
     else:
 
-        destino = "/aluno"
+        destino = (
+            "/aluno/cadastrar-email"
+            if aluno_sem_email(usuario)
+            else "/aluno"
+        )
 
     # Retorna resposta
     resposta = JSONResponse(
@@ -707,7 +927,13 @@ def me(
             usuario.usuario,
 
         "tipo":
-            usuario.tipo
+            usuario.tipo,
+
+        "email":
+            usuario.email,
+
+        "email_cadastrado":
+            not aluno_sem_email(usuario)
     }
 
     # Se for aluno,
@@ -749,6 +975,260 @@ def me(
 
 
 # ============================================================
+# CADASTRAR E-MAIL NO PRIMEIRO ACESSO
+# ============================================================
+
+@app.patch("/api/me/email")
+def cadastrar_email_aluno(
+    dados: schemas.CadastroEmailAluno,
+    db: Session = Depends(get_db),
+    aluno_logado: models.Usuario =
+    Depends(require_aluno)
+):
+
+    if not aluno_sem_email(aluno_logado):
+        raise HTTPException(
+            status_code=400,
+            detail="O e-mail já foi cadastrado."
+        )
+
+    try:
+        email = normalizar_email(
+            dados.email
+        )
+        confirmar = normalizar_email(
+            dados.confirmar_email
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
+    if email != confirmar:
+        raise HTTPException(
+            status_code=400,
+            detail="Os e-mails não conferem."
+        )
+
+    existente = (
+        db.query(models.Usuario)
+        .filter(
+            func.lower(models.Usuario.email)
+            == email,
+            models.Usuario.id
+            != aluno_logado.id
+        )
+        .first()
+    )
+
+    if existente:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Este e-mail já está vinculado "
+                "a outra conta."
+            )
+        )
+
+    aluno_logado.email = email
+    db.commit()
+
+    return {
+        "mensagem": "E-mail cadastrado com sucesso.",
+        "redirect": "/aluno"
+    }
+
+
+# ============================================================
+# ESQUECI MINHA SENHA
+# ============================================================
+
+MENSAGEM_RECUPERACAO = (
+    "Se existir uma conta associada a este e-mail, "
+    "enviaremos as instruções de recuperação."
+)
+
+
+@app.post("/api/senha/esqueci")
+def solicitar_recuperacao_senha(
+    dados: schemas.SolicitarRecuperacaoSenha,
+    db: Session = Depends(get_db)
+):
+
+    try:
+        email = normalizar_email(dados.email)
+    except ValueError:
+        return {
+            "mensagem": MENSAGEM_RECUPERACAO
+        }
+
+    usuario = (
+        db.query(models.Usuario)
+        .filter(
+            func.lower(models.Usuario.email)
+            == email,
+            models.Usuario.tipo == "aluno"
+        )
+        .first()
+    )
+
+    if not usuario:
+        return {
+            "mensagem": MENSAGEM_RECUPERACAO
+        }
+
+    agora = int(time.time())
+
+    ultimo = (
+        db.query(models.RecuperacaoSenha)
+        .filter(
+            models.RecuperacaoSenha.usuario_id
+            == usuario.id
+        )
+        .order_by(
+            models.RecuperacaoSenha.criado_em.desc()
+        )
+        .first()
+    )
+
+    # Evita disparos repetidos de e-mail em sequência.
+    if (
+        ultimo
+        and agora - ultimo.criado_em < 60
+    ):
+        return {
+            "mensagem": MENSAGEM_RECUPERACAO
+        }
+
+    # Tokens antigos deixam de valer assim que um novo é gerado.
+    (
+        db.query(models.RecuperacaoSenha)
+        .filter(
+            models.RecuperacaoSenha.usuario_id
+            == usuario.id,
+            models.RecuperacaoSenha.usado
+            == False
+        )
+        .update({
+            models.RecuperacaoSenha.usado: True
+        })
+    )
+
+    token = criar_token_recuperacao()
+
+    recuperacao = models.RecuperacaoSenha(
+        usuario_id=usuario.id,
+        token_hash=hash_token_recuperacao(token),
+        criado_em=agora,
+        expira_em=agora + 15 * 60,
+        usado=False
+    )
+
+    db.add(recuperacao)
+    db.commit()
+    db.refresh(recuperacao)
+
+    try:
+        enviar_email_recuperacao(
+            usuario.email,
+            token
+        )
+    except Exception as erro:
+        recuperacao.usado = True
+        db.commit()
+        print(
+            "[SpyTeam] Falha no envio do e-mail "
+            "de recuperação:",
+            erro
+        )
+
+    return {
+        "mensagem": MENSAGEM_RECUPERACAO
+    }
+
+
+@app.post("/api/senha/redefinir")
+def redefinir_senha_por_token(
+    dados: schemas.RedefinirSenha,
+    db: Session = Depends(get_db)
+):
+
+    if dados.nova_senha != dados.confirmar_senha:
+        raise HTTPException(
+            status_code=400,
+            detail="A confirmação da nova senha não confere."
+        )
+
+    agora = int(time.time())
+    token_hash = hash_token_recuperacao(
+        dados.token.strip()
+    )
+
+    recuperacao = (
+        db.query(models.RecuperacaoSenha)
+        .filter(
+            models.RecuperacaoSenha.token_hash
+            == token_hash,
+            models.RecuperacaoSenha.usado
+            == False
+        )
+        .first()
+    )
+
+    if (
+        not recuperacao
+        or recuperacao.expira_em < agora
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Este link é inválido ou expirou. "
+                "Solicite uma nova recuperação."
+            )
+        )
+
+    usuario = (
+        db.query(models.Usuario)
+        .filter(
+            models.Usuario.id
+            == recuperacao.usuario_id
+        )
+        .first()
+    )
+
+    if not usuario:
+        raise HTTPException(
+            status_code=400,
+            detail="Link de recuperação inválido."
+        )
+
+    usuario.senha_hash = hash_senha(
+        dados.nova_senha
+    )
+
+    (
+        db.query(models.RecuperacaoSenha)
+        .filter(
+            models.RecuperacaoSenha.usuario_id
+            == usuario.id,
+            models.RecuperacaoSenha.usado
+            == False
+        )
+        .update({
+            models.RecuperacaoSenha.usado: True
+        })
+    )
+
+    db.commit()
+
+    return {
+        "mensagem": "Senha redefinida com sucesso.",
+        "redirect": "/login"
+    }
+
+
+# ============================================================
 # ALTERAR SENHA DO ALUNO LOGADO
 # ============================================================
 
@@ -760,7 +1240,7 @@ def alterar_senha_aluno(
     Depends(get_db),
 
     aluno_logado: models.Usuario =
-    Depends(require_aluno)
+    Depends(require_aluno_com_email)
 ):
 
     usuario_db = (
@@ -839,12 +1319,26 @@ def criar_aluno(
     Depends(require_professor)
 ):
 
-    # Verifica se o usuário já existe
+    # Usuário não diferencia maiúsculas/minúsculas e não aceita espaços.
+    try:
+        usuario_normalizado = normalizar_usuario(
+            aluno.usuario
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
     usuario_existente = (
         db.query(models.Usuario)
         .filter(
-            models.Usuario.usuario
-            == aluno.usuario
+            func.lower(
+                func.trim(
+                    models.Usuario.usuario
+                )
+            )
+            == usuario_normalizado
         )
         .first()
     )
@@ -879,7 +1373,7 @@ def criar_aluno(
     # Cria conta de login
     novo_usuario = models.Usuario(
 
-        usuario=aluno.usuario,
+        usuario=usuario_normalizado,
 
         senha_hash=
             hash_senha(aluno.senha),
@@ -914,7 +1408,7 @@ def criar_aluno(
             novo_aluno.nivel,
 
         "usuario":
-            aluno.usuario
+            usuario_normalizado
     }
 
 
@@ -1832,7 +2326,7 @@ def meus_treinos(
     Depends(get_db),
 
     usuario: models.Usuario =
-    Depends(require_aluno)
+    Depends(require_aluno_com_email)
 ):
 
     # Busca somente os treinos
@@ -2108,7 +2602,7 @@ def concluir_treino(
         Depends(get_db),
 
     usuario: models.Usuario =
-        Depends(require_aluno)
+        Depends(require_aluno_com_email)
 
 ):
 

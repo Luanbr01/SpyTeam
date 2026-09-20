@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar senha - SPY TEAM</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=20260920-email1">
+</head>
+<body>
+<div class="auth-page">
+    <div class="auth-card card recovery-card">
+        <a class="brand brand-official" href="/login" aria-label="SPY TEAM">
+            <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="logo-spy-team brand-logo">
+        </a>
+        <span class="eyebrow">RECUPERAÇÃO</span>
+        <h1>Esqueceu sua senha?</h1>
+        <p class="subtitle">Informe o e-mail cadastrado no seu primeiro acesso. Enviaremos um link para criar uma nova senha.</p>
+
+        <form id="formRecuperacao">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" autocomplete="email" placeholder="voce@exemplo.com" required>
+            </div>
+
+            <button class="btn btn-primary" id="btnEnviar" type="submit">Enviar link de recuperação</button>
+        </form>
+
+        <div id="mensagem" class="message"></div>
+        <a class="auth-back-link" href="/login">← Voltar para o login</a>
+    </div>
+</div>
+<script>
+const form = document.getElementById('formRecuperacao');
+const mensagem = document.getElementById('mensagem');
+const botao = document.getElementById('btnEnviar');
+
+form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    mensagem.className = 'message';
+    mensagem.textContent = 'Enviando...';
+    botao.disabled = true;
+
+    try {
+        const resposta = await fetch('/api/senha/esqueci', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                email: document.getElementById('email').value.trim()
+            })
+        });
+
+        const dados = await resposta.json().catch(() => ({}));
+        mensagem.className = 'message success';
+        mensagem.textContent = dados.mensagem || 'Se existir uma conta associada a este e-mail, enviaremos as instruções de recuperação.';
+    } catch (erro) {
+        mensagem.className = 'message error';
+        mensagem.textContent = 'Não foi possível conectar ao servidor.';
+    } finally {
+        botao.disabled = false;
+    }
+});
+</script>
+</body>
+</html>

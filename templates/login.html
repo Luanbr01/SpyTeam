@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - SPY TEAM</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=20260919-design3">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260920-email1">
     <!-- SPYTEAM_DEPLOY_FIX_20260919-design1 -->
 </head>
 <body>
@@ -17,7 +17,7 @@
         <form id="formLogin">
             <div class="form-group">
                 <label for="usuario">Usuário</label>
-                <input type="text" id="usuario" placeholder="Digite seu usuário" required>
+                <input type="text" id="usuario" placeholder="Digite seu usuário" autocomplete="username" autocapitalize="none" spellcheck="false" required>
             </div>
             <div class="form-group">
                 <label for="senha">Senha</label>
@@ -46,6 +46,7 @@
                 </div>
             </div>
             <button class="btn btn-primary" type="submit">Entrar</button>
+            <a class="forgot-password-link" href="/esqueci-senha">Esqueceu sua senha?</a>
         </form>
 
         <div id="mensagem" class="message error"></div>
@@ -92,13 +93,20 @@ const mensagem = document.getElementById('mensagem');
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const usuario = document.getElementById('usuario').value.trim();
+
+    if (/\s/.test(usuario)) {
+        mensagem.textContent = 'O usuário não pode conter espaços.';
+        return;
+    }
+
     mensagem.textContent = 'Entrando...';
     try {
         const resposta = await fetch('/api/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                usuario: document.getElementById('usuario').value,
+                usuario: document.getElementById('usuario').value.trim(),
                 senha: document.getElementById('senha').value
             })
         });

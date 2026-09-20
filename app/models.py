@@ -85,8 +85,63 @@ class Usuario(Base):
         nullable=True
     )
 
+    email = Column(
+        String,
+        nullable=True,
+        index=True
+    )
+
     aluno = relationship(
         "Aluno"
+    )
+
+
+# ============================================================
+# RECUPERAÇÃO DE SENHA
+# ============================================================
+
+class RecuperacaoSenha(Base):
+
+    __tablename__ = "recuperacoes_senha"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    usuario_id = Column(
+        Integer,
+        ForeignKey("usuarios.id"),
+        nullable=False,
+        index=True
+    )
+
+    token_hash = Column(
+        String,
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    expira_em = Column(
+        Integer,
+        nullable=False
+    )
+
+    criado_em = Column(
+        Integer,
+        nullable=False
+    )
+
+    usado = Column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    usuario = relationship(
+        "Usuario"
     )
 
 

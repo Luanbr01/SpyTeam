@@ -28,6 +28,53 @@ class Login(BaseModel):
 
 
 # ============================================================
+# E-MAIL DO ALUNO
+# ============================================================
+
+class CadastroEmailAluno(BaseModel):
+
+    email: str = Field(
+        min_length=5,
+        max_length=254
+    )
+
+    confirmar_email: str = Field(
+        min_length=5,
+        max_length=254
+    )
+
+
+# ============================================================
+# RECUPERAÇÃO DE SENHA
+# ============================================================
+
+class SolicitarRecuperacaoSenha(BaseModel):
+
+    email: str = Field(
+        min_length=5,
+        max_length=254
+    )
+
+
+class RedefinirSenha(BaseModel):
+
+    token: str = Field(
+        min_length=20,
+        max_length=300
+    )
+
+    nova_senha: str = Field(
+        min_length=4,
+        max_length=200
+    )
+
+    confirmar_senha: str = Field(
+        min_length=4,
+        max_length=200
+    )
+
+
+# ============================================================
 # ALTERAR SENHA DO ALUNO
 # ============================================================
 

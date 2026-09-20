@@ -1240,3 +1240,76 @@ a.app-nav-item.active .app-nav-icon svg {
 .auth-card .password-toggle {
     right: 6px;
 }
+
+
+/* ==========================================================
+   SPY TEAM — PRIMEIRO ACESSO E RECUPERAÇÃO DE SENHA
+   ========================================================== */
+
+.forgot-password-link,
+.auth-back-link {
+    display: inline-flex;
+    justify-content: center;
+    margin-top: 12px;
+    color: var(--primary);
+    font-size: .76rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.forgot-password-link:hover,
+.auth-back-link:hover {
+    text-decoration: underline;
+}
+
+.recovery-card,
+.first-access-card {
+    width: min(470px, calc(100vw - 32px));
+}
+
+.recovery-card .eyebrow,
+.first-access-card .eyebrow {
+    display: block;
+    margin: 4px 0 8px;
+    text-align: center;
+}
+
+.recovery-card h1,
+.first-access-card h1 {
+    text-align: center;
+}
+
+.recovery-card .subtitle,
+.first-access-card .subtitle {
+    text-align: center;
+    line-height: 1.55;
+}
+
+.recovery-card .btn,
+.first-access-card .btn {
+    width: 100%;
+}
+
+.auth-secondary-action {
+    display: block;
+    margin: 14px auto 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #71829B;
+    font-size: .73rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.auth-secondary-action:hover {
+    color: var(--primary);
+}
+
+.field-hint {
+    display: block;
+    margin-top: 6px;
+    color: #8493A9;
+    font-size: .67rem;
+    line-height: 1.4;
+}

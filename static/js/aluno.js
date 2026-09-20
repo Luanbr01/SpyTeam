@@ -467,6 +467,8 @@ function mostrarPerfil(me) {
             }`,
         profileFullName: aluno.nome,
         profileUsername: me.usuario,
+        profileEmail:
+            me.email || 'Não informado',
         profileLevel:
             aluno.nivel ||
             'Não informado',
