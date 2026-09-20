@@ -1,117 +1,452 @@
 # SPY TEAM
 
-Sistema web para **gestão de alunos, criação e distribuição de treinos
-esportivos**, desenvolvido com **FastAPI, SQLAlchemy, SQLite, Jinja2,
-HTML, CSS e JavaScript**.
+Sistema web para **gestão de assessoria esportiva, alunos, treinos, planejamento semanal e acompanhamento de desempenho**, desenvolvido com **Python, FastAPI, SQLAlchemy, SQLite, Jinja2, HTML, CSS e JavaScript**.
 
-O SPY TEAM possui dois tipos de acesso:
+O projeto possui dois perfis principais:
 
--   **Professor:** administra alunos, cria treinos base, agenda treinos
-    individuais, acompanha treinos e feedbacks e realiza planejamento
-    semanal por modalidade.
--   **Aluno:** acessa seu painel pessoal, visualiza os treinos
-    programados, acompanha a semana, conclui treinos e envia feedback ao
-    professor.
+- **Professor**: administra alunos, contas de acesso, treinos base, agendamentos, planejamento semanal e feedbacks.
+- **Aluno**: acessa seu painel pessoal, acompanha os treinos da semana, conclui treinos, envia feedback, consulta histórico, gerencia sua senha e recupera o acesso por e-mail.
 
-------------------------------------------------------------------------
+O SPY TEAM está preparado para rodar localmente e também em produção no **Railway**, com banco SQLite persistente em **Volume**, domínio próprio e envio de e-mails transacionais pelo **Resend**.
 
-## 1. Objetivo do projeto
+---
 
-O objetivo do SPY TEAM é centralizar o planejamento de uma assessoria
-esportiva.
+## Sumário
 
-O professor consegue cadastrar seus alunos e organizar os treinos que
-serão executados. O sistema também possui um recurso de **planejamento
-semanal**, no qual os treinos de segunda a sexta são distribuídos
-automaticamente para os alunos cuja modalidade corresponde à modalidade
-do treino.
+1. [Visão geral](#1-visão-geral)
+2. [Status atual do projeto](#2-status-atual-do-projeto)
+3. [Principais funcionalidades](#3-principais-funcionalidades)
+4. [Fluxos de uso](#4-fluxos-de-uso)
+5. [Tecnologias utilizadas](#5-tecnologias-utilizadas)
+6. [Arquitetura](#6-arquitetura)
+7. [Estrutura de pastas](#7-estrutura-de-pastas)
+8. [Banco de dados](#8-banco-de-dados)
+9. [Autenticação e segurança](#9-autenticação-e-segurança)
+10. [Sistema de recuperação de senha](#10-sistema-de-recuperação-de-senha)
+11. [Sistema de treinos](#11-sistema-de-treinos)
+12. [Planejamento semanal](#12-planejamento-semanal)
+13. [Frontend e identidade visual](#13-frontend-e-identidade-visual)
+14. [Rotas de páginas](#14-rotas-de-páginas)
+15. [API](#15-api)
+16. [Instalação local](#16-instalação-local)
+17. [Variáveis de ambiente](#17-variáveis-de-ambiente)
+18. [Execução local](#18-execução-local)
+19. [Deploy no Railway](#19-deploy-no-railway)
+20. [Banco persistente no Railway](#20-banco-persistente-no-railway)
+21. [Domínio próprio](#21-domínio-próprio)
+22. [Resend e envio de e-mail](#22-resend-e-envio-de-e-mail)
+23. [Git e fluxo de atualização](#23-git-e-fluxo-de-atualização)
+24. [Backup e restauração](#24-backup-e-restauração)
+25. [Troubleshooting](#25-troubleshooting)
+26. [Regras importantes do sistema](#26-regras-importantes-do-sistema)
+27. [Limitações atuais e melhorias futuras](#27-limitações-atuais-e-melhorias-futuras)
+28. [Checklist de produção](#28-checklist-de-produção)
+29. [Referência rápida](#29-referência-rápida)
+
+---
+
+# 1. Visão geral
+
+O **SPY TEAM** foi criado para centralizar o trabalho de uma assessoria esportiva.
+
+Em vez de o professor organizar alunos, treinos e feedbacks manualmente em ferramentas separadas, o sistema concentra essas informações em uma única aplicação web.
+
+A aplicação permite:
+
+- cadastrar alunos;
+- criar contas individuais;
+- separar alunos por modalidade;
+- criar treinos reutilizáveis;
+- agendar treinos individuais;
+- distribuir treinos automaticamente por modalidade;
+- organizar uma semana de segunda a sexta;
+- acompanhar conclusão dos treinos;
+- receber nota, dificuldade e comentário do aluno;
+- manter histórico;
+- oferecer recuperação de senha por e-mail;
+- operar pela internet com banco persistente.
+
+### Produção
+
+Domínio principal utilizado:
+
+```text
+https://www.spyteam.com.br
+```
+
+Repositório:
+
+```text
+https://github.com/Luanbr01/SpyTeam
+```
+
+Branch principal atual:
+
+```text
+master
+```
+
+---
+
+# 2. Status atual do projeto
+
+Atualmente o projeto possui as seguintes áreas implementadas.
+
+## Infraestrutura
+
+- [x] Aplicação FastAPI
+- [x] Templates Jinja2
+- [x] CSS responsivo
+- [x] JavaScript no frontend
+- [x] SQLite
+- [x] SQLAlchemy ORM
+- [x] Deploy no Railway
+- [x] Volume persistente
+- [x] HTTPS
+- [x] Domínio próprio
+- [x] Healthcheck
+- [x] Variáveis de ambiente
+- [x] Envio de e-mail pelo Resend
+- [x] Favicon oficial
+- [x] Logo vetorial oficial
+
+## Professor
+
+- [x] Login
+- [x] Dashboard
+- [x] Cadastro de aluno
+- [x] Criação automática da conta do aluno
+- [x] Listagem de alunos
+- [x] Exclusão de aluno
+- [x] Criação de treino base
+- [x] Edição de treino base
+- [x] Exclusão segura de treino base
+- [x] Agendamento individual
+- [x] Listagem de treinos
+- [x] Planejamento semanal
+- [x] Distribuição por modalidade
+- [x] Visualização de feedbacks
+
+## Aluno
+
+- [x] Login
+- [x] Primeiro acesso com cadastro obrigatório de e-mail
+- [x] Dashboard pessoal
+- [x] Agenda semanal
+- [x] Histórico de treinos
+- [x] Perfil
+- [x] Alteração de senha
+- [x] Mostrar/ocultar senha
+- [x] Conclusão de treino
+- [x] Nota de 1 a 5
+- [x] Dificuldade
+- [x] Comentário
+- [x] Recuperação de senha por e-mail
+
+---
+
+# 3. Principais funcionalidades
+
+## 3.1 Professor
+
+O professor possui acesso administrativo.
+
+Ele pode:
+
+- visualizar o dashboard;
+- acompanhar quantidade de alunos;
+- visualizar os treinos cadastrados;
+- acessar atalhos rápidos de gestão;
+- cadastrar alunos;
+- definir:
+  - nome;
+  - nível;
+  - modalidade;
+  - usuário;
+  - senha inicial;
+- listar alunos cadastrados;
+- abrir os detalhes de cada aluno;
+- visualizar os treinos enviados ao aluno;
+- visualizar feedbacks;
+- excluir alunos;
+- criar treinos base;
+- editar treinos base;
+- excluir treinos base ainda não utilizados;
+- agendar um treino específico para um aluno;
+- montar um planejamento semanal;
+- distribuir treinos automaticamente para os alunos da modalidade correspondente.
+
+## 3.2 Aluno
+
+O aluno possui uma conta própria criada pelo professor.
+
+Ele pode:
+
+- fazer login;
+- cadastrar o e-mail no primeiro acesso;
+- acessar o dashboard;
+- visualizar total de treinos;
+- visualizar treinos pendentes;
+- visualizar treinos concluídos;
+- acompanhar a agenda de segunda a sexta;
+- concluir um treino;
+- atribuir uma nota;
+- informar dificuldade;
+- escrever um comentário;
+- consultar histórico;
+- acessar o perfil;
+- visualizar:
+  - nome;
+  - usuário;
+  - nível;
+  - modalidade;
+  - e-mail;
+- trocar a própria senha;
+- recuperar a senha por e-mail;
+- fazer logout.
+
+---
+
+# 4. Fluxos de uso
+
+## 4.1 Cadastro e primeiro acesso do aluno
+
+```text
+Professor
+   |
+   v
+Cadastra aluno
+   |
+   +--> nome
+   +--> nível
+   +--> modalidade
+   +--> usuário
+   +--> senha inicial
+   |
+   v
+Conta do aluno criada
+   |
+   v
+Aluno acessa /login
+   |
+   v
+Primeiro login
+   |
+   v
+Sem e-mail cadastrado?
+   |
+  Sim
+   |
+   v
+/aluno/cadastrar-email
+   |
+   v
+Aluno informa e confirma e-mail
+   |
+   v
+/aluno
+```
+
+O cadastro do e-mail é obrigatório antes de acessar a área principal do aluno.
+
+---
+
+## 4.2 Recuperação de senha
+
+```text
+Aluno esqueceu a senha
+        |
+        v
+/esqueci-senha
+        |
+        v
+Informa o e-mail cadastrado
+        |
+        v
+SPY TEAM procura a conta
+        |
+        v
+Gera token aleatório
+        |
+        v
+Salva somente o HASH do token
+        |
+        v
+Resend envia o e-mail
+        |
+        v
+Aluno recebe link
+        |
+        v
+/redefinir-senha?token=...
+        |
+        v
+Nova senha + confirmação
+        |
+        v
+Token é invalidado
+        |
+        v
+Login com a nova senha
+```
+
+---
+
+## 4.3 Planejamento semanal
+
+```text
+Professor escolhe a segunda-feira da semana
+                    |
+                    v
+Define treinos de segunda a sexta
+                    |
+                    v
+Cada treino possui uma modalidade
+                    |
+                    v
+Sistema procura alunos da mesma modalidade
+                    |
+                    v
+Cria um TreinoAgendado para cada aluno
+                    |
+                    v
+Aluno visualiza o treino na própria agenda
+```
 
 Exemplo:
 
--   treino base de **Corrida** → enviado aos alunos de Corrida;
--   treino base de **Natação** → enviado aos alunos de Natação.
+```text
+Treino: Corrida intervalada
+Modalidade: Corrida
+Dia: Segunda-feira
 
-O aluno recebe somente os treinos vinculados à própria conta.
+         |
+         v
 
-------------------------------------------------------------------------
+Todos os alunos cuja modalidade é Corrida
+recebem esse treino.
+```
 
-## 2. Principais funcionalidades
+---
 
-### Professor
+# 5. Tecnologias utilizadas
 
-O professor possui acesso administrativo ao sistema e pode:
+| Tecnologia | Uso |
+|---|---|
+| Python 3.12 | Backend |
+| FastAPI | Framework web e API |
+| Uvicorn | Servidor ASGI |
+| SQLAlchemy | ORM |
+| SQLite | Banco de dados |
+| Pydantic | Validação de payloads |
+| Jinja2 | Templates HTML |
+| HTML5 | Estrutura visual |
+| CSS3 | Layout e identidade |
+| JavaScript | Interatividade e chamadas Fetch |
+| Resend | E-mail transacional |
+| Railway | Hospedagem |
+| Railway Volume | Persistência do SQLite |
+| Registro.br | Administração do domínio |
+| Git | Versionamento |
+| GitHub | Repositório e integração com deploy |
 
--   fazer login;
--   visualizar o painel principal;
--   cadastrar alunos;
--   definir nome, nível e modalidade do aluno;
--   criar usuário e senha para cada aluno;
--   listar alunos cadastrados;
--   excluir alunos;
--   criar treinos base;
--   agendar um treino para um aluno específico;
--   listar os treinos agendados;
--   consultar os treinos de determinado aluno;
--   enviar um treino em massa;
--   montar o planejamento semanal de segunda a sexta;
--   distribuir automaticamente os treinos conforme a modalidade;
--   consultar conclusão e feedback dos treinos.
+Dependências atuais:
 
-### Aluno
-
-O aluno pode:
-
--   entrar com seu próprio usuário e senha;
--   acessar somente o painel de aluno;
--   visualizar seus dados;
--   visualizar seus próprios treinos;
--   acompanhar os treinos da semana;
--   verificar treinos pendentes e concluídos;
--   marcar um treino como concluído;
--   dar uma nota de 1 a 5;
--   informar a dificuldade;
--   escrever um comentário;
--   consultar o histórico de treinos concluídos;
--   sair da conta.
-
-------------------------------------------------------------------------
-
-## 3. Tecnologias utilizadas
-
-  Tecnologia   Utilização
-  ------------ ---------------------------------------------------
-  Python       Linguagem principal do backend
-  FastAPI      Framework web e criação das rotas/API
-  Uvicorn      Servidor ASGI utilizado para executar a aplicação
-  SQLAlchemy   ORM e comunicação entre Python e banco de dados
-  SQLite       Banco de dados local
-  Pydantic     Validação dos dados recebidos pela API
-  Jinja2       Renderização dos templates HTML
-  HTML         Estrutura das páginas
-  CSS          Interface e identidade visual
-  JavaScript   Interações do frontend e comunicação com a API
-
-As dependências declaradas atualmente em `requirements.txt` são:
-
-``` text
+```text
 fastapi
 uvicorn
 sqlalchemy
 pydantic
 jinja2
+resend
 ```
 
-------------------------------------------------------------------------
+O arquivo:
 
-## 4. Estrutura do projeto
+```text
+.python-version
+```
 
-``` text
+define:
+
+```text
+3.12
+```
+
+---
+
+# 6. Arquitetura
+
+A aplicação segue uma estrutura simples de aplicação web server-side com API interna.
+
+```mermaid
+flowchart TD
+    Browser[Navegador] --> FastAPI[FastAPI / Uvicorn]
+
+    FastAPI --> Templates[Jinja2 Templates]
+    FastAPI --> Static[CSS / JS / SVG]
+    FastAPI --> Auth[Autenticação]
+    FastAPI --> ORM[SQLAlchemy]
+
+    ORM --> SQLite[(SQLite)]
+
+    FastAPI --> Resend[Resend API]
+    Resend --> Email[E-mail do aluno]
+
+    Railway[Railway] --> FastAPI
+    Volume[Railway Volume /data] --> SQLite
+```
+
+## Backend
+
+Localizado em:
+
+```text
+app/
+```
+
+Responsável por:
+
+- rotas;
+- autenticação;
+- banco;
+- modelos;
+- schemas;
+- e-mail;
+- regras de negócio.
+
+## Frontend
+
+Localizado em:
+
+```text
+templates/
+static/
+```
+
+Responsável por:
+
+- layout;
+- formulários;
+- dashboard;
+- sidebar;
+- interações;
+- chamadas à API.
+
+---
+
+# 7. Estrutura de pastas
+
+Estrutura relevante atual:
+
+```text
 SpyTeam/
 │
 ├── app/
 │   ├── __init__.py
 │   ├── auth.py
 │   ├── database.py
+│   ├── email_service.py
 │   ├── main.py
 │   ├── models.py
 │   └── schemas.py
@@ -119,317 +454,1024 @@ SpyTeam/
 ├── static/
 │   ├── css/
 │   │   └── style.css
+│   │
 │   ├── img/
+│   │   ├── logo-spy-team.svg
 │   │   ├── logo-spy-team.png
-│   │   └── logo-spy-team.svg
-│   └── js/
-│       └── aluno.js
+│   │   ├── favicon-spyteam.svg
+│   │   ├── favicon-32x32.png
+│   │   └── favicon.ico
+│   │
+│   ├── js/
+│   │   └── aluno.js
+│   │
+│   └── deploy-version.txt
 │
 ├── templates/
-│   ├── alunos/
+│   ├── Aluno/
+│   │   ├── cadastrar_email.html
+│   │   ├── historico.html
+│   │   ├── home.html
+│   │   └── perfil.html
+│   │
+│   ├── Professor/
 │   │   ├── alunos.html
-│   │   └── novo_aluno.html
-│   ├── treinos/
-│   │   ├── novo_treino.html
-│   │   └── novo_treino_base.html
-│   ├── aluno.html
-│   ├── home.html
+│   │   ├── home.html
+│   │   ├── novo_aluno.html
+│   │   ├── planejamento_semanal.html
+│   │   │
+│   │   └── treinos/
+│   │       ├── editar_treino_base.html
+│   │       ├── novo_treino.html
+│   │       ├── novo_treino_base.html
+│   │       └── treinos_base.html
+│   │
+│   ├── componentes/
+│   │   ├── sidebar.html
+│   │   └── sidebar_aluno.html
+│   │
+│   ├── esqueci_senha.html
 │   ├── login.html
-│   └── planejamento_semanal.html
+│   └── redefinir_senha.html
 │
-├── assessoria.db
-├── banco_de_dados.db
+├── .env.example
+├── .gitignore
+├── .python-version
+├── DEPLOY_RAILWAY.md
+├── Procfile
+├── README.md
 ├── requirements.txt
-└── .gitignore
+└── assessoria.db
 ```
 
-> A aplicação configurada em `app/database.py` utiliza
-> **`assessoria.db`**. O arquivo `banco_de_dados.db` não é o banco
-> apontado pela configuração atual.
+### Arquivos de banco que podem existir localmente
 
-------------------------------------------------------------------------
+Durante o desenvolvimento também podem existir:
 
-# 5. Backend
-
-## `app/main.py`
-
-É o arquivo principal da aplicação.
-
-Suas responsabilidades incluem:
-
--   criar a aplicação FastAPI;
--   montar a pasta `/static`;
--   configurar o Jinja2;
--   criar as tabelas do SQLAlchemy;
--   abrir e fechar sessões com o banco;
--   identificar o usuário autenticado;
--   controlar permissões de professor e aluno;
--   criar o professor inicial;
--   renderizar as páginas HTML;
--   implementar as rotas da API;
--   cadastrar e excluir alunos;
--   criar e distribuir treinos;
--   processar planejamento semanal;
--   receber feedback dos alunos.
-
-A aplicação é criada com:
-
-``` python
-app = FastAPI(title="SpyTeam")
+```text
+assessoria_backup.db
+banco_de_dados.db
 ```
 
-Os arquivos estáticos são disponibilizados em:
+A aplicação atual utiliza **`assessoria.db`**.
 
-``` python
-app.mount(
-    "/static",
-    StaticFiles(directory="static"),
-    name="static"
-)
+Em produção, quando existe Volume Railway, o caminho utilizado é:
+
+```text
+/data/assessoria.db
 ```
 
-E os templates são carregados de:
+---
 
-``` python
-templates = Jinja2Templates(
-    directory="templates"
-)
+# 8. Banco de dados
+
+O projeto utiliza **SQLite + SQLAlchemy**.
+
+Arquivo de configuração:
+
+```text
+app/database.py
 ```
 
-------------------------------------------------------------------------
+## 8.1 Ordem de seleção do banco
 
-## `app/database.py`
+O sistema escolhe o banco nesta ordem:
 
-Responsável pela conexão com o SQLite.
+1. `DATABASE_PATH`, caso exista;
+2. `RAILWAY_VOLUME_MOUNT_PATH`, caso esteja no Railway;
+3. `assessoria.db` na raiz do projeto.
 
-O código calcula o caminho absoluto da pasta do projeto e aponta para:
+Exemplo local:
 
-``` text
-assessoria.db
+```text
+SpyTeam/assessoria.db
 ```
 
-A URL utilizada pelo SQLAlchemy possui o formato:
+Exemplo Railway:
 
-``` text
-sqlite:///CAMINHO_DO_PROJETO/assessoria.db
+```text
+/data/assessoria.db
 ```
 
-Também são definidos:
+---
 
--   `engine`: conexão principal do SQLAlchemy;
--   `SessionLocal`: fábrica de sessões;
--   `Base`: classe base dos modelos ORM.
+## 8.2 Tabela `alunos`
 
-O SQLite é configurado com:
+Modelo:
 
-``` python
-connect_args={
-    "check_same_thread": False
-}
+```text
+Aluno
 ```
-
-Isso permite o uso da conexão no contexto da aplicação FastAPI.
-
-------------------------------------------------------------------------
-
-## `app/models.py`
-
-Define as tabelas do banco através do SQLAlchemy ORM.
-
-### Aluno
 
 Tabela:
 
-``` text
+```text
 alunos
 ```
 
-Campos:
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | Integer | Chave primária |
+| nome | String | Nome do aluno |
+| nivel | String | Iniciante, Intermediário, Avançado etc. |
+| modalidade | String | Corrida, Natação, Ciclismo, Triathlon etc. |
 
-  Campo          Tipo      Descrição
-  -------------- --------- ----------------------
-  `id`           Integer   Chave primária
-  `nome`         String    Nome do aluno
-  `nivel`        String    Nível esportivo
-  `modalidade`   String    Modalidade praticada
+---
 
-------------------------------------------------------------------------
+## 8.3 Tabela `usuarios`
 
-### Usuario
+Modelo:
+
+```text
+Usuario
+```
 
 Tabela:
 
-``` text
+```text
 usuarios
 ```
 
-Campos:
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | Integer | Chave primária |
+| usuario | String | Login único |
+| senha_hash | String | Hash PBKDF2 |
+| tipo | String | `professor` ou `aluno` |
+| aluno_id | Integer | FK para `alunos` |
+| email | String | E-mail para recuperação |
 
-  Campo          Descrição
-  -------------- --------------------------------------------------------
-  `id`           Identificador
-  `usuario`      Nome utilizado no login
-  `senha_hash`   Senha protegida por hash
-  `tipo`         `professor` ou `aluno`
-  `aluno_id`     Liga uma conta de aluno ao registro da tabela `alunos`
+Características:
 
-A relação principal é:
+- `usuario` é único;
+- `aluno_id` é único;
+- um usuário aluno é vinculado a exatamente um cadastro de aluno;
+- o professor normalmente possui `aluno_id = NULL`;
+- o e-mail é opcional inicialmente;
+- o aluno cadastra o e-mail no primeiro acesso.
 
-``` text
-Usuario
-   │
-   └── aluno_id
-          │
-          ▼
-        Aluno
+---
+
+## 8.4 Tabela `recuperacoes_senha`
+
+Modelo:
+
+```text
+RecuperacaoSenha
 ```
-
-Uma conta de professor pode ter `aluno_id` nulo.
-
-------------------------------------------------------------------------
-
-### TreinoBase
 
 Tabela:
 
-``` text
+```text
+recuperacoes_senha
+```
+
+| Campo | Tipo | Uso |
+|---|---|---|
+| id | Integer | Chave primária |
+| usuario_id | Integer | Dono da recuperação |
+| token_hash | String | SHA-256 do token |
+| expira_em | Integer | Timestamp de expiração |
+| criado_em | Integer | Timestamp de criação |
+| usado | Boolean | Invalidação do token |
+
+O token original **não é armazenado**.
+
+---
+
+## 8.5 Tabela `treinos_base`
+
+Modelo:
+
+```text
+TreinoBase
+```
+
+Tabela:
+
+```text
 treinos_base
 ```
 
-Representa um modelo reutilizável de treino.
+| Campo | Tipo | Uso |
+|---|---|---|
+| id | Integer | Chave primária |
+| titulo | String | Nome do treino |
+| modalidade | String | Modalidade |
+| descricao | String | Conteúdo do treino |
+| ritmo_alvo | String | Opcional |
 
-Campos:
+Treinos base são modelos reutilizáveis.
 
-  Campo          Descrição
-  -------------- ---------------------------
-  `id`           Identificador
-  `titulo`       Nome do treino
-  `modalidade`   Modalidade correspondente
-  `descricao`    Instruções do treino
-  `ritmo_alvo`   Ritmo/meta opcional
+---
 
-Exemplo conceitual:
+## 8.6 Tabela `treinos_agendados`
 
-``` text
-Título: Corrida intervalada
-Modalidade: Corrida
-Descrição: 6 x 400 m com recuperação
-Ritmo alvo: 4:30 min/km
+Modelo:
+
+```text
+TreinoAgendado
 ```
-
-O treino base não pertence diretamente a um aluno. Ele funciona como um
-modelo que posteriormente pode ser agendado.
-
-------------------------------------------------------------------------
-
-### TreinoAgendado
 
 Tabela:
 
-``` text
+```text
 treinos_agendados
 ```
 
-É a ligação entre:
+| Campo | Tipo | Uso |
+|---|---|---|
+| id | Integer | Chave primária |
+| aluno_id | Integer | Aluno destinatário |
+| treino_base_id | Integer | Treino que originou o agendamento |
+| titulo | String | Snapshot |
+| modalidade | String | Snapshot |
+| descricao | String | Snapshot |
+| ritmo_alvo | String | Snapshot |
+| data_planejada | String | Data ISO |
+| concluido | Boolean | Status |
+| feedback_nota | Integer | 1 a 5 |
+| feedback_comentario | String | Comentário |
+| feedback_dificuldade | String | Dificuldade |
 
-``` text
-Aluno + Treino Base + Data
+### Snapshot
+
+O treino agendado copia:
+
+```text
+titulo
+modalidade
+descricao
+ritmo_alvo
 ```
 
-Campos principais:
+do treino base no momento do agendamento.
 
-  Campo              Descrição
-  ------------------ -----------------------------
-  `id`               Identificador
-  `aluno_id`         Aluno que receberá o treino
-  `treino_base_id`   Treino utilizado
-  `data_planejada`   Data programada
-  `concluido`        Indica se o aluno concluiu
+Isso é proposital.
 
-Também armazena o feedback:
+Se o professor editar o `TreinoBase` depois, os treinos que já foram enviados continuam preservando o conteúdo original.
 
-  Campo                    Descrição
-  ------------------------ -----------------------
-  `feedback_nota`          Nota do treino
-  `feedback_comentario`    Comentário do aluno
-  `feedback_dificuldade`   Dificuldade informada
+---
 
-------------------------------------------------------------------------
+## 8.7 Migração leve automática
 
-## 6. Relacionamento do banco
+Ao iniciar, o sistema executa uma migração simples para versões antigas do SQLite.
 
-De forma simplificada:
+Atualmente ela:
 
-``` text
-┌──────────────┐
-│    ALUNOS    │
-│──────────────│
-│ id           │
-│ nome         │
-│ nivel        │
-│ modalidade   │
-└──────┬───────┘
-       │
-       │ 1
-       │
-       │
-       ▼
-┌───────────────────┐
-│ TREINOS_AGENDADOS │
-│───────────────────│
-│ id                │
-│ aluno_id          │
-│ treino_base_id    │
-│ data_planejada    │
-│ concluido         │
-│ feedback_*        │
-└─────────┬─────────┘
-          │
-          │ N:1
-          ▼
-┌───────────────────┐
-│   TREINOS_BASE    │
-│───────────────────│
-│ id                │
-│ titulo            │
-│ modalidade        │
-│ descricao         │
-│ ritmo_alvo        │
-└───────────────────┘
+- verifica as colunas de `usuarios`;
+- adiciona `email` se necessário;
+- cria índice único case-insensitive para e-mails.
 
-ALUNOS
-   │
-   │ 1:1
-   ▼
-USUARIOS
+Índice:
+
+```text
+ux_usuarios_email_nocase
 ```
 
-------------------------------------------------------------------------
+O projeto ainda **não utiliza Alembic**.
 
-# 7. Schemas e validação
+---
 
-## `app/schemas.py`
+# 9. Autenticação e segurança
 
-Os schemas Pydantic determinam o formato dos dados aceitos pela API.
+Arquivo:
 
-### `Login`
+```text
+app/auth.py
+```
 
-Recebe:
+---
 
-``` json
+## 9.1 Hash de senha
+
+Senhas não são armazenadas em texto puro.
+
+Algoritmo:
+
+```text
+PBKDF2-HMAC-SHA256
+```
+
+Iterações:
+
+```text
+310000
+```
+
+Salt:
+
+```text
+16 bytes aleatórios
+```
+
+Formato salvo:
+
+```text
+ITERACOES$SALT$HASH
+```
+
+Exemplo conceitual:
+
+```text
+310000$a1b2c3...$9f8e7d...
+```
+
+---
+
+## 9.2 Usuário não diferencia maiúsculas/minúsculas
+
+O login é normalizado com:
+
+```python
+casefold()
+```
+
+Portanto:
+
+```text
+Professor
+professor
+PROFESSOR
+PrOfEsSoR
+```
+
+são tratados como o mesmo usuário.
+
+---
+
+## 9.3 Espaços no usuário
+
+Espaços internos não são permitidos.
+
+Inválido:
+
+```text
+prof essor
+luan nascimento
+```
+
+Espaços acidentais no início/fim são removidos:
+
+```text
+" professor "
+```
+
+vira:
+
+```text
+professor
+```
+
+A senha não recebe essa normalização.
+
+---
+
+## 9.4 Sessão
+
+O sistema utiliza um token assinado armazenado em cookie.
+
+Cookie:
+
+```text
+spyteam_session
+```
+
+Propriedades:
+
+```text
+HttpOnly: true
+SameSite: lax
+Secure: true em produção
+Validade: 1 dia
+```
+
+O token inclui:
+
+```text
+sub
+tipo
+exp
+```
+
+onde:
+
+- `sub` = ID do usuário;
+- `tipo` = aluno/professor;
+- `exp` = timestamp de expiração.
+
+A assinatura utiliza:
+
+```text
+HMAC-SHA256
+```
+
+com a variável:
+
+```text
+SPYTEAM_SECRET
+```
+
+---
+
+## 9.5 Proteção por perfil
+
+Dependências principais:
+
+```text
+get_current_user
+require_professor
+require_aluno
+require_aluno_com_email
+```
+
+### `require_professor`
+
+Bloqueia qualquer conta que não tenha:
+
+```text
+tipo = professor
+```
+
+### `require_aluno`
+
+Exige:
+
+```text
+tipo = aluno
+aluno_id != NULL
+```
+
+### `require_aluno_com_email`
+
+Além das regras de aluno, exige que o e-mail já tenha sido cadastrado.
+
+---
+
+## 9.6 Produção
+
+No Railway, se não existir:
+
+```text
+SPYTEAM_SECRET
+```
+
+a aplicação encerra a inicialização.
+
+Isso evita utilizar a chave padrão de desenvolvimento em produção.
+
+---
+
+# 10. Sistema de recuperação de senha
+
+O projeto utiliza **Resend** para envio de e-mail.
+
+Arquivo:
+
+```text
+app/email_service.py
+```
+
+---
+
+## 10.1 Primeiro acesso
+
+Ao primeiro login de um aluno sem e-mail:
+
+```text
+/aluno/cadastrar-email
+```
+
+é obrigatório.
+
+Enquanto o e-mail não for cadastrado, o aluno não acessa:
+
+```text
+/aluno
+/aluno/historico
+/aluno/perfil
+/api/me/treinos
+/api/me/senha
+```
+
+---
+
+## 10.2 Validação de e-mail
+
+O e-mail:
+
+- é convertido para minúsculas;
+- tem espaços externos removidos;
+- precisa passar pelo regex de validação;
+- precisa ser confirmado duas vezes;
+- não pode estar associado a outra conta.
+
+---
+
+## 10.3 Solicitação
+
+Endpoint:
+
+```text
+POST /api/senha/esqueci
+```
+
+Payload:
+
+```json
 {
-  "usuario": "nome_usuario",
+  "email": "aluno@email.com"
+}
+```
+
+A resposta pública é sempre genérica:
+
+```text
+Se existir uma conta associada a este e-mail,
+enviaremos as instruções de recuperação.
+```
+
+Isso evita revelar se um endereço possui conta no sistema.
+
+---
+
+## 10.4 Controle de repetição
+
+Existe um intervalo mínimo de aproximadamente:
+
+```text
+60 segundos
+```
+
+entre solicitações de recuperação da mesma conta.
+
+---
+
+## 10.5 Token
+
+O token é gerado com:
+
+```python
+secrets.token_urlsafe(32)
+```
+
+No banco fica apenas:
+
+```text
+SHA-256(token)
+```
+
+Validade:
+
+```text
+15 minutos
+```
+
+Ao gerar um novo token, tokens antigos ainda não utilizados são marcados como usados.
+
+Ao redefinir a senha, os tokens pendentes também são invalidados.
+
+---
+
+## 10.6 Link de recuperação
+
+Formato:
+
+```text
+APP_URL/redefinir-senha?token=TOKEN
+```
+
+Em produção:
+
+```text
+https://www.spyteam.com.br/redefinir-senha?token=...
+```
+
+---
+
+## 10.7 Modo de desenvolvimento
+
+É possível testar recuperação sem enviar e-mail real:
+
+```text
+EMAIL_MODE=console
+```
+
+Nesse modo, o link é impresso no terminal.
+
+---
+
+# 11. Sistema de treinos
+
+## 11.1 Treino base
+
+Um treino base possui:
+
+```text
+Título
+Modalidade
+Descrição
+Ritmo alvo opcional
+```
+
+Exemplo:
+
+```text
+Título: Intervalado 5x1 km
+Modalidade: Corrida
+Descrição: 10 min aquecimento + 5x1 km...
+Ritmo alvo: 4:30 min/km
+```
+
+---
+
+## 11.2 Agendamento individual
+
+O professor seleciona:
+
+```text
+Aluno
+Treino base
+Data planejada
+```
+
+O sistema cria um `TreinoAgendado`.
+
+---
+
+## 11.3 Treino em massa
+
+Endpoint:
+
+```text
+POST /api/treinos/em-massa
+```
+
+No estado atual, essa rota distribui o treino informado para **todos os alunos cadastrados**.
+
+A distribuição específica por modalidade é feita pelo recurso de **planejamento semanal**.
+
+---
+
+## 11.4 Edição de treino base
+
+É permitido editar:
+
+- título;
+- modalidade;
+- descrição;
+- ritmo alvo.
+
+Treinos já agendados não mudam porque possuem snapshot.
+
+---
+
+## 11.5 Exclusão de treino base
+
+Um treino base só pode ser excluído se ainda não tiver sido usado em nenhum agendamento.
+
+Se existir um `TreinoAgendado` referenciando o treino base, a API retorna erro.
+
+---
+
+## 11.6 Conclusão
+
+O aluno conclui através de:
+
+```text
+PATCH /api/treinos/{treino_id}/concluir
+```
+
+O sistema valida que o treino pertence ao aluno autenticado.
+
+Também impede concluir novamente um treino já finalizado.
+
+---
+
+## 11.7 Feedback
+
+Ao concluir, o aluno informa:
+
+```text
+nota
+dificuldade
+comentario
+```
+
+A nota deve estar entre:
+
+```text
+1 e 5
+```
+
+---
+
+# 12. Planejamento semanal
+
+Rota:
+
+```text
+POST /api/treinos/semana
+```
+
+O parâmetro:
+
+```text
+data_segunda
+```
+
+precisa representar uma segunda-feira.
+
+Os dias utilizam:
+
+```text
+0 = segunda
+1 = terça
+2 = quarta
+3 = quinta
+4 = sexta
+```
+
+Somente segunda a sexta são aceitos.
+
+---
+
+## 12.1 Modalidades
+
+A comparação de modalidades ignora:
+
+- maiúsculas/minúsculas;
+- acentos;
+- espaços externos.
+
+Por exemplo:
+
+```text
+Corrida
+corrida
+CORRIDA
+```
+
+são equivalentes.
+
+E:
+
+```text
+Natação
+natacao
+```
+
+também são comparáveis pela normalização usada no backend.
+
+---
+
+## 12.2 Evitar duplicidade
+
+Antes de criar o treino, o sistema verifica:
+
+```text
+aluno_id
+treino_base_id
+data_planejada
+```
+
+Se a mesma combinação já existir, o treino não é criado novamente.
+
+---
+
+# 13. Frontend e identidade visual
+
+## 13.1 Identidade
+
+Cores principais:
+
+```text
+Primária:        #3161CA
+Primária escura: #24499C
+Destaque:        #57C0FF
+Navy:            #08152F
+Fundo:           #F5F8FF
+Branco:          #FFFFFF
+Texto principal: #101828
+Texto secundário:#667085
+Muted:           #98A2B3
+Borda:           #D9E2F2
+```
+
+Semânticas:
+
+```text
+Sucesso: #22C55E
+Alerta:  #F59E0B
+Erro:    #EF4444
+```
+
+---
+
+## 13.2 Tipografia
+
+Fonte principal:
+
+```text
+Inter
+```
+
+Fallback:
+
+```text
+system-ui
+-apple-system
+BlinkMacSystemFont
+Segoe UI
+sans-serif
+```
+
+A fonte Inter é carregada pelo Google Fonts.
+
+---
+
+## 13.3 Logo
+
+Logo principal:
+
+```text
+static/img/logo-spy-team.svg
+```
+
+Também existe versão PNG:
+
+```text
+static/img/logo-spy-team.png
+```
+
+---
+
+## 13.4 Favicon
+
+O navegador utiliza somente o símbolo da marca para manter legibilidade em tamanho pequeno.
+
+Arquivos:
+
+```text
+static/img/favicon-spyteam.svg
+static/img/favicon-32x32.png
+static/img/favicon.ico
+```
+
+---
+
+## 13.5 Área do professor
+
+Possui:
+
+- sidebar;
+- dashboard;
+- cards;
+- gerenciamento de alunos;
+- gerenciamento de treinos;
+- planejamento semanal;
+- formulários responsivos.
+
+---
+
+## 13.6 Área do aluno
+
+A área foi dividida em telas distintas:
+
+### Início
+
+```text
+/aluno
+```
+
+Mostra:
+
+- saudação;
+- nível;
+- total de treinos;
+- pendentes;
+- concluídos;
+- agenda de segunda a sexta.
+
+### Histórico
+
+```text
+/aluno/historico
+```
+
+Mostra:
+
+- treinos concluídos;
+- modalidade;
+- data;
+- descrição;
+- dificuldade;
+- avaliação;
+- comentário.
+
+### Meu perfil
+
+```text
+/aluno/perfil
+```
+
+Mostra:
+
+- nome;
+- usuário;
+- nível;
+- modalidade;
+- e-mail;
+- alteração de senha.
+
+---
+
+## 13.7 Mostrar senha
+
+O sistema possui botão de olho para mostrar/ocultar senha em:
+
+- login;
+- senha atual no perfil;
+- nova senha;
+- confirmação da nova senha;
+- redefinição de senha.
+
+---
+
+# 14. Rotas de páginas
+
+| Método | Rota | Acesso | Página |
+|---|---|---|---|
+| GET | `/` | Geral | Redirecionamento |
+| GET | `/login` | Público | Login |
+| GET | `/esqueci-senha` | Público | Solicitação de recuperação |
+| GET | `/redefinir-senha` | Público | Nova senha via token |
+| GET | `/health` | Público | Healthcheck |
+| GET | `/home` | Professor | Dashboard |
+| GET | `/novo-aluno` | Professor | Cadastro de aluno |
+| GET | `/alunos` | Professor | Gestão de alunos |
+| GET | `/novo-treino` | Professor | Agendamento individual |
+| GET | `/novo-treino-base` | Professor | Criar treino base |
+| GET | `/treinos-base` | Professor | Gerenciar treinos base |
+| GET | `/editar-treino-base/{id}` | Professor | Editar treino base |
+| GET | `/planejamento-semanal` | Professor | Planejamento semanal |
+| GET | `/aluno/cadastrar-email` | Aluno | Primeiro acesso |
+| GET | `/aluno` | Aluno com e-mail | Dashboard |
+| GET | `/aluno/historico` | Aluno com e-mail | Histórico |
+| GET | `/aluno/perfil` | Aluno com e-mail | Perfil |
+
+---
+
+# 15. API
+
+## 15.1 Autenticação e conta
+
+| Método | Endpoint | Acesso | Função |
+|---|---|---|---|
+| POST | `/api/login` | Público | Login |
+| POST | `/api/logout` | Logado | Logout |
+| GET | `/api/me` | Logado | Dados da sessão |
+| PATCH | `/api/me/email` | Aluno | Primeiro e-mail |
+| PATCH | `/api/me/senha` | Aluno com e-mail | Alterar senha |
+| POST | `/api/senha/esqueci` | Público | Solicitar recuperação |
+| POST | `/api/senha/redefinir` | Público | Redefinir por token |
+
+### Login
+
+```json
+{
+  "usuario": "professor",
   "senha": "senha"
 }
 ```
 
-### `AlunoCreate`
+Resposta de exemplo:
 
-Recebe:
-
-``` json
+```json
 {
-  "nome": "Nome do aluno",
+  "mensagem": "Login realizado com sucesso!",
+  "tipo": "professor",
+  "usuario": "professor",
+  "redirect": "/home"
+}
+```
+
+---
+
+## 15.2 Alunos
+
+| Método | Endpoint | Acesso | Função |
+|---|---|---|---|
+| POST | `/api/alunos` | Professor | Criar aluno |
+| GET | `/api/alunos` | Professor | Listar alunos |
+| DELETE | `/api/alunos/{aluno_id}` | Professor | Excluir aluno |
+| GET | `/api/alunos/{aluno_id}/treinos` | Professor | Treinos do aluno |
+
+### Criar aluno
+
+```json
+{
+  "nome": "Aluno Exemplo",
   "nivel": "Intermediário",
   "modalidade": "Corrida",
   "usuario": "aluno01",
@@ -437,958 +1479,1066 @@ Recebe:
 }
 ```
 
-O usuário precisa possuir pelo menos 3 caracteres e a senha pelo menos
-4, conforme as validações atuais.
+---
 
-### `TreinoBaseCreate`
+## 15.3 Treinos agendados
 
-Recebe título, modalidade, descrição e ritmo alvo opcional.
+| Método | Endpoint | Acesso | Função |
+|---|---|---|---|
+| POST | `/api/treinos` | Professor | Agendar individual |
+| GET | `/api/treinos` | Professor | Listar todos |
+| POST | `/api/treinos/em-massa` | Professor | Enviar a todos |
+| POST | `/api/treinos/semana` | Professor | Planejamento semanal |
+| GET | `/api/me/treinos` | Aluno | Próprios treinos |
+| PATCH | `/api/treinos/{treino_id}/concluir` | Aluno | Concluir + feedback |
 
-### `TreinoAgendadoCreate`
+---
 
-Recebe:
+## 15.4 Treinos base
 
--   `aluno_id`;
--   `treino_base_id`;
--   `data_planejada`.
+| Método | Endpoint | Acesso | Função |
+|---|---|---|---|
+| GET | `/api/treinos-base` | Professor | Listar |
+| POST | `/api/treinos-base` | Professor | Criar |
+| PATCH | `/api/treinos-base/{id}` | Professor | Editar |
+| DELETE | `/api/treinos-base/{id}` | Professor | Excluir |
 
-### `TreinoEmMassaCreate`
+### Criar treino base
 
-Recebe um treino base e uma data para distribuição.
-
-### `TreinoDiaSemana`
-
-Utilizado no planejamento semanal.
-
-O campo `dia` segue:
-
-``` text
-0 = segunda
-1 = terça
-2 = quarta
-3 = quinta
-4 = sexta
-5 = sábado
-6 = domingo
-```
-
-A rota de planejamento semanal aceita apenas **0 a 4**, portanto
-trabalha de segunda a sexta.
-
-### `FeedbackTreinoCreate`
-
-Recebe:
-
-``` json
+```json
 {
-  "nota": 5,
-  "dificuldade": "Moderado",
-  "comentario": "Treino realizado normalmente."
+  "titulo": "Treino intervalado",
+  "modalidade": "Corrida",
+  "descricao": "10 min de aquecimento...",
+  "ritmo_alvo": "4:30 min/km"
 }
 ```
 
-------------------------------------------------------------------------
+---
 
-# 8. Sistema de autenticação
+# 16. Instalação local
 
-## `app/auth.py`
+## 16.1 Pré-requisitos
 
-O SPY TEAM implementa autenticação própria baseada em:
+- Python 3.12 recomendado;
+- Git;
+- VS Code opcional.
 
--   hash de senha;
--   PBKDF2-HMAC-SHA256;
--   salt aleatório;
--   token assinado;
--   cookie HTTP-only.
+Clone:
 
-### Proteção das senhas
-
-As senhas não são armazenadas diretamente.
-
-A função:
-
-``` python
-hash_senha()
-```
-
-gera um salt aleatório e utiliza:
-
-``` text
-PBKDF2 + SHA-256
-```
-
-com **310.000 iterações**.
-
-O valor armazenado contém:
-
-``` text
-iterações$salt$hash
-```
-
-A função:
-
-``` python
-verificar_senha()
-```
-
-recalcula o hash e utiliza `hmac.compare_digest()` para realizar a
-comparação.
-
-------------------------------------------------------------------------
-
-## Sessão
-
-Após o login, `criar_token()` cria um token contendo:
-
-``` json
-{
-  "sub": 1,
-  "tipo": "professor",
-  "exp": "..."
-}
-```
-
-Onde:
-
--   `sub` = ID do usuário;
--   `tipo` = professor ou aluno;
--   `exp` = expiração.
-
-A sessão possui duração configurada de **1 dia**.
-
-O cookie utilizado chama-se:
-
-``` text
-spyteam_session
-```
-
-Ele é criado como `httponly=True` e `samesite="lax"`.
-
-Na configuração atual, `secure=False`, apropriado para desenvolvimento
-local sem HTTPS. Para implantação em produção, essa configuração deve
-ser revista.
-
-------------------------------------------------------------------------
-
-## Chave secreta
-
-A aplicação procura a variável:
-
-``` text
-SPYTEAM_SECRET
-```
-
-Caso não exista, utiliza uma chave de desenvolvimento definida no
-código.
-
-Para produção, deve ser definida uma chave secreta forte por variável de
-ambiente.
-
-------------------------------------------------------------------------
-
-# 9. Controle de acesso
-
-Existem três dependências importantes.
-
-### `get_current_user`
-
-Lê o cookie, valida o token e busca o usuário no banco.
-
-### `require_professor`
-
-Permite acesso somente quando:
-
-``` python
-usuario.tipo == "professor"
-```
-
-Caso contrário, retorna HTTP `403`.
-
-### `require_aluno`
-
-Exige:
-
-``` python
-usuario.tipo == "aluno"
-```
-
-e um `aluno_id` associado.
-
-Isso impede que uma conta de professor utilize endpoints exclusivos do
-aluno e vice-versa.
-
-------------------------------------------------------------------------
-
-# 10. Professor inicial
-
-Quando a aplicação inicia, `seed_professor()` verifica se existe algum
-professor.
-
-Se não existir, cria automaticamente uma conta.
-
-Por padrão:
-
-``` text
-Usuário: professor
-Senha: 1234
-```
-
-Esses valores podem ser substituídos pelas variáveis:
-
-``` text
-PROFESSOR_USUARIO
-PROFESSOR_SENHA
-```
-
-> Em um ambiente real, não é recomendado manter as credenciais padrão.
-
-------------------------------------------------------------------------
-
-# 11. Páginas do sistema
-
-## `/login`
-
-Renderiza:
-
-``` text
-templates/login.html
-```
-
-Se já existir uma sessão válida, o usuário é redirecionado
-automaticamente.
-
-------------------------------------------------------------------------
-
-## `/home`
-
-Painel do professor.
-
-Arquivo:
-
-``` text
-templates/home.html
-```
-
-Somente professores podem acessar.
-
-------------------------------------------------------------------------
-
-## `/aluno`
-
-Painel pessoal do aluno.
-
-Arquivo:
-
-``` text
-templates/aluno.html
-```
-
-Somente alunos autenticados podem acessar.
-
-------------------------------------------------------------------------
-
-## `/novo-aluno`
-
-Tela para cadastro de aluno.
-
-``` text
-templates/alunos/novo_aluno.html
-```
-
-------------------------------------------------------------------------
-
-## `/alunos`
-
-Lista e gerenciamento dos alunos.
-
-``` text
-templates/alunos/alunos.html
-```
-
-------------------------------------------------------------------------
-
-## `/novo-treino`
-
-Tela de agendamento.
-
-``` text
-templates/treinos/novo_treino.html
-```
-
-------------------------------------------------------------------------
-
-## `/novo-treino-base`
-
-Tela para criação de um modelo de treino.
-
-``` text
-templates/treinos/novo_treino_base.html
-```
-
-------------------------------------------------------------------------
-
-## `/planejamento-semanal`
-
-Interface de planejamento dos treinos de segunda a sexta.
-
-``` text
-templates/planejamento_semanal.html
-```
-
-------------------------------------------------------------------------
-
-# 12. API
-
-## Autenticação
-
-### `POST /api/login`
-
-Autentica o usuário e cria o cookie de sessão.
-
-### `POST /api/logout`
-
-Remove o cookie.
-
-### `GET /api/me`
-
-Retorna informações da conta atualmente autenticada.
-
-Quando a conta pertence a um aluno, também retorna informações do aluno
-vinculado.
-
-------------------------------------------------------------------------
-
-## Alunos
-
-### `POST /api/alunos`
-
-Cadastra um aluno e cria sua conta de acesso.
-
-**Permissão:** professor.
-
-### `GET /api/alunos`
-
-Lista os alunos cadastrados e suas respectivas contas.
-
-**Permissão:** professor.
-
-### `DELETE /api/alunos/{aluno_id}`
-
-Exclui:
-
-1.  treinos agendados do aluno;
-2.  conta de usuário vinculada;
-3.  registro do aluno.
-
-A ordem evita deixar registros relacionados apontando para um aluno
-removido.
-
-**Permissão:** professor.
-
-------------------------------------------------------------------------
-
-## Treinos
-
-### `POST /api/treinos`
-
-Agenda um treino para um aluno específico.
-
-**Permissão:** professor.
-
-### `GET /api/treinos`
-
-Lista todos os treinos agendados, incluindo:
-
--   aluno;
--   treino;
--   modalidade;
--   descrição;
--   ritmo;
--   data;
--   conclusão;
--   feedback.
-
-**Permissão:** professor.
-
-### `GET /api/alunos/{aluno_id}/treinos`
-
-Lista os treinos de um aluno específico.
-
-**Permissão:** professor.
-
-------------------------------------------------------------------------
-
-## Treinos base
-
-### `GET /api/treinos-base`
-
-Lista os modelos de treino existentes.
-
-### `POST /api/treinos-base`
-
-Cria um novo treino base.
-
-Ambas são rotas exclusivas do professor.
-
-------------------------------------------------------------------------
-
-# 13. Distribuição em massa
-
-## `POST /api/treinos/em-massa`
-
-Essa rota recebe:
-
-``` json
-{
-  "treino_base_id": 1,
-  "data_planejada": "2026-09-15"
-}
-```
-
-Na implementação atual dessa rota específica, o sistema cria um
-`TreinoAgendado` para **cada aluno cadastrado**.
-
-Ela é diferente da rota de planejamento semanal por modalidade explicada
-a seguir.
-
-------------------------------------------------------------------------
-
-# 14. Planejamento semanal por modalidade
-
-## `POST /api/treinos/semana`
-
-É uma das principais funcionalidades do projeto.
-
-O professor informa:
-
--   a segunda-feira que inicia a semana;
--   os treinos escolhidos para os dias;
--   o ID de cada treino base.
-
-Exemplo conceitual:
-
-``` text
-Segunda → Corrida leve
-Terça   → Natação técnica
-Quarta  → Intervalado
-Quinta  → Natação resistência
-Sexta   → Corrida longa
-```
-
-O backend primeiro valida se `data_segunda` realmente representa uma
-segunda-feira.
-
-Depois, para cada dia:
-
-1.  localiza o treino base;
-2.  identifica sua modalidade;
-3.  calcula a data do treino;
-4.  procura os alunos;
-5.  compara a modalidade do aluno com a modalidade do treino;
-6.  agenda o treino somente para os alunos correspondentes;
-7.  verifica se aquele mesmo agendamento já existe;
-8.  evita duplicações;
-9.  salva os novos agendamentos.
-
-------------------------------------------------------------------------
-
-## Normalização de modalidade
-
-Para evitar problemas como:
-
-``` text
-Natação
-natacao
-NATAÇÃO
-```
-
-o backend utiliza:
-
-``` python
-normalizar_modalidade()
-```
-
-A função:
-
--   remove acentos;
--   remove espaços externos;
--   converte para minúsculas.
-
-Assim, valores equivalentes podem ser comparados com maior segurança.
-
-------------------------------------------------------------------------
-
-# 15. Fluxo do planejamento semanal
-
-``` text
-PROFESSOR
-    │
-    ▼
-Escolhe a segunda-feira
-    │
-    ▼
-Escolhe treino para cada dia
-    │
-    ▼
-Backend busca o TreinoBase
-    │
-    ▼
-Identifica a modalidade
-    │
-    ├──────── Corrida ────────► alunos de Corrida
-    │
-    └──────── Natação ────────► alunos de Natação
-                                  │
-                                  ▼
-                           TreinoAgendado
-                                  │
-                                  ▼
-                            Painel do aluno
-```
-
-------------------------------------------------------------------------
-
-# 16. Painel do aluno
-
-O frontend do aluno utiliza:
-
-``` text
-static/js/aluno.js
-```
-
-Ao carregar a página, o JavaScript consulta:
-
-``` text
-GET /api/me
-GET /api/me/treinos
-```
-
-O aluno **não informa seu próprio ID na URL**.
-
-O backend utiliza:
-
-``` python
-usuario.aluno_id
-```
-
-obtido diretamente da sessão autenticada.
-
-Isso é importante para evitar que um aluno simplesmente troque um ID no
-navegador e consulte os treinos de outra pessoa.
-
-------------------------------------------------------------------------
-
-# 17. Semana do aluno
-
-O JavaScript calcula a segunda-feira da semana atual e cria sete cards:
-
-``` text
-Segunda
-Terça
-Quarta
-Quinta
-Sexta
-Sábado
-Domingo
-```
-
-Depois compara a data de cada treino com a data de cada card e mostra o
-treino no dia correspondente.
-
-O painel também calcula:
-
--   total de treinos;
--   treinos pendentes;
--   treinos concluídos.
-
-------------------------------------------------------------------------
-
-# 18. Conclusão e feedback
-
-## `PATCH /api/treinos/{treino_id}/concluir`
-
-Ao concluir um treino, o aluno envia:
-
--   nota;
--   dificuldade;
--   comentário opcional.
-
-Antes de salvar, o backend verifica se:
-
-1.  o treino existe;
-2.  o treino pertence ao aluno autenticado;
-3.  ele ainda não foi concluído;
-4.  a nota está entre 1 e 5.
-
-Depois:
-
-``` python
-treino.feedback_nota = feedback.nota
-treino.feedback_dificuldade = feedback.dificuldade
-treino.feedback_comentario = feedback.comentario
-treino.concluido = True
-```
-
-O feedback fica armazenado no próprio registro de `TreinoAgendado`.
-
-------------------------------------------------------------------------
-
-# 19. Segurança no frontend
-
-O arquivo `aluno.js` possui a função:
-
-``` javascript
-escapeHtml()
-```
-
-Ela substitui caracteres HTML especiais antes de inserir determinados
-conteúdos recebidos da API na página.
-
-Isso reduz o risco de conteúdo textual ser interpretado indevidamente
-como HTML.
-
-------------------------------------------------------------------------
-
-# 20. Identidade visual
-
-Os recursos visuais ficam em:
-
-``` text
-static/
-```
-
-A folha de estilos principal é:
-
-``` text
-static/css/style.css
-```
-
-Os arquivos do logo presentes no projeto são:
-
-``` text
-static/img/logo-spy-team.svg
-static/img/logo-spy-team.png
-```
-
-Para uso web, o SVG é a opção indicada quando o arquivo vetorial está
-funcionando corretamente, pois mantém a qualidade independentemente do
-tamanho de exibição.
-
-------------------------------------------------------------------------
-
-# 21. Como executar o projeto
-
-## Pré-requisitos
-
-É necessário possuir:
-
--   Python instalado;
--   `pip`;
--   terminal ou PowerShell.
-
-Recomenda-se utilizar um ambiente virtual.
-
-### 1. Entrar na pasta
-
-``` bash
+```bash
+git clone https://github.com/Luanbr01/SpyTeam.git
 cd SpyTeam
 ```
 
-### 2. Criar ambiente virtual
+---
 
-Windows:
+## 16.2 Ambiente virtual
 
-``` bash
+Windows PowerShell:
+
+```powershell
 python -m venv venv
-```
-
-### 3. Ativar
-
-PowerShell:
-
-``` powershell
 .\venv\Scripts\Activate.ps1
 ```
 
-Prompt de Comando:
+CMD:
 
-``` cmd
+```cmd
+python -m venv venv
 venv\Scripts\activate
 ```
 
-### 4. Instalar dependências
+Linux/macOS:
 
-``` bash
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+---
+
+## 16.3 Dependências
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 5. Executar
+---
 
-A partir da raiz do projeto:
+# 17. Variáveis de ambiente
 
-``` bash
+Arquivo de referência:
+
+```text
+.env.example
+```
+
+Não coloque `.env` no GitHub.
+
+---
+
+## 17.1 Autenticação
+
+### `SPYTEAM_SECRET`
+
+Assina as sessões.
+
+Exemplo para gerar:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Obrigatória em produção.
+
+---
+
+### `PROFESSOR_USUARIO`
+
+Usuário criado automaticamente caso não exista nenhum professor.
+
+Exemplo:
+
+```text
+professor
+```
+
+---
+
+### `PROFESSOR_SENHA`
+
+Senha inicial do professor.
+
+Essa variável é utilizada apenas quando é necessário criar o professor.
+
+Se o professor já existe no banco, mudar essa variável **não muda a senha existente**.
+
+---
+
+### `COOKIE_SECURE`
+
+Produção:
+
+```text
+true
+```
+
+---
+
+## 17.2 Banco
+
+### `DATABASE_PATH`
+
+Opcional.
+
+Exemplo:
+
+```text
+/data/assessoria.db
+```
+
+Normalmente não precisa ser definida no Railway porque o sistema detecta:
+
+```text
+RAILWAY_VOLUME_MOUNT_PATH
+```
+
+automaticamente.
+
+---
+
+## 17.3 E-mail
+
+### `RESEND_API_KEY`
+
+Chave da API do Resend.
+
+```text
+re_...
+```
+
+Nunca publique essa chave.
+
+---
+
+### `EMAIL_FROM`
+
+Produção atual:
+
+```text
+SPY TEAM <noreply@spyteam.com.br>
+```
+
+---
+
+### `APP_URL`
+
+Produção atual:
+
+```text
+https://www.spyteam.com.br
+```
+
+---
+
+### `EMAIL_MODE`
+
+Produção:
+
+```text
+resend
+```
+
+Desenvolvimento sem envio real:
+
+```text
+console
+```
+
+---
+
+## 17.4 Exemplo completo
+
+```env
+SPYTEAM_SECRET=gere-uma-chave-longa-e-aleatoria
+PROFESSOR_USUARIO=professor
+PROFESSOR_SENHA=senha-forte
+COOKIE_SECURE=true
+
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxx
+EMAIL_FROM=SPY TEAM <noreply@spyteam.com.br>
+APP_URL=https://www.spyteam.com.br
+EMAIL_MODE=resend
+
+# Opcional
+# DATABASE_PATH=/data/assessoria.db
+```
+
+---
+
+# 18. Execução local
+
+Com o ambiente virtual ativado:
+
+```bash
 uvicorn app.main:app --reload
 ```
 
-O terminal deverá informar o endereço local do servidor. Normalmente o
-Uvicorn utiliza a porta `8000` quando nenhuma outra configuração é
-fornecida.
+Acesse:
 
-------------------------------------------------------------------------
+```text
+http://127.0.0.1:8000
+```
 
-# 22. Primeiro acesso
+Healthcheck:
 
-Na configuração padrão, se ainda não existir professor no banco:
+```text
+http://127.0.0.1:8000/health
+```
 
-``` text
+Resposta:
+
+```json
+{
+  "status": "ok",
+  "app": "SpyTeam"
+}
+```
+
+---
+
+## Professor local padrão
+
+Se não estiver no Railway e não houver professor no banco:
+
+```text
 Usuário: professor
 Senha: 1234
 ```
 
-Depois do login, o professor pode começar cadastrando alunos e treinos
-base.
+Isso é apenas fallback de desenvolvimento.
 
-------------------------------------------------------------------------
+Não utilize essa credencial padrão em produção.
 
-# 23. Fluxo recomendado de utilização
+---
 
-``` text
-1. Iniciar aplicação
-        ↓
-2. Login do professor
-        ↓
-3. Cadastrar alunos
-        ↓
-4. Definir modalidade dos alunos
-        ↓
-5. Criar treinos base
-        ↓
-6. Montar planejamento semanal
-        ↓
-7. Sistema distribui por modalidade
-        ↓
-8. Aluno faz login
-        ↓
-9. Aluno visualiza o treino
-        ↓
-10. Aluno executa o treino
-        ↓
-11. Marca como concluído
-        ↓
-12. Envia feedback
-        ↓
-13. Professor consulta o resultado
+# 19. Deploy no Railway
+
+O projeto inclui:
+
+```text
+Procfile
 ```
 
-------------------------------------------------------------------------
+Conteúdo:
 
-# 24. Códigos HTTP utilizados
+```text
+web: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+```
 
-A API utiliza códigos HTTP para indicar o resultado das operações.
+### Por que `--proxy-headers`?
 
-  Código   Significado no projeto
-  -------- -------------------------------------------
-  `200`    Operação realizada
-  `303`    Redirecionamento entre páginas
-  `400`    Dados ou operação inválida
-  `401`    Usuário não autenticado ou login inválido
-  `403`    Usuário autenticado sem permissão
-  `404`    Registro não encontrado
+O Railway funciona atrás de proxy.
 
-------------------------------------------------------------------------
+Essas opções permitem ao Uvicorn interpretar corretamente informações encaminhadas pelo proxy, inclusive HTTPS.
 
-# 25. Variáveis de ambiente
+---
 
-O projeto reconhece:
+## 19.1 Fluxo
 
-  Variável              Função
-  --------------------- -------------------------------------------
-  `SPYTEAM_SECRET`      Chave utilizada na assinatura das sessões
-  `PROFESSOR_USUARIO`   Usuário do professor criado inicialmente
-  `PROFESSOR_SENHA`     Senha do professor inicial
+```text
+VS Code
+   |
+   v
+git push
+   |
+   v
+GitHub
+   |
+   v
+Railway
+   |
+   v
+Build
+   |
+   v
+Deploy
+   |
+   v
+www.spyteam.com.br
+```
 
-Exemplo no PowerShell:
+---
 
-``` powershell
-$env:SPYTEAM_SECRET="uma-chave-secreta-grande-e-aleatoria"
-$env:PROFESSOR_USUARIO="admin"
-$env:PROFESSOR_SENHA="uma-senha-forte"
+## 19.2 Healthcheck
+
+Configure:
+
+```text
+/health
+```
+
+---
+
+# 20. Banco persistente no Railway
+
+O SQLite não deve depender do filesystem temporário do container.
+
+O SPY TEAM utiliza um Railway Volume.
+
+Mount path:
+
+```text
+/data
+```
+
+Banco:
+
+```text
+/data/assessoria.db
+```
+
+O `app/database.py` detecta automaticamente:
+
+```text
+RAILWAY_VOLUME_MOUNT_PATH
+```
+
+---
+
+## 20.1 Railway CLI
+
+Instalação:
+
+```bash
+npm install -g @railway/cli
+```
+
+Login:
+
+```bash
+railway login
+```
+
+Vincular projeto:
+
+```bash
+railway link
+```
+
+---
+
+## 20.2 Ver volumes
+
+```bash
+railway volume list
+```
+
+---
+
+## 20.3 Ver arquivos
+
+```bash
+railway volume files list /
+```
+
+Resultado esperado:
+
+```text
+assessoria.db
+lost+found/
+```
+
+---
+
+## 20.4 SSH
+
+```bash
+railway ssh
+```
+
+Dentro do container:
+
+```bash
+echo $RAILWAY_VOLUME_MOUNT_PATH
+```
+
+Esperado:
+
+```text
+/data
+```
+
+Ver banco:
+
+```bash
+ls -lh /data
+```
+
+---
+
+# 21. Domínio próprio
+
+Domínio atual:
+
+```text
+www.spyteam.com.br
+```
+
+O domínio está ligado ao Railway através de registros DNS.
+
+No Registro.br, o DNS permanece administrado pelo próprio Registro.br.
+
+O Railway utiliza registros como:
+
+```text
+CNAME
+TXT de verificação
+```
+
+Não publique tokens de verificação DNS em documentação pública.
+
+---
+
+## HTTPS
+
+O Railway emite certificado TLS/SSL após verificar o domínio.
+
+Sempre utilize:
+
+```text
+https://www.spyteam.com.br
+```
+
+---
+
+# 22. Resend e envio de e-mail
+
+O domínio:
+
+```text
+spyteam.com.br
+```
+
+é utilizado para envio transacional.
+
+Remetente:
+
+```text
+SPY TEAM <noreply@spyteam.com.br>
+```
+
+O domínio precisa estar verificado no Resend.
+
+---
+
+## SDK
+
+O projeto utiliza o SDK oficial:
+
+```python
+import resend
+```
+
+Envio:
+
+```python
+resend.Emails.send(...)
+```
+
+---
+
+## E-mail enviado
+
+Assunto:
+
+```text
+Redefinição de senha - SPY TEAM
+```
+
+Conteúdo inclui:
+
+- aviso de recuperação;
+- e-mail associado;
+- link;
+- validade de 15 minutos;
+- aviso para ignorar se não tiver solicitado.
+
+---
+
+# 23. Git e fluxo de atualização
+
+Fluxo comum:
+
+```bash
+git status
+git add .
+git commit -m "Descrição da alteração"
+git push
+```
+
+O Railway recebe as alterações através do GitHub e realiza novo deploy.
+
+---
+
+## Arquivos ignorados
+
+O `.gitignore` atual inclui:
+
+```text
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+*.db
+.vscode/
+.idea/
+.pytest_cache/
+.DS_Store
+```
+
+Isso evita enviar:
+
+- banco;
+- ambiente virtual;
+- segredos;
+- cache;
+- arquivos locais de IDE.
+
+---
+
+# 24. Backup e restauração
+
+## 24.1 Backup local
+
+Antes de alterações delicadas:
+
+```powershell
+copy assessoria.db assessoria_backup.db
+```
+
+---
+
+## 24.2 Banco de produção
+
+O banco de produção fica no Volume.
+
+Confira:
+
+```bash
+railway volume files list /
+```
+
+Nunca sobrescreva o banco de produção sem backup.
+
+---
+
+## 24.3 Enviar banco local para o Volume
+
+Quando realmente necessário:
+
+```bash
+railway volume files upload ./assessoria.db /assessoria.db
+```
+
+Depois reinicie o serviço.
+
+---
+
+# 25. Troubleshooting
+
+## 25.1 `SPYTEAM_SECRET não configurado`
+
+Erro:
+
+```text
+RuntimeError: SPYTEAM_SECRET não configurado
+```
+
+Solução:
+
+Railway:
+
+```text
+Variables
+```
+
+adicione:
+
+```text
+SPYTEAM_SECRET
+```
+
+e faça deploy.
+
+---
+
+## 25.2 CSS não carrega no Railway
+
+Sintoma:
+
+```text
+Mixed Content
+HTTP stylesheet em página HTTPS
+```
+
+Os templates devem usar:
+
+```html
+<link rel="stylesheet" href="/static/css/style.css">
+```
+
+e não URL absoluta com `http://`.
+
+---
+
+## 25.3 Site está online mas sem domínio
+
+Railway pode mostrar:
+
+```text
+Unexposed service
+```
+
+Nesse caso:
+
+```text
+Settings
+→ Networking
+→ Public Networking
+→ Generate Domain / Custom Domain
+```
+
+---
+
+## 25.4 Banco vazio após deploy
+
+Confira:
+
+```bash
+railway volume list
+```
+
+e:
+
+```bash
+railway volume files list /
+```
+
+O banco precisa estar no Volume.
+
+---
+
+## 25.5 Login retorna 401
+
+Logs:
+
+```text
+POST /api/login 401 Unauthorized
+```
+
+Verifique:
+
+- usuário;
+- senha;
+- banco correto;
+- registro da conta no SQLite.
+
+O usuário não diferencia maiúsculas/minúsculas.
+
+---
+
+## 25.6 Usuário contém espaço
+
+Inválido:
+
+```text
+joao silva
+```
+
+Use:
+
+```text
+joaosilva
+```
+
+ou outro identificador sem espaços.
+
+---
+
+## 25.7 E-mail não chega
+
+Confira:
+
+```bash
+railway logs
+```
+
+E também:
+
+```text
+Resend → Emails
+```
+
+Variáveis necessárias:
+
+```text
+EMAIL_MODE=resend
+RESEND_API_KEY=...
+EMAIL_FROM=...
+APP_URL=...
+```
+
+---
+
+## 25.8 Favicon antigo continua aparecendo
+
+Favicons possuem cache agressivo.
+
+Tente:
+
+```text
+Ctrl + F5
+```
+
+ou feche todas as abas e abra novamente.
+
+---
+
+## 25.9 SSL ainda aparece como inseguro
+
+Após alteração de DNS:
+
+- aguarde propagação;
+- confirme DNS no Railway;
+- teste janela anônima;
+- limpe DNS local:
+
+```powershell
+ipconfig /flushdns
+```
+
+---
+
+# 26. Regras importantes do sistema
+
+## Contas
+
+- professor cria contas de aluno;
+- aluno não cria sua própria conta;
+- usuário é case-insensitive;
+- usuário não aceita espaços internos;
+- senha é case-sensitive;
+- senha nunca é salva em texto puro.
+
+## E-mail
+
+- aluno cadastra no primeiro acesso;
+- e-mail precisa ser único;
+- recuperação é destinada a alunos;
+- mensagem de recuperação não revela se a conta existe.
+
+## Treinos
+
+- treino base é reutilizável;
+- treino agendado guarda snapshot;
+- treino base usado não pode ser excluído;
+- aluno só conclui treino que pertence a ele;
+- nota é de 1 a 5;
+- planejamento semanal distribui por modalidade;
+- semana aceita segunda a sexta.
+
+## Banco
+
+- banco principal local: `assessoria.db`;
+- banco de produção: `/data/assessoria.db`;
+- `.db` não deve ir ao GitHub.
+
+---
+
+# 27. Limitações atuais e melhorias futuras
+
+O estado atual é funcional, mas há espaço para evolução.
+
+## Banco
+
+SQLite é adequado para o estágio atual.
+
+Para maior número de usuários/conexões simultâneas, considerar:
+
+```text
+PostgreSQL
+```
+
+---
+
+## Migrações
+
+Atualmente há migrações leves manuais.
+
+Melhoria recomendada:
+
+```text
+Alembic
+```
+
+---
+
+## Segurança
+
+Possíveis evoluções:
+
+- rate limit no login;
+- rate limit global em recuperação;
+- proteção CSRF explícita;
+- política de senha mais forte;
+- invalidar sessões existentes após troca de senha;
+- auditoria de logins;
+- histórico de alterações administrativas;
+- autenticação de dois fatores.
+
+---
+
+## Conta
+
+Ainda podem ser adicionados:
+
+- troca de e-mail;
+- confirmação/verificação do e-mail;
+- recuperação do professor;
+- alteração de senha do professor no painel;
+- foto de perfil;
+- edição de dados pessoais.
+
+---
+
+## Treinos
+
+Possíveis melhorias:
+
+- duplicar semana;
+- copiar treino;
+- excluir agendamento individual;
+- reagendar treino;
+- calendário mensal;
+- exercícios estruturados;
+- séries/repetições;
+- anexos;
+- vídeos;
+- observações do professor;
+- métricas por aluno.
+
+---
+
+## Dashboard
+
+Possíveis indicadores:
+
+- aderência;
+- taxa de conclusão;
+- treinos por modalidade;
+- frequência semanal;
+- médias de avaliação;
+- alunos inativos;
+- gráficos de evolução.
+
+---
+
+## Testes
+
+O projeto atualmente não possui uma suíte permanente de testes automatizados dentro de uma pasta `tests/`.
+
+Melhoria recomendada:
+
+```text
+pytest
+FastAPI TestClient
+```
+
+---
+
+# 28. Checklist de produção
+
+Antes de considerar um deploy saudável:
+
+### Aplicação
+
+- [ ] `/health` retorna `200`
+- [ ] login professor funciona
+- [ ] login aluno funciona
+- [ ] logout funciona
+
+### Banco
+
+- [ ] Volume conectado
+- [ ] mount path `/data`
+- [ ] `assessoria.db` presente
+- [ ] dados continuam após restart
+
+### Professor
+
+- [ ] cadastrar aluno
+- [ ] listar aluno
+- [ ] excluir aluno
+- [ ] criar treino base
+- [ ] editar treino base
+- [ ] agendar treino
+- [ ] planejamento semanal
+
+### Aluno
+
+- [ ] primeiro e-mail
+- [ ] dashboard
+- [ ] histórico
+- [ ] perfil
+- [ ] alteração de senha
+- [ ] concluir treino
+- [ ] feedback
+
+### Recuperação
+
+- [ ] Resend configurado
+- [ ] domínio verificado
+- [ ] e-mail recebido
+- [ ] link abre domínio correto
+- [ ] token expira
+- [ ] senha nova funciona
+
+### Visual
+
+- [ ] CSS carregando
+- [ ] logo carregando
+- [ ] favicon carregando
+- [ ] mobile funcionando
+
+---
+
+# 29. Referência rápida
+
+## Iniciar localmente
+
+```bash
 uvicorn app.main:app --reload
 ```
 
-------------------------------------------------------------------------
+## URL local
 
-# 26. Pontos importantes da implementação atual
-
-### `create_all()` não é sistema de migração
-
-O projeto executa:
-
-``` python
-models.Base.metadata.create_all(bind=engine)
+```text
+http://127.0.0.1:8000
 ```
 
-Isso cria tabelas que ainda não existem, mas **não adiciona
-automaticamente novas colunas a tabelas SQLite já existentes**.
+## Produção
 
-Por isso, quando um novo campo é acrescentado a um model, como aconteceu
-com `modalidade`, bancos antigos podem precisar de uma
-migração/alteração de schema.
-
-Para evolução do projeto, uma opção futura é adotar **Alembic** para
-controlar migrações.
-
-### Datas são armazenadas como `String`
-
-Atualmente `data_planejada` é uma coluna `String`.
-
-O sistema utiliza o padrão:
-
-``` text
-YYYY-MM-DD
+```text
+https://www.spyteam.com.br
 ```
 
-Isso funciona na implementação atual, mas uma evolução possível é
-utilizar o tipo `Date` do SQLAlchemy.
+## Healthcheck
 
-### A rota `/api/treinos/em-massa` envia para todos
-
-O endpoint de treino em massa atualmente percorre todos os alunos, sem
-filtro por modalidade.
-
-Já o endpoint:
-
-``` text
-/api/treinos/semana
+```text
+/health
 ```
 
-faz a distribuição **por modalidade**.
+## Banco local
 
-Essa diferença é importante para manutenção futura.
-
-------------------------------------------------------------------------
-
-# 27. Melhorias futuras
-
-Algumas evoluções possíveis para o projeto:
-
--   implementar Alembic para migrações;
--   criar edição de alunos;
--   criar edição e exclusão de treinos base;
--   permitir cancelar/remover um agendamento;
--   adicionar filtros por modalidade;
--   criar navegação entre semanas no painel do aluno;
--   adicionar estatísticas de desempenho;
--   criar gráficos de evolução;
--   permitir ao professor responder ao feedback;
--   criar recuperação de senha;
--   utilizar HTTPS e configurações de produção;
--   adicionar testes automatizados;
--   adicionar logs;
--   validar de forma mais rígida os valores de dificuldade;
--   utilizar `Date` para datas;
--   melhorar tratamento de erros no frontend;
--   criar deploy em servidor/nuvem.
-
-Essas são sugestões de evolução; não representam funcionalidades já
-existentes.
-
-------------------------------------------------------------------------
-
-# 28. Resumo da arquitetura
-
-``` text
-┌─────────────────────────────────────────┐
-│                FRONTEND                 │
-│                                         │
-│ HTML + CSS + JavaScript + Jinja2        │
-└───────────────────┬─────────────────────┘
-                    │
-                    │ HTTP / JSON
-                    ▼
-┌─────────────────────────────────────────┐
-│                 FASTAPI                 │
-│                                         │
-│ Rotas + autenticação + regras de negócio│
-└───────────────────┬─────────────────────┘
-                    │
-                    │ SQLAlchemy ORM
-                    ▼
-┌─────────────────────────────────────────┐
-│                 SQLite                  │
-│                                         │
-│ alunos                                  │
-│ usuarios                                │
-│ treinos_base                            │
-│ treinos_agendados                       │
-└─────────────────────────────────────────┘
+```text
+assessoria.db
 ```
 
-------------------------------------------------------------------------
+## Banco Railway
 
-# 29. Resumo dos arquivos principais
+```text
+/data/assessoria.db
+```
 
-  -------------------------------------------------------------------------------
-  Arquivo                                     Responsabilidade
-  ------------------------------------------- -----------------------------------
-  `app/main.py`                               Aplicação FastAPI, páginas, API e
-                                              regras de negócio
+## E-mail remetente
 
-  `app/auth.py`                               Senhas, tokens e sessão
+```text
+SPY TEAM <noreply@spyteam.com.br>
+```
 
-  `app/database.py`                           Conexão SQLAlchemy/SQLite
+## Usuário professor de desenvolvimento
 
-  `app/models.py`                             Estrutura das tabelas
+```text
+professor
+```
 
-  `app/schemas.py`                            Validação das entradas da API
+## Senha professor de desenvolvimento
 
-  `templates/login.html`                      Tela de login
+```text
+1234
+```
 
-  `templates/home.html`                       Painel do professor
+> Apenas quando executado fora do Railway, não existir professor no banco e nenhuma credencial tiver sido configurada.
 
-  `templates/aluno.html`                      Painel do aluno
+---
 
-  `templates/alunos/alunos.html`              Gerenciamento de alunos
+# Observações finais
 
-  `templates/alunos/novo_aluno.html`          Cadastro de aluno
+O SPY TEAM atualmente reúne em uma única aplicação:
 
-  `templates/treinos/novo_treino.html`        Agendamento de treino
+- autenticação;
+- controle de perfil;
+- gestão de alunos;
+- organização de modalidades;
+- treinos base;
+- agendamento;
+- planejamento semanal;
+- distribuição automática;
+- feedback;
+- histórico;
+- perfil do aluno;
+- alteração de senha;
+- recuperação de senha;
+- e-mail transacional;
+- banco persistente;
+- deploy contínuo;
+- domínio próprio;
+- HTTPS;
+- identidade visual própria.
 
-  `templates/treinos/novo_treino_base.html`   Cadastro de treino base
-
-  `templates/planejamento_semanal.html`       Planejamento de segunda a sexta
-
-  `static/js/aluno.js`                        Lógica dinâmica do painel do aluno
-
-  `static/css/style.css`                      Estilos da interface
-
-  `assessoria.db`                             Banco SQLite utilizado pela
-                                              aplicação
-
-  `requirements.txt`                          Dependências Python
-  -------------------------------------------------------------------------------
-
-------------------------------------------------------------------------
-
-# 30. Sobre o projeto
-
-O SPY TEAM foi estruturado como uma aplicação web com separação entre:
-
--   **interface**;
--   **API**;
--   **validação**;
--   **autenticação**;
--   **modelos de banco**;
--   **persistência dos dados**.
-
-A principal regra de negócio é permitir que o professor organize o
-treinamento de seus alunos e que cada aluno tenha acesso individual aos
-próprios treinos, com distribuição semanal por modalidade e retorno por
-meio de feedback após a conclusão.
-
-------------------------------------------------------------------------
-
-## SPY TEAM
-
-**Planejamento, organização e acompanhamento de treinos em uma única
-plataforma.**
+A arquitetura atual foi mantida simples para facilitar manutenção e evolução durante o desenvolvimento, sem impedir futuras migrações para componentes mais robustos, como PostgreSQL, Alembic, serviços de fila e uma suíte completa de testes automatizados.
