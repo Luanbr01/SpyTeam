@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Agendar treino - SPY TEAM</title>
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
-<link rel="stylesheet" href="/static/css/style.css?v=20260919-design1">    <script src="/static/js/security.js?v=20260922-security1"></script>
+<link rel="stylesheet" href="/static/css/style.css?v=20260922-multimodal1">    <script src="/static/js/security.js?v=20260922-security1"></script>
 </head>
 <body class="app-body"><div class="app-shell"><aside class="app-sidebar professor-sidebar">
         <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
@@ -34,7 +34,7 @@ async function carregarSelects(){
     const alunos=await resAlunos.json();
     const selectAluno=document.getElementById('aluno');
     selectAluno.innerHTML='<option value="">Selecione um aluno...</option>';
-    alunos.forEach(a=>selectAluno.innerHTML+=`<option value="${a.id}">${esc(a.nome)} (${esc(a.nivel)} • ${esc(a.modalidade || '-')})</option>`);
+    alunos.forEach(a=>{ const mods=(Array.isArray(a.modalidades)&&a.modalidades.length?a.modalidades:[a.modalidade]).filter(Boolean).join(', ') || '-'; selectAluno.innerHTML+=`<option value="${a.id}">${esc(a.nome)} (${esc(a.nivel)} • ${esc(mods)})</option>`; });
 
     const resTreinos=await fetch('/api/treinos-base');
     if(!resTreinos.ok) throw new Error('Não foi possível carregar os treinos.');

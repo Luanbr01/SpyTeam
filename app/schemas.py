@@ -114,9 +114,9 @@ class AlunoCreate(BaseModel):
         max_length=50
     )
 
-    modalidade: str = Field(
-    min_length=1,
-    max_length=50
+    modalidades: list[str] = Field(
+        min_length=1,
+        max_length=3
     )
 
     # Usuário para login
@@ -129,6 +129,18 @@ class AlunoCreate(BaseModel):
     senha: str = Field(
         min_length=4,
         max_length=200
+    )
+
+
+# ============================================================
+# ATUALIZAR MODALIDADES DO ALUNO
+# ============================================================
+
+class AlunoModalidadesUpdate(BaseModel):
+
+    modalidades: list[str] = Field(
+        min_length=1,
+        max_length=3
     )
 
 

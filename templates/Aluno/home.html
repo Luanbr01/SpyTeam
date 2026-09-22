@@ -7,7 +7,7 @@
     
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
-<link rel="stylesheet" href="/static/css/style.css?v=20260919-design2">
+<link rel="stylesheet" href="/static/css/style.css?v=20260922-multimodal1">
     <script src="/static/js/security.js?v=20260922-security1"></script>
 </head>
 
@@ -93,6 +93,32 @@
     </div>
 </div>
 
+
+<div id="modalTreinoDetalhes" class="modal-overlay" style="display:none;" onclick="if (event.target === this) fecharDetalhesTreino()">
+    <div class="modal modal-treino-detalhes">
+        <button class="modal-fechar" onclick="fecharDetalhesTreino()" aria-label="Fechar">×</button>
+        <span class="eyebrow">DETALHES DO TREINO</span>
+        <h2 id="detalheTreinoTitulo">Treino</h2>
+
+        <div class="detalhe-treino-meta">
+            <span id="detalheTreinoModalidade" class="badge badge-blue">-</span>
+            <span id="detalheTreinoData" class="detalhe-data">-</span>
+        </div>
+
+        <div class="detalhe-treino-bloco">
+            <span class="detalhe-label">Descrição</span>
+            <p id="detalheTreinoDescricao" class="detalhe-descricao">-</p>
+        </div>
+
+        <div class="detalhe-treino-bloco">
+            <span class="detalhe-label">Ritmo alvo</span>
+            <p id="detalheTreinoRitmo">-</p>
+        </div>
+
+        <div id="detalheTreinoAcao" class="detalhe-treino-acao"></div>
+    </div>
+</div>
+
 <div id="modalFeedback" class="modal-overlay" style="display:none;">
     <div class="modal">
         <button class="modal-fechar" onclick="fecharFeedback()">×</button>
@@ -133,6 +159,6 @@ async function sair(event) {
     window.location.href = '/login';
 }
 </script>
-<script src="/static/js/aluno.js?v=20260919-design2"></script>
+<script src="/static/js/aluno.js?v=20260922-multimodal1"></script>
 </body>
 </html>

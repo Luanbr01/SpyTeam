@@ -7,7 +7,7 @@
     
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
-<link rel="stylesheet" href="/static/css/style.css?v=20260920-test">
+<link rel="stylesheet" href="/static/css/style.css?v=20260922-multimodal1">
     <script src="/static/js/security.js?v=20260922-security1"></script>
 </head>
 <body class="app-body">
@@ -116,11 +116,17 @@ async function carregarDashboardProfessor() {
         document.getElementById('profTreinos').textContent = bases.length;
 
         const modalidades = [
-            ['Corrida','🏃','run'], ['Natação','🏊','swim'], ['Ciclismo','🚴','bike'], ['Triathlon','🏅','tri']
+            ['Corrida','🏃','run'],
+            ['Natação','🏊','swim'],
+            ['Musculação','🏋️','strength']
         ];
         const container = document.getElementById('modalidadeCards');
         container.innerHTML = modalidades.map(([nome, emoji, classe]) => {
-            const qtdAlunos = alunos.filter(a => String(a.modalidade || '').toLowerCase() === nome.toLowerCase()).length;
+            const qtdAlunos = alunos.filter(a =>
+                (Array.isArray(a.modalidades) ? a.modalidades : [a.modalidade])
+                    .filter(Boolean)
+                    .some(m => String(m).toLowerCase() === nome.toLowerCase())
+            ).length;
             const qtdTreinos = bases.filter(t => String(t.modalidade || '').toLowerCase() === nome.toLowerCase()).length;
             const concluidos = treinos.filter(t => String(t.modalidade || '').toLowerCase() === nome.toLowerCase() && t.concluido).length;
             return `<article class="training-row">

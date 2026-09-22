@@ -8,7 +8,8 @@ from sqlalchemy import (
     Integer,
     String,
     ForeignKey,
-    Boolean
+    Boolean,
+    UniqueConstraint
 )
 
 from sqlalchemy.orm import relationship
@@ -44,6 +45,50 @@ class Aluno(Base):
     modalidade = Column(
         String,
         nullable=True
+    )
+
+
+# ============================================================
+# MODALIDADES DO ALUNO
+# ============================================================
+# Um aluno pode praticar uma ou mais modalidades.
+# A coluna ``alunos.modalidade`` é mantida temporariamente apenas
+# para compatibilidade com bancos antigos; a fonte oficial passa a
+# ser esta tabela de relacionamento.
+
+class AlunoModalidade(Base):
+
+    __tablename__ = "aluno_modalidades"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "aluno_id",
+            "modalidade",
+            name="uq_aluno_modalidade"
+        ),
+    )
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    aluno_id = Column(
+        Integer,
+        ForeignKey("alunos.id"),
+        nullable=False,
+        index=True
+    )
+
+    modalidade = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    aluno = relationship(
+        "Aluno"
     )
 
 

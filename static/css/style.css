@@ -725,8 +725,7 @@ a.app-nav-item.active .app-nav-icon svg {
 .sport-icon { width:45px; height:45px; display:grid; place-items:center; border-radius:50%; font-size:1.35rem; }
 .sport-icon.run { background:#E9F1FF; }
 .sport-icon.swim { background:#E0F5FF; }
-.sport-icon.bike { background:#FFF0D6; }
-.sport-icon.tri { background:#E5F9EF; }
+.sport-icon.strength { background:#F2E8FF; }
 .training-main strong { display:block; color:#12356C; font-size:.83rem; }
 .training-main span, .training-main small { display:block; margin-top:3px; color:#6F809B; font-size:.70rem; }
 .training-main small { color:#97A4B6; }
@@ -1495,6 +1494,225 @@ a.app-nav-item.active .app-nav-icon svg {
 @media (max-width: 680px) {
     .audit-stats,
     .audit-protection-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================
+   MULTIMODALIDADE + AGENDA COMPACTA - 2026-09-22
+   ========================================================== */
+
+.modalidade-check-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.modalidade-check {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #FBFDFF;
+    cursor: pointer;
+    transition: .18s ease;
+}
+
+.modalidade-check:hover {
+    border-color: #9FCAF6;
+    background: #F7FBFF;
+}
+
+.modalidade-check input {
+    width: 17px;
+    height: 17px;
+    margin: 0 9px 0 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    accent-color: var(--primary);
+}
+
+.modalidade-check span {
+    color: var(--text);
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+.modalidade-check:has(input:checked) {
+    border-color: #76B4F8;
+    background: #EEF6FF;
+    box-shadow: inset 0 0 0 1px rgba(49, 97, 202, .08);
+}
+
+.modalidade-check-grid-modal {
+    margin-top: 18px;
+}
+
+/* A semana mostra apenas o resumo. O conteúdo completo abre no modal. */
+.treino-dia.treino-dia-clickable {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    margin: 0 0 9px;
+    border: 1px solid #DDE7F4;
+    border-radius: 9px;
+    background: var(--white);
+    color: var(--text);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    box-shadow: none;
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.treino-dia.treino-dia-clickable:hover {
+    transform: translateY(-1px);
+    border-color: #8EBEF5;
+    box-shadow: 0 5px 16px rgba(20, 74, 145, .08);
+}
+
+.treino-dia.treino-dia-clickable:focus-visible {
+    outline: 3px solid rgba(87, 192, 255, .35);
+    outline-offset: 2px;
+}
+
+.treino-dia.treino-dia-clickable.treino-concluido {
+    border-color: #86EFAC;
+    background: #F7FFF9;
+}
+
+.treino-dia-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.treino-modalidade-mini,
+.treino-status-mini {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    padding: 3px 6px;
+    border-radius: 999px;
+    font-size: .62rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.treino-modalidade-mini {
+    max-width: 58%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: #EAF3FF;
+    color: #225FB5;
+}
+
+.treino-status-mini.pendente {
+    background: #FFF4DA;
+    color: #A66100;
+}
+
+.treino-status-mini.feito {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.treino-dia-titulo {
+    display: block;
+    color: #13366D;
+    font-size: .82rem;
+    line-height: 1.35;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.treino-dia-abrir {
+    display: block;
+    margin-top: 9px;
+    color: #5680B8;
+    font-size: .65rem;
+    font-weight: 700;
+}
+
+.modal-treino-detalhes {
+    width: min(560px, 100%);
+    max-height: min(720px, calc(100vh - 40px));
+    overflow-y: auto;
+}
+
+.modal-treino-detalhes h2 {
+    margin-top: 5px;
+    padding-right: 28px;
+    font-size: 1.45rem;
+    line-height: 1.25;
+}
+
+.detalhe-treino-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin: 13px 0 20px;
+}
+
+.detalhe-data {
+    color: var(--muted);
+    font-size: .79rem;
+    font-weight: 700;
+}
+
+.detalhe-treino-bloco {
+    padding: 15px 0;
+    border-top: 1px solid var(--border);
+}
+
+.detalhe-label {
+    display: block;
+    margin-bottom: 7px;
+    color: #254B80;
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .035em;
+}
+
+.modal .detalhe-descricao {
+    color: var(--text-2);
+    line-height: 1.7;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.detalhe-treino-acao {
+    padding-top: 14px;
+}
+
+.detalhe-btn-concluir {
+    width: 100%;
+}
+
+.detalhe-concluido {
+    width: 100%;
+    padding: 9px 12px;
+    text-align: center;
+}
+
+body.modal-aberto {
+    overflow: hidden;
+}
+
+@media (max-width: 720px) {
+    .modalidade-check-grid {
         grid-template-columns: 1fr;
     }
 }

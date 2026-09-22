@@ -184,76 +184,100 @@ function criarSemana() {
 }
 
 function criarTreinoDia(t) {
-    const concluido =
-        Boolean(t.concluido);
+    const concluido = Boolean(t.concluido);
 
     return `
-        <div class="treino-dia ${
-            concluido
-                ? 'treino-concluido'
-                : ''
-        }">
+        <button
+            type="button"
+            class="treino-dia treino-dia-clickable ${
+                concluido ? 'treino-concluido' : ''
+            }"
+            onclick="abrirDetalhesTreino(${t.id})"
+            aria-label="Abrir detalhes do treino ${escapeHtml(t.treino.titulo)}"
+        >
+            <span class="treino-dia-topo">
+                <span class="treino-modalidade-mini">
+                    ${escapeHtml(t.treino.modalidade)}
+                </span>
+                <span class="treino-status-mini ${concluido ? 'feito' : 'pendente'}">
+                    ${concluido ? '✓ Feito' : 'Pendente'}
+                </span>
+            </span>
 
-            <h3>
-                ${escapeHtml(
-                    t.treino.titulo
-                )}
-            </h3>
+            <strong class="treino-dia-titulo">
+                ${escapeHtml(t.treino.titulo)}
+            </strong>
 
-            <p>
-                <strong>
-                    ${escapeHtml(
-                        t.treino.modalidade
-                    )}
-                </strong>
-            </p>
-
-            <p>
-                ${escapeHtml(
-                    t.treino.descricao
-                )}
-            </p>
-
-            ${
-                t.treino.ritmo_alvo
-                    ? `
-                        <p>
-                            <strong>Ritmo:</strong>
-                            ${escapeHtml(
-                                t.treino.ritmo_alvo
-                            )}
-                        </p>
-                    `
-                    : ''
-            }
-
-            ${
-                concluido
-                    ? `
-                        <span class="badge-concluido">
-                            ✓ Concluído
-                        </span>
-                    `
-                    : `
-                        <button
-                            class="btn-concluir"
-                            onclick="abrirFeedback(
-                                ${t.id},
-                                '${String(
-                                    t.treino.titulo
-                                ).replace(
-                                    /'/g,
-                                    "\\'"
-                                )}'
-                            )"
-                        >
-                            Concluir treino
-                        </button>
-                    `
-            }
-        </div>
+            <span class="treino-dia-abrir">Ver detalhes →</span>
+        </button>
     `;
 }
+
+function abrirDetalhesTreino(id) {
+    const item = treinos.find(t => t.id === id);
+    if (!item) return;
+
+    treinoSelecionado = id;
+
+    const modal = document.getElementById('modalTreinoDetalhes');
+    if (!modal) return;
+
+    const treino = item.treino || {};
+
+    const titulo = document.getElementById('detalheTreinoTitulo');
+    const modalidade = document.getElementById('detalheTreinoModalidade');
+    const data = document.getElementById('detalheTreinoData');
+    const descricao = document.getElementById('detalheTreinoDescricao');
+    const ritmo = document.getElementById('detalheTreinoRitmo');
+    const acao = document.getElementById('detalheTreinoAcao');
+
+    if (titulo) titulo.textContent = treino.titulo || 'Treino';
+    if (modalidade) modalidade.textContent = treino.modalidade || '-';
+    if (data) data.textContent = formatarData(item.data_planejada);
+    if (descricao) descricao.textContent = treino.descricao || 'Sem descrição.';
+
+    if (ritmo) {
+        if (treino.ritmo_alvo) {
+            ritmo.closest('.detalhe-treino-bloco').style.display = 'block';
+            ritmo.textContent = treino.ritmo_alvo;
+        } else {
+            ritmo.closest('.detalhe-treino-bloco').style.display = 'none';
+        }
+    }
+
+    if (acao) {
+        if (item.concluido) {
+            acao.innerHTML = '<span class="badge-concluido detalhe-concluido">✓ Treino concluído</span>';
+        } else {
+            acao.innerHTML = `
+                <button class="btn btn-primary detalhe-btn-concluir" onclick="concluirPeloDetalhe()">
+                    Concluir treino
+                </button>
+            `;
+        }
+    }
+
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-aberto');
+}
+
+function fecharDetalhesTreino() {
+    const modal = document.getElementById('modalTreinoDetalhes');
+    if (modal) modal.style.display = 'none';
+    document.body.classList.remove('modal-aberto');
+}
+
+function concluirPeloDetalhe() {
+    const item = treinos.find(t => t.id === treinoSelecionado);
+    if (!item || item.concluido) return;
+
+    const id = item.id;
+    const titulo = item.treino?.titulo || 'Treino';
+
+    fecharDetalhesTreino();
+    abrirFeedback(id, titulo);
+}
+
 
 function atualizarResumo() {
     const total =
@@ -462,8 +486,9 @@ function mostrarPerfil(me) {
         profileName: aluno.nome,
         profileSummary:
             `${aluno.nivel || 'Nível não informado'} • ${
-                aluno.modalidade ||
-                'Modalidade não informada'
+                (Array.isArray(aluno.modalidades) && aluno.modalidades.length
+                    ? aluno.modalidades.join(' • ')
+                    : (aluno.modalidade || 'Modalidade não informada'))
             }`,
         profileFullName: aluno.nome,
         profileUsername: me.usuario,
@@ -473,8 +498,9 @@ function mostrarPerfil(me) {
             aluno.nivel ||
             'Não informado',
         profileModality:
-            aluno.modalidade ||
-            'Não informada'
+            (Array.isArray(aluno.modalidades) && aluno.modalidades.length
+                ? aluno.modalidades.join(' • ')
+                : (aluno.modalidade || 'Não informada'))
     };
 
     Object.entries(campos)

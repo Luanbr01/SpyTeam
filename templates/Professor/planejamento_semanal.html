@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Planejamento Semanal - SPY TEAM</title>
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
-<link rel="stylesheet" href="/static/css/style.css?v=20260919-design1">    <script src="/static/js/security.js?v=20260922-security1"></script>
+<link rel="stylesheet" href="/static/css/style.css?v=20260922-multimodal1">    <script src="/static/js/security.js?v=20260922-security1"></script>
 </head><body class="app-body"><div class="app-shell"><aside class="app-sidebar professor-sidebar">
         <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
             <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
@@ -26,7 +26,7 @@
     </header><main class="app-content"><section class="form-page-heading"><a href="/home" class="back-link">← Voltar</a><span class="eyebrow">PLANEJAMENTO</span><h1>Planejamento semanal</h1><p>Escolha um treino para cada dia. O sistema envia automaticamente aos alunos da mesma modalidade.</p></section>
 <section class="dashboard-card planning-header-card"><div class="planning-date"><label for="dataSegunda">Segunda-feira da semana</label><input type="date" id="dataSegunda"></div><div class="hint"><strong>Segunda a sexta</strong><span>Corrida vai para alunos de Corrida; Natação para Natação e assim por diante.</span></div></section>
 <section class="dashboard-card"><div class="week-table-wrap"><table class="week-table"><thead><tr><th>Modalidade</th><th>SEG<br><small id="data-0">-</small></th><th>TER<br><small id="data-1">-</small></th><th>QUA<br><small id="data-2">-</small></th><th>QUI<br><small id="data-3">-</small></th><th>SEX<br><small id="data-4">-</small></th></tr></thead><tbody id="corpoTabela"></tbody></table></div><div class="form-actions planning-actions"><a class="btn btn-secondary" href="/home">Cancelar</a><button id="btnEnviar" class="btn btn-primary" onclick="enviarPlanejamento()">Enviar planejamento semanal →</button></div><div id="mensagem" class="message"></div></section></main></div></div><script>async function sair(event){if(event)event.preventDefault();await fetch('/api/logout',{method:'POST'});window.location.href='/login';}</script><script>
-const modalidades = ["Corrida", "Natação", "Ciclismo", "Triathlon"];
+const modalidades = ["Corrida", "Natação", "Musculação"];
 const dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
 let treinosBase = [];
 
@@ -50,7 +50,7 @@ function montarTabela() {
         const tr = document.createElement("tr");
         const tdModalidade = document.createElement("td");
         tdModalidade.className = "modalidade-cell";
-        tdModalidade.innerHTML = `<span class="modalidade-icon">${modalidade === "Corrida" ? "🏃" : modalidade === "Natação" ? "🏊" : modalidade === "Ciclismo" ? "🚴" : "🏅"}</span>${modalidade}`;
+        tdModalidade.innerHTML = `<span class="modalidade-icon">${modalidade === "Corrida" ? "🏃" : modalidade === "Natação" ? "🏊" : "🏋️"}</span>${modalidade}`;
         tr.appendChild(tdModalidade);
 
         for (let dia = 0; dia < 5; dia++) {

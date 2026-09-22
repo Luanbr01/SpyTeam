@@ -58,6 +58,32 @@ from .security import (
 )
 
 # ============================================================
+# MODALIDADES OFICIAIS DO SPY TEAM
+# ============================================================
+
+MODALIDADES_PERMITIDAS = (
+    "Corrida",
+    "Natação",
+    "Musculação",
+)
+
+
+def _normalizar_modalidade_texto(valor: str) -> str:
+    return (
+        unicodedata.normalize("NFD", str(valor or ""))
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .strip()
+        .lower()
+    )
+
+
+MODALIDADES_POR_CHAVE = {
+    _normalizar_modalidade_texto(nome): nome
+    for nome in MODALIDADES_PERMITIDAS
+}
+
+# ============================================================
 # CRIA AS TABELAS
 # ============================================================
 #
@@ -107,6 +133,31 @@ def migrar_banco():
             WHERE email IS NOT NULL AND email <> ''
             """
         )
+
+        # Migração de modalidade única -> múltiplas modalidades.
+        # A tabela aluno_modalidades é criada pelo SQLAlchemy antes daqui.
+        alunos_legados = conexao.exec_driver_sql(
+            "SELECT id, modalidade FROM alunos "
+            "WHERE modalidade IS NOT NULL AND TRIM(modalidade) <> ''"
+        ).fetchall()
+
+        for aluno_id, modalidade_legada in alunos_legados:
+            chave = _normalizar_modalidade_texto(modalidade_legada)
+            modalidade_oficial = MODALIDADES_POR_CHAVE.get(chave)
+
+            # Ciclismo/Triathlon e outros valores antigos não são migrados,
+            # pois deixaram de fazer parte das modalidades oficiais.
+            if not modalidade_oficial:
+                continue
+
+            conexao.exec_driver_sql(
+                """
+                INSERT OR IGNORE INTO aluno_modalidades
+                    (aluno_id, modalidade)
+                VALUES (?, ?)
+                """,
+                (aluno_id, modalidade_oficial)
+            )
 
 
 migrar_banco()
@@ -228,13 +279,78 @@ async def proteger_csrf(request: Request, call_next):
 # ============================================================
 def normalizar_modalidade(valor: str) -> str:
     """Compara modalidades sem diferença de maiúsculas/acentos."""
-    return (
-        unicodedata.normalize("NFD", str(valor or ""))
-        .encode("ascii", "ignore")
-        .decode("ascii")
-        .strip()
-        .lower()
+    return _normalizar_modalidade_texto(valor)
+
+
+def canonicalizar_modalidade(valor: str) -> str:
+    """Retorna o nome oficial da modalidade ou gera erro de validação."""
+    chave = normalizar_modalidade(valor)
+    modalidade = MODALIDADES_POR_CHAVE.get(chave)
+
+    if not modalidade:
+        raise ValueError(
+            "Modalidade inválida. Use somente Corrida, Natação ou Musculação."
+        )
+
+    return modalidade
+
+
+def validar_modalidades(valores) -> list[str]:
+    """Valida, remove duplicidades e mantém a ordem oficial das modalidades."""
+    if not valores:
+        raise ValueError("Selecione pelo menos uma modalidade.")
+
+    escolhidas = {
+        canonicalizar_modalidade(valor)
+        for valor in valores
+    }
+
+    return [
+        modalidade
+        for modalidade in MODALIDADES_PERMITIDAS
+        if modalidade in escolhidas
+    ]
+
+
+def obter_modalidades_aluno(db: Session, aluno_id: int) -> list[str]:
+    registros = (
+        db.query(models.AlunoModalidade)
+        .filter(models.AlunoModalidade.aluno_id == aluno_id)
+        .all()
     )
+
+    existentes = {registro.modalidade for registro in registros}
+
+    return [
+        modalidade
+        for modalidade in MODALIDADES_PERMITIDAS
+        if modalidade in existentes
+    ]
+
+
+def definir_modalidades_aluno(
+    db: Session,
+    aluno_db: models.Aluno,
+    modalidades
+) -> list[str]:
+    modalidades_validas = validar_modalidades(modalidades)
+
+    db.query(models.AlunoModalidade).filter(
+        models.AlunoModalidade.aluno_id == aluno_db.id
+    ).delete(synchronize_session=False)
+
+    for modalidade in modalidades_validas:
+        db.add(
+            models.AlunoModalidade(
+                aluno_id=aluno_db.id,
+                modalidade=modalidade
+            )
+        )
+
+    # Compatibilidade com versões antigas do banco/código.
+    aluno_db.modalidade = modalidades_validas[0]
+
+    return modalidades_validas
 
 
 # ============================================================
@@ -1205,8 +1321,14 @@ def me(
                 "nivel":
                     aluno_db.nivel,
 
+                "modalidades":
+                    obter_modalidades_aluno(db, aluno_db.id),
+
+                # Mantido para compatibilidade com telas antigas.
                 "modalidade":
-                    aluno_db.modalidade
+                    " • ".join(
+                        obter_modalidades_aluno(db, aluno_db.id)
+                    )
             }
 
     return dados
@@ -1673,14 +1795,27 @@ def criar_aluno(
             )
         )
 
-    # Cria aluno
+    # Valida as modalidades antes de criar qualquer registro.
+    try:
+        modalidades_validas = validar_modalidades(
+            aluno.modalidades
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
+    # Cria aluno. A coluna modalidade guarda somente a primeira
+    # opção por compatibilidade; a tabela aluno_modalidades é a fonte
+    # oficial para múltiplas modalidades.
     novo_aluno = models.Aluno(
 
         nome=aluno.nome,
 
         nivel=aluno.nivel,
 
-        modalidade=aluno.modalidade
+        modalidade=modalidades_validas[0]
     )
 
     db.add(
@@ -1709,6 +1844,12 @@ def criar_aluno(
         novo_usuario
     )
 
+    definir_modalidades_aluno(
+        db,
+        novo_aluno,
+        modalidades_validas
+    )
+
     registrar_acao_admin(
         db=db,
         request=request,
@@ -1720,7 +1861,7 @@ def criar_aluno(
         detalhes={
             "nome": novo_aluno.nome,
             "nivel": novo_aluno.nivel,
-            "modalidade": novo_aluno.modalidade,
+            "modalidades": modalidades_validas,
             "usuario": usuario_normalizado
         }
     )
@@ -1743,6 +1884,9 @@ def criar_aluno(
 
         "nivel":
             novo_aluno.nivel,
+
+        "modalidades":
+            modalidades_validas,
 
         "usuario":
             usuario_normalizado
@@ -1782,6 +1926,11 @@ def listar_alunos(
             .first()
         )
 
+        modalidades = obter_modalidades_aluno(
+            db,
+            aluno.id
+        )
+
         resultado.append({
 
             "id":
@@ -1793,8 +1942,11 @@ def listar_alunos(
             "nivel":
                 aluno.nivel,
 
+            "modalidades":
+                modalidades,
+
             "modalidade":
-                aluno.modalidade,
+                " • ".join(modalidades),
 
             "usuario":
                 usuario.usuario
@@ -1803,6 +1955,69 @@ def listar_alunos(
         })
 
     return resultado
+
+
+# ============================================================
+# ATUALIZAR MODALIDADES DO ALUNO
+# SOMENTE PROFESSOR
+# ============================================================
+
+@app.patch("/api/alunos/{aluno_id}/modalidades")
+def atualizar_modalidades_aluno(
+    aluno_id: int,
+    dados: schemas.AlunoModalidadesUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    aluno_db = (
+        db.query(models.Aluno)
+        .filter(models.Aluno.id == aluno_id)
+        .first()
+    )
+
+    if not aluno_db:
+        raise HTTPException(
+            status_code=404,
+            detail="Aluno não encontrado."
+        )
+
+    antes = obter_modalidades_aluno(db, aluno_id)
+
+    try:
+        depois = definir_modalidades_aluno(
+            db,
+            aluno_db,
+            dados.modalidades
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="atualizar_modalidades_aluno",
+        entidade="aluno",
+        entidade_id=aluno_id,
+        descricao=f"Modalidades de {aluno_db.nome} atualizadas.",
+        detalhes={
+            "antes": antes,
+            "depois": depois
+        }
+    )
+
+    db.commit()
+
+    return {
+        "mensagem": "Modalidades atualizadas com sucesso.",
+        "id": aluno_id,
+        "modalidades": depois,
+        "modalidade": " • ".join(depois)
+    }
 
 
 # ============================================================
@@ -1851,7 +2066,7 @@ def excluir_aluno(
     dados_auditoria_aluno = {
         "nome": aluno.nome,
         "nivel": aluno.nivel,
-        "modalidade": aluno.modalidade,
+        "modalidades": obter_modalidades_aluno(db, aluno.id),
         "usuario": (
             usuario_aluno.usuario
             if usuario_aluno else None
@@ -1882,6 +2097,14 @@ def excluir_aluno(
     ).delete(
         synchronize_session=False
     )
+
+    # --------------------------------------------------------
+    # REMOVER VÍNCULOS DE MODALIDADE
+    # --------------------------------------------------------
+
+    db.query(models.AlunoModalidade).filter(
+        models.AlunoModalidade.aluno_id == aluno_id
+    ).delete(synchronize_session=False)
 
     # --------------------------------------------------------
     # REMOVER O ALUNO
@@ -2143,6 +2366,10 @@ def listar_treinos_base(
             models.TreinoBase
         )
 
+        .filter(
+            models.TreinoBase.modalidade.in_(MODALIDADES_PERMITIDAS)
+        )
+
         .order_by(
             models.TreinoBase.id.asc()
         )
@@ -2193,13 +2420,23 @@ def criar_treino_base(
     Depends(require_professor)
 ):
 
+    try:
+        modalidade_valida = canonicalizar_modalidade(
+            treino.modalidade
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
     novo_treino = models.TreinoBase(
 
         titulo=
             treino.titulo,
 
         modalidade=
-            treino.modalidade,
+            modalidade_valida,
 
         descricao=
             treino.descricao,
@@ -2285,10 +2522,20 @@ def editar_treino_base(
         "ritmo_alvo": treino_base.ritmo_alvo
     }
 
+    try:
+        modalidade_valida = canonicalizar_modalidade(
+            dados.modalidade
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
     # Atualiza os dados do treino base
     treino_base.titulo = dados.titulo
 
-    treino_base.modalidade = dados.modalidade
+    treino_base.modalidade = modalidade_valida
 
     treino_base.descricao = dados.descricao
 
@@ -2677,19 +2924,33 @@ def enviar_planejamento_semanal(
         # BUSCAR ALUNOS DA MODALIDADE
         # ----------------------------------------------------
 
-        # O SQLite não remove acentos automaticamente.
-        # Por isso normalizamos a modalidade em Python.
-        todos_alunos = (
+        try:
+            modalidade_treino = canonicalizar_modalidade(
+                treino_base.modalidade
+            )
+        except ValueError as erro:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"O treino base '{treino_base.titulo}' possui "
+                    f"uma modalidade que não é mais aceita: {erro}"
+                )
+            )
+
+        # Um aluno pode estar em mais de uma modalidade.
+        # Basta existir um vínculo na tabela aluno_modalidades para
+        # receber o treino daquela modalidade.
+        alunos = (
             db.query(models.Aluno)
+            .join(
+                models.AlunoModalidade,
+                models.AlunoModalidade.aluno_id == models.Aluno.id
+            )
+            .filter(
+                models.AlunoModalidade.modalidade == modalidade_treino
+            )
             .all()
         )
-
-        alunos = [
-            aluno
-            for aluno in todos_alunos
-            if normalizar_modalidade(aluno.modalidade)
-            == normalizar_modalidade(treino_base.modalidade)
-        ]
 
 
         # ----------------------------------------------------

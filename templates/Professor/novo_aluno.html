@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Cadastrar aluno - SPY TEAM</title>
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
-<link rel="stylesheet" href="/static/css/style.css?v=20260920-email1">    <script src="/static/js/security.js?v=20260922-security1"></script>
+<link rel="stylesheet" href="/static/css/style.css?v=20260922-multimodal1">    <script src="/static/js/security.js?v=20260922-security1"></script>
 </head>
 <body class="app-body"><div class="app-shell"><aside class="app-sidebar professor-sidebar">
         <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
@@ -17,16 +17,24 @@
     </aside><div class="app-workspace"><header class="app-topbar">
         <div class="app-topbar-copy">
             <strong>Cadastrar aluno</strong>
-            <span>Crie o acesso e vincule o aluno à modalidade correta.</span>
+            <span>Crie o acesso e selecione uma ou mais modalidades para o aluno.</span>
         </div>
         <div class="app-topbar-actions">
             <span class="top-status-dot" title="Online"></span>
             <span class="top-avatar">P</span>
             <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/></svg></button>
         </div>
-    </header><main class="app-content"><section class="form-page-heading"><a href="/home" class="back-link">← Voltar</a><span class="eyebrow">SPY TEAM</span><h1>Cadastrar aluno</h1><p>Crie o acesso e vincule o aluno à modalidade correta.</p></section><section class="dashboard-card form-card"><form id="formAluno" class="stack-form">
+    </header><main class="app-content"><section class="form-page-heading"><a href="/home" class="back-link">← Voltar</a><span class="eyebrow">SPY TEAM</span><h1>Cadastrar aluno</h1><p>Crie o acesso e selecione uma ou mais modalidades para o aluno.</p></section><section class="dashboard-card form-card"><form id="formAluno" class="stack-form">
 <div class="form-grid"><div class="group"><label for="nome">Nome</label><input id="nome" placeholder="Nome completo" required></div><div class="group"><label for="nivel">Nível</label><select id="nivel"><option>Iniciante</option><option>Intermediário</option><option>Avançado</option></select></div></div>
-<div class="group"><label for="modalidade">Modalidade</label><select id="modalidade" required><option value="">Selecione a modalidade</option><option value="Corrida">Corrida</option><option value="Natação">Natação</option><option value="Ciclismo">Ciclismo</option><option value="Triathlon">Triathlon</option></select></div>
+<div class="group">
+<label>Modalidades <span class="label-muted">(selecione uma ou mais)</span></label>
+<div class="modalidade-check-grid" id="modalidades">
+<label class="modalidade-check"><input type="checkbox" name="modalidade" value="Corrida"><span>🏃 Corrida</span></label>
+<label class="modalidade-check"><input type="checkbox" name="modalidade" value="Natação"><span>🏊 Natação</span></label>
+<label class="modalidade-check"><input type="checkbox" name="modalidade" value="Musculação"><span>🏋️ Musculação</span></label>
+</div>
+<small class="field-hint">O aluno receberá no planejamento semanal os treinos de todas as modalidades selecionadas.</small>
+</div>
 <div class="form-grid"><div class="group"><label for="usuario">Usuário de acesso</label><input id="usuario" placeholder="Ex.: luan" minlength="3" pattern="[^\s]+" autocapitalize="none" spellcheck="false" required><small class="field-hint">Sem espaços. Maiúsculas e minúsculas são tratadas da mesma forma.</small></div><div class="group"><label for="senha">Senha inicial</label><input id="senha" type="password" placeholder="Mínimo 4 caracteres" minlength="4" required></div></div>
 <div class="form-actions"><a class="btn btn-secondary" href="/home">Cancelar</a><button class="btn btn-primary" type="submit">Cadastrar aluno →</button></div></form><div id="mensagem" class="message"></div></section></main></div></div>
 <script>async function sair(event){if(event)event.preventDefault();await fetch('/api/logout',{method:'POST'});window.location.href='/login';}</script><script>
@@ -41,10 +49,18 @@ document.getElementById('formAluno').addEventListener('submit', async (e) => {
             throw new Error('O usuário não pode conter espaços.');
         }
 
+        const modalidades = Array.from(
+            document.querySelectorAll('input[name="modalidade"]:checked')
+        ).map(input => input.value);
+
+        if (!modalidades.length) {
+            throw new Error('Selecione pelo menos uma modalidade.');
+        }
+
         const dados = {
             nome: document.getElementById('nome').value,
             nivel: document.getElementById('nivel').value,
-            modalidade: document.getElementById('modalidade').value,
+            modalidades: modalidades,
             usuario: usuario,
             senha: document.getElementById('senha').value
         };

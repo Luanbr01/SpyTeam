@@ -55,10 +55,10 @@ A aplicação permite:
 
 - cadastrar alunos;
 - criar contas individuais;
-- separar alunos por modalidade;
+- vincular cada aluno a uma ou mais modalidades;
 - criar treinos reutilizáveis;
 - agendar treinos individuais;
-- distribuir treinos automaticamente por modalidade;
+- distribuir treinos automaticamente por modalidade, inclusive para alunos multimodalidade;
 - organizar uma semana de segunda a sexta;
 - acompanhar conclusão dos treinos;
 - receber nota, dificuldade e comentário do aluno;
@@ -85,6 +85,22 @@ Branch principal atual:
 ```text
 master
 ```
+
+## Modalidades oficiais
+
+O SPY TEAM trabalha atualmente somente com:
+
+```text
+Corrida
+Natação
+Musculação
+```
+
+Ciclismo e Triathlon foram removidos das opções de cadastro e planejamento.
+
+Um aluno pode possuir **uma, duas ou as três modalidades ao mesmo tempo**. No planejamento semanal, ele recebe automaticamente todos os treinos correspondentes às modalidades vinculadas ao seu cadastro.
+
+Na agenda semanal do aluno, os cards foram simplificados: mostram apenas título, modalidade e status. Ao clicar em um treino, abre-se um modal com a descrição completa, data, ritmo alvo e ação de conclusão.
 
 ---
 
@@ -167,7 +183,7 @@ Ele pode:
 - definir:
   - nome;
   - nível;
-  - modalidade;
+  - uma ou mais modalidades;
   - usuário;
   - senha inicial;
 - listar alunos cadastrados;
@@ -310,7 +326,7 @@ Define treinos de segunda a sexta
 Cada treino possui uma modalidade
                     |
                     v
-Sistema procura alunos da mesma modalidade
+Sistema procura todos os alunos que possuem essa modalidade
                     |
                     v
 Cria um TreinoAgendado para cada aluno
@@ -329,8 +345,8 @@ Dia: Segunda-feira
          |
          v
 
-Todos os alunos cuja modalidade é Corrida
-recebem esse treino.
+Todos os alunos que tenham Corrida entre suas modalidades
+recebem esse treino, mesmo que também pratiquem Natação ou Musculação.
 ```
 
 ---
@@ -582,11 +598,37 @@ alunos
 | id | Integer | Chave primária |
 | nome | String | Nome do aluno |
 | nivel | String | Iniciante, Intermediário, Avançado etc. |
-| modalidade | String | Corrida, Natação, Ciclismo, Triathlon etc. |
+| modalidade | String | Campo legado com a primeira modalidade, mantido para compatibilidade |
 
 ---
 
-## 8.3 Tabela `usuarios`
+## 8.3 Tabela `aluno_modalidades`
+
+Modelo:
+
+```text
+AlunoModalidade
+```
+
+Tabela:
+
+```text
+aluno_modalidades
+```
+
+Essa tabela permite que o mesmo aluno tenha várias modalidades. Existe uma restrição única por combinação de aluno + modalidade para evitar vínculos duplicados.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | Integer | Chave primária |
+| aluno_id | Integer | FK para `alunos` |
+| modalidade | String | `Corrida`, `Natação` ou `Musculação` |
+
+A coluna antiga `alunos.modalidade` permanece apenas para compatibilidade com versões anteriores. A fonte oficial para distribuição de treinos passa a ser `aluno_modalidades`.
+
+---
+
+## 8.4 Tabela `usuarios`
 
 Modelo:
 
@@ -620,7 +662,7 @@ Características:
 
 ---
 
-## 8.4 Tabela `recuperacoes_senha`
+## 8.5 Tabela `recuperacoes_senha`
 
 Modelo:
 
@@ -647,7 +689,7 @@ O token original **não é armazenado**.
 
 ---
 
-## 8.5 Tabela `treinos_base`
+## 8.6 Tabela `treinos_base`
 
 Modelo:
 
@@ -673,7 +715,7 @@ Treinos base são modelos reutilizáveis.
 
 ---
 
-## 8.6 Tabela `treinos_agendados`
+## 8.7 Tabela `treinos_agendados`
 
 Modelo:
 
@@ -721,7 +763,7 @@ Se o professor editar o `TreinoBase` depois, os treinos que já foram enviados c
 
 ---
 
-## 8.7 Migração leve automática
+## 8.8 Migração leve automática
 
 Ao iniciar, o sistema executa uma migração simples para versões antigas do SQLite.
 
@@ -1633,7 +1675,7 @@ Resposta de exemplo:
 {
   "nome": "Aluno Exemplo",
   "nivel": "Intermediário",
-  "modalidade": "Corrida",
+  "modalidades": ["Corrida", "Musculação"],
   "usuario": "aluno01",
   "senha": "senha123"
 }
