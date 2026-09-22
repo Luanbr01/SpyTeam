@@ -205,6 +205,46 @@ templates = Jinja2Templates(
 
 
 # ============================================================
+# ERROS DE AUTENTICAÇÃO NAS PÁGINAS HTML
+# ============================================================
+
+@app.exception_handler(HTTPException)
+async def tratar_http_exception(request: Request, exc: HTTPException):
+    """
+    Mantém os erros da API em JSON, mas trata as páginas HTML de forma
+    amigável. Se alguém abrir uma página protegida sem sessão válida,
+    redireciona para /login em vez de exibir o JSON de erro 401.
+
+    Isso também cobre sessão expirada, cookie inválido e sessão invalidada
+    após troca/redefinição de senha.
+    """
+    caminho = request.url.path
+    eh_api = caminho.startswith("/api/")
+
+    if exc.status_code == 401 and not eh_api:
+        resposta = RedirectResponse(
+            url="/login",
+            status_code=303
+        )
+
+        # Remove um cookie antigo/inválido para que o próximo login comece
+        # com uma sessão limpa.
+        resposta.delete_cookie(
+            key=COOKIE_NAME,
+            path="/"
+        )
+
+        return resposta
+
+    # APIs continuam respondendo exatamente como API: status + JSON.
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=exc.headers
+    )
+
+
+# ============================================================
 # CONFIGURAÇÃO DE PRODUÇÃO
 # ============================================================
 
