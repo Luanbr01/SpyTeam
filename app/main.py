@@ -8,6 +8,7 @@ import os
 import re
 import time
 import unicodedata
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 
@@ -124,6 +125,25 @@ def migrar_banco():
                 "ALTER TABLE usuarios "
                 "ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0"
             )
+
+        colunas_treinos = {
+            linha[1]
+            for linha in conexao.exec_driver_sql(
+                "PRAGMA table_info(treinos_agendados)"
+            ).fetchall()
+        }
+
+        if "concluido_em" not in colunas_treinos:
+            conexao.exec_driver_sql(
+                "ALTER TABLE treinos_agendados "
+                "ADD COLUMN concluido_em INTEGER"
+            )
+
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS "
+            "ix_treinos_agendados_concluido_em "
+            "ON treinos_agendados(concluido_em)"
+        )
 
         conexao.exec_driver_sql(
             """
@@ -778,9 +798,13 @@ def home(
 ):
 
     return templates.TemplateResponse(
-    request=request,
-    name="Professor/home.html"
-)
+        request=request,
+        name="Professor/home.html",
+        context={
+            "request": request,
+            "professor_usuario": usuario.usuario
+        }
+    )
 
 
 # ============================================================
@@ -1068,6 +1092,442 @@ def listar_auditoria_administrativa(
         })
 
     return resultado
+
+
+# ============================================================
+# DASHBOARD ANALÍTICO DO PROFESSOR
+# ============================================================
+
+
+def _data_planejada_segura(valor):
+    """Converte YYYY-MM-DD / ISO para date sem quebrar registros antigos."""
+    if not valor:
+        return None
+
+    try:
+        return datetime.strptime(
+            str(valor).split("T")[0],
+            "%Y-%m-%d"
+        ).date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _timestamp_data_referencia(valor_data):
+    """Timestamp UTC ao meio-dia, usado só como fallback histórico."""
+    data_ref = _data_planejada_segura(valor_data)
+
+    if not data_ref:
+        return None
+
+    return int(
+        datetime.combine(
+            data_ref,
+            datetime.min.time()
+        ).replace(
+            hour=12,
+            tzinfo=timezone.utc
+        ).timestamp()
+    )
+
+
+def _percentual(parte, total):
+    if not total:
+        return 0.0
+
+    return round((parte / total) * 100, 1)
+
+
+@app.get("/api/dashboard/professor")
+def dashboard_professor(
+    semanas: int = 4,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    """
+    Resumo operacional do professor.
+
+    Regras principais:
+    - Taxa de conclusão: treinos planejados no período até hoje.
+    - Aderência 30 dias: média da taxa individual de conclusão dos
+      alunos que tiveram ao menos um treino devido nos últimos 30 dias.
+    - Ativo: login bem-sucedido ou treino concluído nos últimos 7 dias.
+    - Inativo: nenhuma dessas atividades nos últimos 7 dias.
+    """
+
+    semanas = max(1, min(int(semanas or 4), 12))
+
+    hoje = date.today()
+    agora_ts = int(time.time())
+    inicio_periodo = hoje - timedelta(days=(semanas * 7) - 1)
+    inicio_30 = hoje - timedelta(days=29)
+    limite_atividade_ts = agora_ts - (7 * 24 * 60 * 60)
+
+    alunos = (
+        db.query(models.Aluno)
+        .order_by(models.Aluno.nome.asc())
+        .all()
+    )
+
+    usuarios_alunos = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.tipo == "aluno")
+        .all()
+    )
+
+    treinos = db.query(models.TreinoAgendado).all()
+
+    usuario_por_id = {
+        usuario.id: usuario
+        for usuario in usuarios_alunos
+    }
+
+    usuario_por_aluno = {
+        usuario.aluno_id: usuario
+        for usuario in usuarios_alunos
+        if usuario.aluno_id
+    }
+
+    nome_aluno = {
+        aluno.id: aluno.nome
+        for aluno in alunos
+    }
+
+    modalidades_por_aluno = {
+        aluno.id: []
+        for aluno in alunos
+    }
+
+    for vinculo in db.query(models.AlunoModalidade).all():
+        if vinculo.aluno_id in modalidades_por_aluno:
+            modalidades_por_aluno[vinculo.aluno_id].append(
+                vinculo.modalidade
+            )
+
+    # Compatibilidade com bancos migrados onde a relação ainda não
+    # tenha sido preenchida por algum registro antigo.
+    for aluno in alunos:
+        if not modalidades_por_aluno[aluno.id] and aluno.modalidade:
+            try:
+                modalidade = canonicalizar_modalidade(aluno.modalidade)
+                modalidades_por_aluno[aluno.id] = [modalidade]
+            except ValueError:
+                pass
+
+    data_por_treino = {
+        treino.id: _data_planejada_segura(treino.data_planejada)
+        for treino in treinos
+    }
+
+    treinos_periodo = [
+        treino
+        for treino in treinos
+        if (
+            data_por_treino[treino.id]
+            and inicio_periodo <= data_por_treino[treino.id] <= hoje
+        )
+    ]
+
+    treinos_30 = [
+        treino
+        for treino in treinos
+        if (
+            data_por_treino[treino.id]
+            and inicio_30 <= data_por_treino[treino.id] <= hoje
+        )
+    ]
+
+    concluidos_periodo = [
+        treino
+        for treino in treinos_periodo
+        if treino.concluido
+    ]
+
+    taxa_conclusao = _percentual(
+        len(concluidos_periodo),
+        len(treinos_periodo)
+    )
+
+    # Média da aderência individual, evitando que alunos com grande
+    # quantidade de treinos pesem mais que os demais.
+    taxas_individuais = []
+
+    for aluno in alunos:
+        devidos = [
+            treino
+            for treino in treinos_30
+            if treino.aluno_id == aluno.id
+        ]
+
+        if not devidos:
+            continue
+
+        concluidos = sum(
+            1 for treino in devidos
+            if treino.concluido
+        )
+
+        taxas_individuais.append(
+            _percentual(concluidos, len(devidos))
+        )
+
+    aderencia_30 = round(
+        sum(taxas_individuais) / len(taxas_individuais),
+        1
+    ) if taxas_individuais else 0.0
+
+    # Última atividade = login bem-sucedido OU conclusão de treino.
+    ultima_atividade = {
+        aluno.id: None
+        for aluno in alunos
+    }
+
+    logins = (
+        db.query(models.AuditoriaLogin)
+        .filter(models.AuditoriaLogin.sucesso.is_(True))
+        .all()
+    )
+
+    for login in logins:
+        usuario = usuario_por_id.get(login.usuario_id)
+
+        if not usuario or not usuario.aluno_id:
+            continue
+
+        atual = ultima_atividade.get(usuario.aluno_id)
+
+        if atual is None or login.criado_em > atual:
+            ultima_atividade[usuario.aluno_id] = login.criado_em
+
+    for treino in treinos:
+        if not treino.concluido:
+            continue
+
+        timestamp = (
+            treino.concluido_em
+            or _timestamp_data_referencia(treino.data_planejada)
+        )
+
+        if timestamp is None:
+            continue
+
+        atual = ultima_atividade.get(treino.aluno_id)
+
+        if atual is None or timestamp > atual:
+            ultima_atividade[treino.aluno_id] = timestamp
+
+    alunos_ativos = []
+    alunos_inativos = []
+
+    for aluno in alunos:
+        timestamp = ultima_atividade.get(aluno.id)
+
+        if timestamp is not None and timestamp >= limite_atividade_ts:
+            alunos_ativos.append(aluno)
+        else:
+            alunos_inativos.append(aluno)
+
+    alunos_atencao = []
+
+    for aluno in alunos_inativos:
+        timestamp = ultima_atividade.get(aluno.id)
+        dias = None
+
+        if timestamp is not None:
+            dias = max(
+                0,
+                int((agora_ts - timestamp) // (24 * 60 * 60))
+            )
+
+        alunos_atencao.append({
+            "id": aluno.id,
+            "nome": aluno.nome,
+            "nivel": aluno.nivel,
+            "modalidades": modalidades_por_aluno.get(aluno.id, []),
+            "dias_sem_atividade": dias,
+            "ultima_atividade": timestamp
+        })
+
+    alunos_atencao.sort(
+        key=lambda item: (
+            item["dias_sem_atividade"] is None,
+            item["dias_sem_atividade"] or 0
+        ),
+        reverse=True
+    )
+
+    # Frequência semanal: número de treinos efetivamente concluídos.
+    segunda_atual = hoje - timedelta(days=hoje.weekday())
+    primeira_segunda = segunda_atual - timedelta(
+        weeks=semanas - 1
+    )
+
+    frequencia_semanal = []
+
+    for indice in range(semanas):
+        inicio_semana = primeira_segunda + timedelta(weeks=indice)
+        fim_semana = inicio_semana + timedelta(days=6)
+        total = 0
+
+        for treino in treinos:
+            if not treino.concluido:
+                continue
+
+            data_conclusao = None
+
+            if treino.concluido_em:
+                data_conclusao = datetime.fromtimestamp(
+                    treino.concluido_em,
+                    tz=timezone.utc
+                ).date()
+            else:
+                data_conclusao = data_por_treino.get(treino.id)
+
+            if (
+                data_conclusao
+                and inicio_semana <= data_conclusao <= fim_semana
+            ):
+                total += 1
+
+        frequencia_semanal.append({
+            "indice": indice + 1,
+            "rotulo": f"Sem {indice + 1}",
+            "inicio": inicio_semana.isoformat(),
+            "fim": fim_semana.isoformat(),
+            "concluidos": total
+        })
+
+    # Distribuição dos treinos agendados por modalidade no período.
+    modalidades = []
+    total_modalidades = len(treinos_periodo)
+
+    for modalidade in MODALIDADES_PERMITIDAS:
+        itens = [
+            treino
+            for treino in treinos_periodo
+            if _normalizar_modalidade_texto(treino.modalidade)
+            == _normalizar_modalidade_texto(modalidade)
+        ]
+
+        quantidade_alunos = sum(
+            1
+            for lista in modalidades_por_aluno.values()
+            if modalidade in lista
+        )
+
+        modalidades.append({
+            "nome": modalidade,
+            "treinos": len(itens),
+            "concluidos": sum(1 for item in itens if item.concluido),
+            "percentual": _percentual(len(itens), total_modalidades),
+            "alunos": quantidade_alunos
+        })
+
+    # Avaliações deixadas pelos alunos no período selecionado.
+    avaliados = [
+        treino
+        for treino in treinos_periodo
+        if treino.feedback_nota is not None
+    ]
+
+    total_avaliacoes = len(avaliados)
+    media_avaliacao = round(
+        sum(treino.feedback_nota for treino in avaliados)
+        / total_avaliacoes,
+        1
+    ) if total_avaliacoes else 0.0
+
+    distribuicao_avaliacao = {}
+
+    for nota in range(5, 0, -1):
+        quantidade = sum(
+            1
+            for treino in avaliados
+            if treino.feedback_nota == nota
+        )
+
+        distribuicao_avaliacao[str(nota)] = {
+            "quantidade": quantidade,
+            "percentual": _percentual(
+                quantidade,
+                total_avaliacoes
+            )
+        }
+
+    # Atividade recente combina ações administrativas e conclusões.
+    atividades = []
+
+    for item in (
+        db.query(models.AuditoriaAdministrativa)
+        .order_by(models.AuditoriaAdministrativa.criado_em.desc())
+        .limit(20)
+        .all()
+    ):
+        atividades.append({
+            "tipo": "administrativa",
+            "acao": item.acao,
+            "descricao": item.descricao,
+            "timestamp": item.criado_em
+        })
+
+    for treino in treinos:
+        if not treino.concluido:
+            continue
+
+        timestamp = (
+            treino.concluido_em
+            or _timestamp_data_referencia(treino.data_planejada)
+        )
+
+        if timestamp is None:
+            continue
+
+        aluno_nome = nome_aluno.get(
+            treino.aluno_id,
+            "Aluno"
+        )
+
+        atividades.append({
+            "tipo": "treino_concluido",
+            "acao": "concluir_treino",
+            "descricao": (
+                f"{aluno_nome} concluiu {treino.titulo} "
+                f"({treino.modalidade})."
+            ),
+            "timestamp": timestamp,
+            "aluno_id": treino.aluno_id,
+            "treino_id": treino.id
+        })
+
+    atividades.sort(
+        key=lambda item: item["timestamp"],
+        reverse=True
+    )
+
+    return {
+        "periodo": {
+            "semanas": semanas,
+            "inicio": inicio_periodo.isoformat(),
+            "fim": hoje.isoformat()
+        },
+        "resumo": {
+            "total_alunos": len(alunos),
+            "alunos_ativos": len(alunos_ativos),
+            "taxa_conclusao": taxa_conclusao,
+            "aderencia_30_dias": aderencia_30,
+            "alunos_inativos": len(alunos_inativos),
+            "avaliacao_media": media_avaliacao
+        },
+        "frequencia_semanal": frequencia_semanal,
+        "modalidades": modalidades,
+        "alunos_atencao": alunos_atencao[:6],
+        "avaliacoes": {
+            "media": media_avaliacao,
+            "total": total_avaliacoes,
+            "distribuicao": distribuicao_avaliacao
+        },
+        "atividade_recente": atividades[:8]
+    }
 
 
 # ============================================================
@@ -3132,6 +3592,9 @@ def meus_treinos(
         "concluido":
             t.concluido,
 
+        "concluido_em":
+            t.concluido_em,
+
         "feedback_nota":
             t.feedback_nota,
 
@@ -3419,8 +3882,9 @@ def concluir_treino(
     treino.feedback_dificuldade = feedback.dificuldade
     treino.feedback_comentario = feedback.comentario
 
-    # Marca treino como concluído
+    # Marca treino como concluído e registra o momento real da conclusão.
     treino.concluido = True
+    treino.concluido_em = int(time.time())
 
     db.commit()
     db.refresh(treino)

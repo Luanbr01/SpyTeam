@@ -301,6 +301,15 @@ class TreinoAgendado(Base):
         nullable=False
     )
 
+    # Momento real em que o aluno concluiu o treino.
+    # Bancos antigos podem manter NULL; nesses casos o dashboard
+    # usa a data planejada apenas como referência histórica.
+    concluido_em = Column(
+        Integer,
+        nullable=True,
+        index=True
+    )
+
     # ========================================================
     # FEEDBACK DO ALUNO
     # ========================================================

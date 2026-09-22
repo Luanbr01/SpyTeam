@@ -88,6 +88,147 @@ function preencherIdentidade(me) {
 }
 
 
+
+function iconeModalidade(modalidade) {
+    const valor = String(modalidade || '').toLowerCase();
+
+    if (valor.includes('nata')) return '🏊';
+    if (valor.includes('muscula')) return '🏋️';
+    return '🏃';
+}
+
+function obterIntervaloSemanaAtual() {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const diaSemana = hoje.getDay();
+    const diferenca = diaSemana === 0 ? -6 : 1 - diaSemana;
+
+    const segunda = new Date(hoje);
+    segunda.setDate(hoje.getDate() + diferenca);
+
+    const sexta = new Date(segunda);
+    sexta.setDate(segunda.getDate() + 4);
+    sexta.setHours(23, 59, 59, 999);
+
+    return { segunda, sexta };
+}
+
+function treinosDaSemanaAtual() {
+    const { segunda, sexta } = obterIntervaloSemanaAtual();
+
+    return treinos.filter(item => {
+        const data = normalizarData(item.data_planejada);
+        return data && data >= segunda && data <= sexta;
+    });
+}
+
+function textoDataProxima(dataPlanejada) {
+    const data = normalizarData(dataPlanejada);
+    if (!data) return 'Data não informada';
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const amanha = new Date(hoje);
+    amanha.setDate(hoje.getDate() + 1);
+
+    if (data.getTime() === hoje.getTime()) return 'Hoje';
+    if (data.getTime() === amanha.getTime()) return 'Amanhã';
+
+    return new Intl.DateTimeFormat('pt-BR', {
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit'
+    }).format(data).replace('.', '');
+}
+
+function renderizarProximoTreino() {
+    const container = document.getElementById('proximoTreino');
+    if (!container) return;
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const pendentes = treinos
+        .filter(item => !item.concluido)
+        .map(item => ({...item, _data: normalizarData(item.data_planejada)}))
+        .filter(item => item._data)
+        .sort((a, b) => a._data - b._data);
+
+    let proximo = pendentes.find(item => item._data >= hoje);
+
+    if (!proximo && pendentes.length) {
+        proximo = pendentes[pendentes.length - 1];
+    }
+
+    if (!proximo) {
+        container.innerHTML = `
+            <div class="student-next-empty">
+                <span>✓</span>
+                <div>
+                    <strong>Você está em dia</strong>
+                    <p>Nenhum treino pendente no momento.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const treino = proximo.treino || {};
+    const nivel = usuarioAtual?.aluno?.nivel || 'Nível não informado';
+
+    container.innerHTML = `
+        <button type="button" class="student-next-training" onclick="abrirDetalhesTreino(${proximo.id})">
+            <span class="student-next-icon">${iconeModalidade(treino.modalidade)}</span>
+            <span class="student-next-main">
+                <span class="student-next-modality">${escapeHtml(treino.modalidade || 'Treino')}</span>
+                <strong>${escapeHtml(treino.titulo || 'Treino')}</strong>
+                <small>${escapeHtml(textoDataProxima(proximo.data_planejada))} • ${escapeHtml(nivel)}</small>
+            </span>
+            <span class="student-next-arrow">Ver detalhes →</span>
+        </button>
+    `;
+}
+
+function renderizarHistoricoRecente() {
+    const container = document.getElementById('historicoRecente');
+    if (!container) return;
+
+    const concluidos = treinos
+        .filter(item => item.concluido)
+        .sort((a, b) => {
+            const ta = Number(a.concluido_em || 0);
+            const tb = Number(b.concluido_em || 0);
+
+            if (ta || tb) return tb - ta;
+
+            const da = normalizarData(a.data_planejada)?.getTime() || 0;
+            const db = normalizarData(b.data_planejada)?.getTime() || 0;
+            return db - da;
+        })
+        .slice(0, 4);
+
+    if (!concluidos.length) {
+        container.innerHTML = '<p class="dashboard-empty">Seus treinos concluídos aparecerão aqui.</p>';
+        return;
+    }
+
+    container.innerHTML = concluidos.map(item => {
+        const treino = item.treino || {};
+        return `
+            <button type="button" class="student-recent-item" onclick="abrirDetalhesTreino(${item.id})">
+                <span class="student-recent-check">✓</span>
+                <span class="student-recent-main">
+                    <strong>${escapeHtml(treino.modalidade || 'Treino')}</strong>
+                    <small>${escapeHtml(treino.titulo || '')}</small>
+                </span>
+                <span class="student-recent-date">${escapeHtml(formatarData(item.data_planejada))}</span>
+            </button>
+        `;
+    }).join('');
+}
+
 // ==========================================================
 // SEMANA / DASHBOARD
 // ==========================================================
@@ -154,6 +295,9 @@ function criarSemana() {
 
         card.className = 'dia-card';
 
+        const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+        if (dataISO === hojeISO) card.classList.add('dia-hoje');
+
         card.innerHTML = `
             <div class="dia-nome">
                 ${nomesDias[i]}
@@ -185,6 +329,7 @@ function criarSemana() {
 
 function criarTreinoDia(t) {
     const concluido = Boolean(t.concluido);
+    const treino = t.treino || {};
 
     return `
         <button
@@ -193,22 +338,18 @@ function criarTreinoDia(t) {
                 concluido ? 'treino-concluido' : ''
             }"
             onclick="abrirDetalhesTreino(${t.id})"
-            aria-label="Abrir detalhes do treino ${escapeHtml(t.treino.titulo)}"
+            aria-label="Abrir detalhes do treino ${escapeHtml(treino.titulo)}"
         >
             <span class="treino-dia-topo">
-                <span class="treino-modalidade-mini">
-                    ${escapeHtml(t.treino.modalidade)}
-                </span>
+                <span class="treino-sport-mini">${iconeModalidade(treino.modalidade)}</span>
                 <span class="treino-status-mini ${concluido ? 'feito' : 'pendente'}">
                     ${concluido ? '✓ Feito' : 'Pendente'}
                 </span>
             </span>
 
-            <strong class="treino-dia-titulo">
-                ${escapeHtml(t.treino.titulo)}
-            </strong>
-
-            <span class="treino-dia-abrir">Ver detalhes →</span>
+            <span class="treino-modalidade-label">${escapeHtml(treino.modalidade || 'Treino')}</span>
+            <strong class="treino-dia-titulo">${escapeHtml(treino.titulo || 'Treino')}</strong>
+            <span class="treino-dia-abrir">Abrir →</span>
         </button>
     `;
 }
@@ -227,6 +368,8 @@ function abrirDetalhesTreino(id) {
     const titulo = document.getElementById('detalheTreinoTitulo');
     const modalidade = document.getElementById('detalheTreinoModalidade');
     const data = document.getElementById('detalheTreinoData');
+    const nivel = document.getElementById('detalheTreinoNivel');
+    const icone = document.getElementById('detalheTreinoIcone');
     const descricao = document.getElementById('detalheTreinoDescricao');
     const ritmo = document.getElementById('detalheTreinoRitmo');
     const acao = document.getElementById('detalheTreinoAcao');
@@ -234,6 +377,8 @@ function abrirDetalhesTreino(id) {
     if (titulo) titulo.textContent = treino.titulo || 'Treino';
     if (modalidade) modalidade.textContent = treino.modalidade || '-';
     if (data) data.textContent = formatarData(item.data_planejada);
+    if (nivel) nivel.textContent = usuarioAtual?.aluno?.nivel || '';
+    if (icone) icone.textContent = iconeModalidade(treino.modalidade);
     if (descricao) descricao.textContent = treino.descricao || 'Sem descrição.';
 
     if (ritmo) {
@@ -280,39 +425,17 @@ function concluirPeloDetalhe() {
 
 
 function atualizarResumo() {
-    const total =
-        document.getElementById('total');
+    const total = document.getElementById('total');
+    const pendentes = document.getElementById('pendentes');
+    const concluidos = document.getElementById('concluidos');
 
-    const pendentes =
-        document.getElementById('pendentes');
+    const semana = treinosDaSemanaAtual();
+    const listaPendentes = semana.filter(t => !t.concluido);
+    const listaConcluidos = semana.filter(t => t.concluido);
 
-    const concluidos =
-        document.getElementById('concluidos');
-
-    const listaPendentes =
-        treinos.filter(
-            t => !t.concluido
-        );
-
-    const listaConcluidos =
-        treinos.filter(
-            t => t.concluido
-        );
-
-    if (total) {
-        total.textContent =
-            treinos.length;
-    }
-
-    if (pendentes) {
-        pendentes.textContent =
-            listaPendentes.length;
-    }
-
-    if (concluidos) {
-        concluidos.textContent =
-            listaConcluidos.length;
-    }
+    if (total) total.textContent = semana.length;
+    if (pendentes) pendentes.textContent = listaPendentes.length;
+    if (concluidos) concluidos.textContent = listaConcluidos.length;
 }
 
 
@@ -680,6 +803,9 @@ async function enviarFeedback() {
 
     if (treino) {
         treino.concluido = true;
+        treino.concluido_em =
+            dados?.treino?.concluido_em ||
+            Math.floor(Date.now() / 1000);
         treino.feedback_nota =
             notaSelecionada;
         treino.feedback_dificuldade =
@@ -690,7 +816,9 @@ async function enviarFeedback() {
 
     fecharFeedback();
     atualizarResumo();
+    renderizarProximoTreino();
     criarSemana();
+    renderizarHistoricoRecente();
 }
 
 
@@ -1067,14 +1195,18 @@ async function carregar() {
         }
 
         if (subtitulo) {
+            const modalidades = Array.isArray(usuarioAtual.aluno.modalidades)
+                ? usuarioAtual.aluno.modalidades.join(' • ')
+                : (usuarioAtual.aluno.modalidade || '');
+
             subtitulo.textContent =
-                `Aqui está seu treinamento de hoje. Nível: ${
-                    usuarioAtual.aluno.nivel
-                }`;
+                `Resumo da sua semana • ${usuarioAtual.aluno.nivel}${modalidades ? ` • ${modalidades}` : ''}`;
         }
 
         atualizarResumo();
+        renderizarProximoTreino();
         criarSemana();
+        renderizarHistoricoRecente();
 
     } catch (erro) {
         console.error(erro);
