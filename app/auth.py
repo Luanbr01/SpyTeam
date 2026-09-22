@@ -150,7 +150,8 @@ def _unb64(data: str) -> bytes:
 
 def criar_token(
     usuario_id: int,
-    tipo: str
+    tipo: str,
+    session_version: int = 0
 ) -> str:
 
     # Informações que serão colocadas dentro do token
@@ -163,6 +164,10 @@ def criar_token(
         # professor
         # aluno
         "tipo": tipo,
+
+        # Versão da sessão. Ao trocar a senha, este número muda
+        # no banco e todos os tokens antigos deixam de valer.
+        "ver": int(session_version or 0),
 
         # Data de expiração
         "exp": int(time.time())

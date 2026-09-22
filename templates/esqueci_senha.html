@@ -8,6 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
 <link rel="stylesheet" href="/static/css/style.css?v=20260920-email1">
+    <script src="/static/js/security.js?v=20260922-security1"></script>
 </head>
 <body>
 <div class="auth-page">
@@ -53,6 +54,15 @@ form.addEventListener('submit', async (event) => {
         });
 
         const dados = await resposta.json().catch(() => ({}));
+
+        if (!resposta.ok) {
+            mensagem.className = 'message error';
+            mensagem.textContent =
+                dados.detail ||
+                'Não foi possível processar a solicitação agora.';
+            return;
+        }
+
         mensagem.className = 'message success';
         mensagem.textContent = dados.mensagem || 'Se existir uma conta associada a este e-mail, enviaremos as instruções de recuperação.';
     } catch (erro) {

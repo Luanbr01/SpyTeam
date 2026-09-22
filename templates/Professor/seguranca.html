@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segurança e Auditoria - SPY TEAM</title>
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260922-security1">
+    <script src="/static/js/security.js?v=20260922-security1"></script>
+</head>
+<body class="app-body">
+<div class="app-shell">
+    <aside class="app-sidebar professor-sidebar">
+        <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
+            <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
+        </a>
+
+        {% include "componentes/sidebar.html" %}
+
+        <div class="sidebar-profile">
+            <span class="sidebar-avatar">P</span>
+            <span><strong>Professor</strong><small>SPY TEAM</small></span>
+        </div>
+    </aside>
+
+    <div class="app-workspace">
+        <header class="app-topbar">
+            <div class="app-topbar-copy">
+                <strong>Segurança</strong>
+                <span>Auditoria e proteção de acesso</span>
+            </div>
+            <div class="app-topbar-actions">
+                <span class="top-status-dot" title="Online"></span>
+                <span class="top-avatar">P</span>
+                <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M10 17l5-5-5-5"/>
+                        <path d="M15 12H3"/>
+                        <path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-content">
+            <section class="dashboard-heading">
+                <div>
+                    <span class="eyebrow">SEGURANÇA</span>
+                    <h1>Auditoria do sistema</h1>
+                    <p>Acompanhe tentativas de login e alterações realizadas pela administração.</p>
+                </div>
+                <button id="btnAtualizarAuditoria" class="btn btn-primary btn-with-icon" type="button" onclick="carregarAuditoria()">
+                    <span>↻</span> Atualizar
+                </button>
+            </section>
+
+            <section class="dashboard-stats audit-stats" aria-label="Resumo de segurança">
+                <article class="metric-card">
+                    <span class="metric-icon metric-green">✓</span>
+                    <div><strong id="auditLoginsSucesso">0</strong><span>Logins aceitos</span></div>
+                </article>
+
+                <article class="metric-card">
+                    <span class="metric-icon metric-cyan">!</span>
+                    <div><strong id="auditLoginsFalha">0</strong><span>Logins negados</span></div>
+                </article>
+
+                <article class="metric-card">
+                    <span class="metric-icon metric-blue">⛨</span>
+                    <div><strong id="auditBloqueios">0</strong><span>Bloqueios de limite</span></div>
+                </article>
+
+                <article class="metric-card">
+                    <span class="metric-icon metric-blue">≡</span>
+                    <div><strong id="auditAcoesAdmin">0</strong><span>Ações administrativas</span></div>
+                </article>
+            </section>
+
+            <section class="dashboard-card audit-card">
+                <div class="section-heading-row">
+                    <div>
+                        <span class="eyebrow">ACESSOS</span>
+                        <h2>Auditoria de logins</h2>
+                        <p class="subtitle">Últimas tentativas registradas, incluindo falhas e bloqueios por rate limit.</p>
+                    </div>
+                </div>
+
+                <div class="audit-table-wrap">
+                    <table class="audit-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Status</th>
+                                <th>Usuário</th>
+                                <th>Motivo</th>
+                                <th>IP</th>
+                                <th>Navegador</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLoginsBody">
+                            <tr><td colspan="6" class="audit-empty">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-card audit-card">
+                <div class="section-heading-row">
+                    <div>
+                        <span class="eyebrow">ADMINISTRAÇÃO</span>
+                        <h2>Histórico de alterações</h2>
+                        <p class="subtitle">Registro das mudanças feitas pelo professor em alunos, treinos e planejamentos.</p>
+                    </div>
+                </div>
+
+                <div class="audit-table-wrap">
+                    <table class="audit-table audit-admin-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Ação</th>
+                                <th>Descrição</th>
+                                <th>Professor</th>
+                                <th>IP</th>
+                                <th>Detalhes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditAdminBody">
+                            <tr><td colspan="6" class="audit-empty">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-card audit-security-note">
+                <div>
+                    <span class="eyebrow">PROTEÇÕES ATIVAS</span>
+                    <h2>Camadas de segurança</h2>
+                </div>
+                <div class="audit-protection-grid">
+                    <article><strong>Rate limit no login</strong><span>Reduz tentativas automatizadas de força bruta.</span></article>
+                    <article><strong>Rate limit de recuperação</strong><span>Limita solicitações por IP, e-mail e volume global.</span></article>
+                    <article><strong>CSRF explícito</strong><span>Operações de escrita exigem token enviado pelo próprio site.</span></article>
+                    <article><strong>Sessões versionadas</strong><span>Trocar ou redefinir senha invalida sessões antigas.</span></article>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+function esc(valor) {
+    return String(valor ?? '').replace(
+        /[&<>"']/g,
+        c => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[c])
+    );
+}
+
+function dataLocal(timestamp) {
+    if (!timestamp) return '-';
+
+    return new Date(timestamp * 1000).toLocaleString(
+        'pt-BR',
+        {
+            dateStyle: 'short',
+            timeStyle: 'medium'
+        }
+    );
+}
+
+function nomeMotivo(motivo) {
+    const mapa = {
+        sucesso: 'Autenticado',
+        credenciais_invalidas: 'Credenciais inválidas',
+        usuario_invalido: 'Usuário inválido',
+        rate_limit: 'Rate limit'
+    };
+
+    return mapa[motivo] || motivo || '-';
+}
+
+function nomeAcao(acao) {
+    const mapa = {
+        criar_aluno: 'Criar aluno',
+        excluir_aluno: 'Excluir aluno',
+        agendar_treino: 'Agendar treino',
+        criar_treino_base: 'Criar treino',
+        editar_treino_base: 'Editar treino',
+        excluir_treino_base: 'Excluir treino',
+        enviar_treino_em_massa: 'Envio em massa',
+        enviar_planejamento_semanal: 'Planejamento semanal'
+    };
+
+    return mapa[acao] || acao || '-';
+}
+
+function resumoUserAgent(valor) {
+    if (!valor) return '-';
+    const texto = String(valor);
+    return texto.length > 70 ? texto.slice(0, 67) + '...' : texto;
+}
+
+function detalhesHtml(detalhes) {
+    if (!detalhes) return '<span class="audit-muted">-</span>';
+
+    const texto = JSON.stringify(detalhes, null, 2);
+
+    return `
+        <details class="audit-details">
+            <summary>Ver</summary>
+            <pre>${esc(texto)}</pre>
+        </details>
+    `;
+}
+
+async function sair(event) {
+    if (event) event.preventDefault();
+    await fetch('/api/logout', {method: 'POST'});
+    window.location.href = '/login';
+}
+
+async function carregarAuditoria() {
+    const botao = document.getElementById('btnAtualizarAuditoria');
+    botao.disabled = true;
+
+    try {
+        const [resLogins, resAdmin] = await Promise.all([
+            fetch('/api/auditoria/logins?limite=150'),
+            fetch('/api/auditoria/administrativa?limite=150')
+        ]);
+
+        if (
+            resLogins.status === 401 ||
+            resLogins.status === 403 ||
+            resAdmin.status === 401 ||
+            resAdmin.status === 403
+        ) {
+            window.location.href = '/login';
+            return;
+        }
+
+        const logins = resLogins.ok ? await resLogins.json() : [];
+        const admin = resAdmin.ok ? await resAdmin.json() : [];
+
+        const sucessos = logins.filter(item => item.sucesso).length;
+        const falhas = logins.filter(item => !item.sucesso).length;
+        const bloqueios = logins.filter(item => item.motivo === 'rate_limit').length;
+
+        document.getElementById('auditLoginsSucesso').textContent = sucessos;
+        document.getElementById('auditLoginsFalha').textContent = falhas;
+        document.getElementById('auditBloqueios').textContent = bloqueios;
+        document.getElementById('auditAcoesAdmin').textContent = admin.length;
+
+        const loginBody = document.getElementById('auditLoginsBody');
+
+        if (!logins.length) {
+            loginBody.innerHTML = '<tr><td colspan="6" class="audit-empty">Nenhuma tentativa de login registrada ainda.</td></tr>';
+        } else {
+            loginBody.innerHTML = logins.map(item => `
+                <tr>
+                    <td class="audit-nowrap">${esc(dataLocal(item.criado_em))}</td>
+                    <td>
+                        <span class="audit-status ${item.sucesso ? 'audit-success' : (item.motivo === 'rate_limit' ? 'audit-warning' : 'audit-danger')}">
+                            ${item.sucesso ? 'Sucesso' : (item.motivo === 'rate_limit' ? 'Bloqueado' : 'Falha')}
+                        </span>
+                    </td>
+                    <td><strong>${esc(item.usuario || '-')}</strong></td>
+                    <td>${esc(nomeMotivo(item.motivo))}</td>
+                    <td><code>${esc(item.ip || '-')}</code></td>
+                    <td title="${esc(item.user_agent || '')}" class="audit-agent">${esc(resumoUserAgent(item.user_agent))}</td>
+                </tr>
+            `).join('');
+        }
+
+        const adminBody = document.getElementById('auditAdminBody');
+
+        if (!admin.length) {
+            adminBody.innerHTML = '<tr><td colspan="6" class="audit-empty">Nenhuma alteração administrativa registrada ainda.</td></tr>';
+        } else {
+            adminBody.innerHTML = admin.map(item => `
+                <tr>
+                    <td class="audit-nowrap">${esc(dataLocal(item.criado_em))}</td>
+                    <td><span class="audit-action">${esc(nomeAcao(item.acao))}</span></td>
+                    <td>${esc(item.descricao || '-')}</td>
+                    <td>${esc(item.professor || '-')}</td>
+                    <td><code>${esc(item.ip || '-')}</code></td>
+                    <td>${detalhesHtml(item.detalhes)}</td>
+                </tr>
+            `).join('');
+        }
+    } catch (erro) {
+        console.error(erro);
+        document.getElementById('auditLoginsBody').innerHTML = '<tr><td colspan="6" class="audit-empty audit-error">Não foi possível carregar a auditoria.</td></tr>';
+        document.getElementById('auditAdminBody').innerHTML = '<tr><td colspan="6" class="audit-empty audit-error">Não foi possível carregar o histórico.</td></tr>';
+    } finally {
+        botao.disabled = false;
+    }
+}
+
+carregarAuditoria();
+</script>
+</body>
+</html>

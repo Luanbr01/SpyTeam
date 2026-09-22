@@ -91,6 +91,14 @@ class Usuario(Base):
         index=True
     )
 
+    # Incrementado quando a senha muda. Tokens de sessão antigos
+    # deixam de ser aceitos imediatamente.
+    session_version = Column(
+        Integer,
+        default=0,
+        nullable=False
+    )
+
     aluno = relationship(
         "Aluno"
     )
@@ -277,4 +285,180 @@ class TreinoAgendado(Base):
 
     treino_base = relationship(
         "TreinoBase"
+    )
+
+# ============================================================
+# AUDITORIA DE LOGIN
+# ============================================================
+
+class AuditoriaLogin(Base):
+
+    __tablename__ = "auditoria_logins"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    # Mantemos apenas o ID, sem FK, para preservar o histórico mesmo
+    # se uma conta de aluno for excluída posteriormente.
+    usuario_id = Column(
+        Integer,
+        nullable=True,
+        index=True
+    )
+
+    usuario_informado = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    sucesso = Column(
+        Boolean,
+        nullable=False,
+        index=True
+    )
+
+    motivo = Column(
+        String,
+        nullable=False
+    )
+
+    ip = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    user_agent = Column(
+        String,
+        nullable=True
+    )
+
+    criado_em = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+
+
+# ============================================================
+# EVENTOS OPERACIONAIS DE RATE LIMIT
+# ============================================================
+
+class EventoRateLimit(Base):
+
+    __tablename__ = "eventos_rate_limit"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    tipo = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    # Para recuperação, o e-mail não é salvo nesta tabela: somente
+    # SHA-256 do identificador normalizado.
+    chave_hash = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    ip = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    bloqueado = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        index=True
+    )
+
+    criado_em = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+
+
+# ============================================================
+# HISTÓRICO DE ALTERAÇÕES ADMINISTRATIVAS
+# ============================================================
+
+class AuditoriaAdministrativa(Base):
+
+    __tablename__ = "auditoria_administrativa"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    # Sem FK de propósito: o histórico não deve desaparecer ou bloquear
+    # exclusões futuras caso uma conta administrativa seja substituída.
+    professor_id = Column(
+        Integer,
+        nullable=True,
+        index=True
+    )
+
+    professor_usuario = Column(
+        String,
+        nullable=False
+    )
+
+    acao = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    entidade = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    entidade_id = Column(
+        Integer,
+        nullable=True
+    )
+
+    descricao = Column(
+        String,
+        nullable=False
+    )
+
+    dados_json = Column(
+        String,
+        nullable=True
+    )
+
+    ip = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    user_agent = Column(
+        String,
+        nullable=True
+    )
+
+    criado_em = Column(
+        Integer,
+        nullable=False,
+        index=True
     )

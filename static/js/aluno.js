@@ -904,9 +904,14 @@ function configurarFormularioSenha() {
 
                 mostrarMensagemSenha(
                     dados.mensagem ||
-                    'Senha alterada com sucesso.',
+                    'Senha alterada com sucesso. Entre novamente.',
                     'success'
                 );
+
+                setTimeout(() => {
+                    window.location.href =
+                        dados.redirect || '/login';
+                }, 1200);
 
             } catch (erro) {
                 console.error(erro);

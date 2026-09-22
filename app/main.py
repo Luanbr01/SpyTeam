@@ -3,6 +3,7 @@
 # API principal do SpyTeam
 # ============================================================
 
+import json
 import os
 import re
 import time
@@ -43,6 +44,19 @@ from .email_service import (
     enviar_email_recuperacao
 )
 
+from .security import (
+    CSRF_COOKIE_NAME,
+    CSRF_HEADER_NAME,
+    LOGIN_RATE_WINDOW_SECONDS,
+    RECOVERY_RATE_WINDOW_SECONDS,
+    criar_token_csrf,
+    validar_token_csrf,
+    registrar_auditoria_login,
+    verificar_rate_limit_login,
+    registrar_e_verificar_rate_limit_recuperacao,
+    registrar_acao_admin
+)
+
 # ============================================================
 # CRIA AS TABELAS
 # ============================================================
@@ -77,6 +91,12 @@ def migrar_banco():
         if "email" not in colunas:
             conexao.exec_driver_sql(
                 "ALTER TABLE usuarios ADD COLUMN email VARCHAR"
+            )
+
+        if "session_version" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios "
+                "ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0"
             )
 
         conexao.exec_driver_sql(
@@ -136,6 +156,72 @@ COOKIE_SECURE = _env_bool(
     "COOKIE_SECURE",
     padrao=EM_RAILWAY
 )
+
+
+# ============================================================
+# PROTEÇÃO CSRF EXPLÍCITA
+# ============================================================
+
+@app.middleware("http")
+async def proteger_csrf(request: Request, call_next):
+    """
+    Aplica double-submit cookie a todas as rotas mutáveis da API.
+
+    O navegador recebe um cookie aleatório e o JavaScript do próprio
+    SpyTeam precisa reenviar o mesmo valor no cabeçalho X-CSRF-Token.
+    Sites externos não conseguem ler esse cookie por causa da política
+    de mesma origem do navegador.
+    """
+    token_cookie = request.cookies.get(CSRF_COOKIE_NAME)
+
+    metodo_mutavel = request.method.upper() in {
+        "POST", "PUT", "PATCH", "DELETE"
+    }
+
+    if metodo_mutavel and request.url.path.startswith("/api/"):
+        token_header = request.headers.get(CSRF_HEADER_NAME)
+
+        if not validar_token_csrf(token_cookie, token_header):
+            resposta = JSONResponse(
+                status_code=403,
+                content={
+                    "detail": (
+                        "Validação de segurança expirada ou inválida. "
+                        "Atualize a página e tente novamente."
+                    )
+                }
+            )
+
+            # Facilita a recuperação do cliente sem reduzir a proteção:
+            # a próxima página carregada terá um token novo.
+            if not token_cookie:
+                resposta.set_cookie(
+                    key=CSRF_COOKIE_NAME,
+                    value=criar_token_csrf(),
+                    httponly=False,
+                    secure=COOKIE_SECURE,
+                    samesite="lax",
+                    max_age=60 * 60 * 24,
+                    path="/"
+                )
+
+            return resposta
+
+    resposta = await call_next(request)
+
+    if not token_cookie:
+        resposta.set_cookie(
+            key=CSRF_COOKIE_NAME,
+            value=criar_token_csrf(),
+            httponly=False,
+            secure=COOKIE_SECURE,
+            samesite="lax",
+            max_age=60 * 60 * 24,
+            path="/"
+        )
+
+    return resposta
+
 
 # ============================================================
 # NORMALIZAR MODALIDADE
@@ -216,45 +302,68 @@ def get_db():
 # IDENTIFICAR USUÁRIO LOGADO
 # ============================================================
 
+def obter_usuario_da_sessao(
+    request: Request,
+    db: Session
+):
+    """
+    Retorna (usuario, payload) somente se a assinatura, expiração e
+    versão da sessão forem válidas.
+
+    A versão da sessão é incrementada quando a senha muda. Dessa forma,
+    todos os navegadores que possuírem tokens antigos são desconectados.
+    """
+    payload = ler_token(
+        request.cookies.get(COOKIE_NAME)
+    )
+
+    if not payload:
+        return None, None
+
+    try:
+        usuario_id = int(payload["sub"])
+        versao_token = int(payload.get("ver", 0))
+    except (KeyError, TypeError, ValueError):
+        return None, None
+
+    usuario = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.id == usuario_id)
+        .first()
+    )
+
+    if not usuario:
+        return None, None
+
+    versao_banco = int(usuario.session_version or 0)
+
+    if versao_token != versao_banco:
+        return None, None
+
+    # Não confia apenas no tipo presente no token.
+    if payload.get("tipo") != usuario.tipo:
+        return None, None
+
+    return usuario, payload
+
+
 def get_current_user(
     request: Request,
     db: Session = Depends(get_db)
 ):
 
-    # Pega o cookie salvo no navegador
-    token = request.cookies.get(
-        COOKIE_NAME
+    usuario, _ = obter_usuario_da_sessao(
+        request,
+        db
     )
 
-    # Verifica se o token é válido
-    payload = ler_token(
-        token
-    )
-
-    # Não existe login
-    if not payload:
-
-        raise HTTPException(
-            status_code=401,
-            detail="Não autenticado."
-        )
-
-    # Procura o usuário no banco
-    usuario = (
-        db.query(models.Usuario)
-        .filter(
-            models.Usuario.id
-            == int(payload["sub"])
-        )
-        .first()
-    )
-
-    # Usuário não existe
     if not usuario:
-
         raise HTTPException(
             status_code=401,
-            detail="Usuário não encontrado."
+            detail=(
+                "Sessão inválida ou expirada. "
+                "Entre novamente."
+            )
         )
 
     return usuario
@@ -426,44 +535,24 @@ def index(
     db: Session = Depends(get_db)
 ):
 
-    # Recupera login atual
-    payload = ler_token(
-        request.cookies.get(
-            COOKIE_NAME
-        )
+    usuario, payload = obter_usuario_da_sessao(
+        request,
+        db
     )
 
-    # Não está logado
-    if not payload:
-
+    if not usuario or not payload:
         return RedirectResponse(
             "/login",
             status_code=303
         )
 
-    # Professor
-    if payload.get("tipo") == "professor":
-
+    if usuario.tipo == "professor":
         return RedirectResponse(
             "/home",
             status_code=303
         )
 
-    # Aluno
-    usuario_db = (
-        db.query(models.Usuario)
-        .filter(
-            models.Usuario.id
-            == int(payload["sub"])
-        )
-        .first()
-    )
-
-    if (
-        usuario_db
-        and usuario_db.tipo == "aluno"
-        and aluno_sem_email(usuario_db)
-    ):
+    if aluno_sem_email(usuario):
         return RedirectResponse(
             "/aluno/cadastrar-email",
             status_code=303
@@ -481,24 +570,25 @@ def index(
 
 @app.get("/login")
 def pagina_login(
-    request: Request
+    request: Request,
+    db: Session = Depends(get_db)
 ):
 
-    # Verifica se já está logado
-    payload = ler_token(
-        request.cookies.get(
-            COOKIE_NAME
-        )
+    usuario, _ = obter_usuario_da_sessao(
+        request,
+        db
     )
 
-    # Se já estiver logado,
-    # não precisa mostrar login novamente
-    if payload:
-
-        if payload.get("tipo") == "professor":
-
+    if usuario:
+        if usuario.tipo == "professor":
             return RedirectResponse(
                 "/home",
+                status_code=303
+            )
+
+        if aluno_sem_email(usuario):
+            return RedirectResponse(
+                "/aluno/cadastrar-email",
                 status_code=303
             )
 
@@ -507,12 +597,10 @@ def pagina_login(
             status_code=303
         )
 
-    # Mostra login
     return templates.TemplateResponse(
-    request=request,
-    name="login.html"
-)
-    
+        request=request,
+        name="login.html"
+    )
 
 
 # ============================================================
@@ -775,15 +863,137 @@ def pagina_planejamento_semanal(
         }
     )
 
+
+# ============================================================
+# SEGURANÇA E AUDITORIA - PROFESSOR
+# ============================================================
+
+@app.get("/seguranca")
+def pagina_seguranca(
+    request: Request,
+    professor: models.Usuario = Depends(require_professor)
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="Professor/seguranca.html"
+    )
+
+
+@app.get("/api/auditoria/logins")
+def listar_auditoria_logins(
+    limite: int = 100,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    limite = max(1, min(int(limite), 500))
+
+    registros = (
+        db.query(models.AuditoriaLogin)
+        .order_by(models.AuditoriaLogin.criado_em.desc())
+        .limit(limite)
+        .all()
+    )
+
+    return [
+        {
+            "id": item.id,
+            "usuario_id": item.usuario_id,
+            "usuario": item.usuario_informado,
+            "sucesso": bool(item.sucesso),
+            "motivo": item.motivo,
+            "ip": item.ip,
+            "user_agent": item.user_agent,
+            "criado_em": item.criado_em
+        }
+        for item in registros
+    ]
+
+
+@app.get("/api/auditoria/administrativa")
+def listar_auditoria_administrativa(
+    limite: int = 100,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    limite = max(1, min(int(limite), 500))
+
+    registros = (
+        db.query(models.AuditoriaAdministrativa)
+        .order_by(
+            models.AuditoriaAdministrativa.criado_em.desc()
+        )
+        .limit(limite)
+        .all()
+    )
+
+    resultado = []
+
+    for item in registros:
+        detalhes = None
+
+        if item.dados_json:
+            try:
+                detalhes = json.loads(item.dados_json)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                detalhes = None
+
+        resultado.append({
+            "id": item.id,
+            "professor_id": item.professor_id,
+            "professor": item.professor_usuario,
+            "acao": item.acao,
+            "entidade": item.entidade,
+            "entidade_id": item.entidade_id,
+            "descricao": item.descricao,
+            "detalhes": detalhes,
+            "ip": item.ip,
+            "user_agent": item.user_agent,
+            "criado_em": item.criado_em
+        })
+
+    return resultado
+
+
 # ============================================================
 # LOGIN
 # ============================================================
 
 @app.post("/api/login")
 def login(
+    request: Request,
     dados: schemas.Login,
     db: Session = Depends(get_db)
 ):
+    # Chave usada para rate limit/auditoria. Nunca armazenamos a senha.
+    usuario_informado = str(
+        dados.usuario or ""
+    ).strip().casefold()[:100]
+
+    # Rate limit é verificado antes do hash de senha, reduzindo também
+    # consumo de CPU em tentativas automatizadas.
+    if verificar_rate_limit_login(
+        db,
+        request,
+        usuario_informado
+    ):
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado=usuario_informado,
+            sucesso=False,
+            motivo="rate_limit"
+        )
+
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Muitas tentativas de login. "
+                "Aguarde alguns minutos e tente novamente."
+            ),
+            headers={
+                "Retry-After": str(LOGIN_RATE_WINDOW_SECONDS)
+            }
+        )
 
     # Usuário é case-insensitive e não aceita espaços internos.
     try:
@@ -791,6 +1001,14 @@ def login(
             dados.usuario
         )
     except ValueError:
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado=usuario_informado,
+            sucesso=False,
+            motivo="usuario_invalido"
+        )
+
         raise HTTPException(
             status_code=401,
             detail="Usuário ou senha inválidos."
@@ -809,7 +1027,7 @@ def login(
         .first()
     )
 
-    # Usuário inexistente ou senha errada
+    # Usuário inexistente ou senha errada.
     if (
         not usuario
         or not verificar_senha(
@@ -817,63 +1035,74 @@ def login(
             usuario.senha_hash
         )
     ):
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado=usuario_normalizado,
+            sucesso=False,
+            motivo="credenciais_invalidas",
+            usuario_id=(
+                usuario.id if usuario else None
+            )
+        )
 
         raise HTTPException(
             status_code=401,
             detail="Usuário ou senha inválidos."
         )
 
-    # Cria token
-    token = criar_token(
-        usuario.id,
-        usuario.tipo
+    registrar_auditoria_login(
+        db=db,
+        request=request,
+        usuario_informado=usuario_normalizado,
+        sucesso=True,
+        motivo="sucesso",
+        usuario_id=usuario.id
     )
 
-    # Define para onde o usuário será enviado
+    token = criar_token(
+        usuario.id,
+        usuario.tipo,
+        usuario.session_version or 0
+    )
+
     if usuario.tipo == "professor":
-
         destino = "/home"
-
     else:
-
         destino = (
             "/aluno/cadastrar-email"
             if aluno_sem_email(usuario)
             else "/aluno"
         )
 
-    # Retorna resposta
     resposta = JSONResponse(
         {
-            "mensagem":
-                "Login realizado com sucesso!",
-
-            "tipo":
-                usuario.tipo,
-
-            "usuario":
-                usuario.usuario,
-
-            "redirect":
-                destino
+            "mensagem": "Login realizado com sucesso!",
+            "tipo": usuario.tipo,
+            "usuario": usuario.usuario,
+            "redirect": destino
         }
     )
 
-    # Salva o cookie
     resposta.set_cookie(
         key=COOKIE_NAME,
-
         value=token,
-
         httponly=True,
-
         samesite="lax",
-
-        # False localmente e True no Railway/HTTPS
         secure=COOKIE_SECURE,
+        max_age=60 * 60 * 24,
+        path="/"
+    )
 
-        # 1 dia
-        max_age=60 * 60 * 24
+    # Rotaciona o CSRF depois que a autenticação muda de estado.
+    resposta.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=criar_token_csrf(),
+        httponly=False,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+        max_age=60 * 60 * 24,
+        path="/"
     )
 
     return resposta
@@ -899,6 +1128,17 @@ def logout():
         path="/",
         secure=COOKIE_SECURE,
         samesite="lax"
+    )
+
+    # Rotaciona o token CSRF após o logout.
+    resposta.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=criar_token_csrf(),
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        max_age=60 * 60 * 24,
+        path="/"
     )
 
     return resposta
@@ -1052,9 +1292,34 @@ MENSAGEM_RECUPERACAO = (
 
 @app.post("/api/senha/esqueci")
 def solicitar_recuperacao_senha(
+    request: Request,
     dados: schemas.SolicitarRecuperacaoSenha,
     db: Session = Depends(get_db)
 ):
+    # O rate limit é aplicado antes de descobrir se o e-mail existe.
+    # Assim, endereços inexistentes também consomem a cota e a resposta
+    # não revela quais contas estão cadastradas.
+    identificador_rate = str(
+        dados.email or ""
+    ).strip().casefold()
+
+    if registrar_e_verificar_rate_limit_recuperacao(
+        db,
+        request,
+        identificador_rate
+    ):
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Muitas solicitações de recuperação. "
+                "Aguarde alguns minutos e tente novamente."
+            ),
+            headers={
+                "Retry-After": str(
+                    RECOVERY_RATE_WINDOW_SECONDS
+                )
+            }
+        )
 
     try:
         email = normalizar_email(dados.email)
@@ -1092,7 +1357,8 @@ def solicitar_recuperacao_senha(
         .first()
     )
 
-    # Evita disparos repetidos de e-mail em sequência.
+    # Proteção adicional por conta para não disparar vários e-mails
+    # consecutivos mesmo dentro dos limites globais.
     if (
         ultimo
         and agora - ultimo.criado_em < 60
@@ -1207,6 +1473,11 @@ def redefinir_senha_por_token(
         dados.nova_senha
     )
 
+    # Invalida imediatamente todas as sessões existentes.
+    usuario.session_version = int(
+        usuario.session_version or 0
+    ) + 1
+
     (
         db.query(models.RecuperacaoSenha)
         .filter(
@@ -1222,10 +1493,31 @@ def redefinir_senha_por_token(
 
     db.commit()
 
-    return {
+    resposta = JSONResponse({
         "mensagem": "Senha redefinida com sucesso.",
         "redirect": "/login"
-    }
+    })
+
+    # Mesmo que o usuário tenha aberto o link em um navegador onde
+    # estava logado, a sessão local também é removida.
+    resposta.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        secure=COOKIE_SECURE,
+        samesite="lax"
+    )
+
+    resposta.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=criar_token_csrf(),
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        max_age=60 * 60 * 24,
+        path="/"
+    )
+
+    return resposta
 
 
 # ============================================================
@@ -1295,12 +1587,39 @@ def alterar_senha_aluno(
         dados.nova_senha
     )
 
+    # Invalida esta sessão e qualquer outra sessão aberta da conta.
+    usuario_db.session_version = int(
+        usuario_db.session_version or 0
+    ) + 1
+
     db.commit()
 
-    return {
-        "mensagem":
-            "Senha alterada com sucesso."
-    }
+    resposta = JSONResponse({
+        "mensagem": (
+            "Senha alterada com sucesso. "
+            "Entre novamente para continuar."
+        ),
+        "redirect": "/login"
+    })
+
+    resposta.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        secure=COOKIE_SECURE,
+        samesite="lax"
+    )
+
+    resposta.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=criar_token_csrf(),
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        max_age=60 * 60 * 24,
+        path="/"
+    )
+
+    return resposta
 
 
 # ============================================================
@@ -1309,6 +1628,8 @@ def alterar_senha_aluno(
 
 @app.post("/api/alunos")
 def criar_aluno(
+
+    request: Request,
 
     aluno: schemas.AlunoCreate,
 
@@ -1388,7 +1709,23 @@ def criar_aluno(
         novo_usuario
     )
 
-    # Salva tudo
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="criar_aluno",
+        entidade="aluno",
+        entidade_id=novo_aluno.id,
+        descricao=f"Aluno {novo_aluno.nome} cadastrado.",
+        detalhes={
+            "nome": novo_aluno.nome,
+            "nivel": novo_aluno.nivel,
+            "modalidade": novo_aluno.modalidade,
+            "usuario": usuario_normalizado
+        }
+    )
+
+    # Salva aluno, conta e histórico na mesma transação.
     db.commit()
 
     # Atualiza objeto
@@ -1477,6 +1814,8 @@ def listar_alunos(
 def excluir_aluno(
     aluno_id: int,
 
+    request: Request,
+
     db: Session =
     Depends(get_db),
 
@@ -1502,6 +1841,22 @@ def excluir_aluno(
             status_code=404,
             detail="Aluno não encontrado."
         )
+
+    usuario_aluno = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.aluno_id == aluno_id)
+        .first()
+    )
+
+    dados_auditoria_aluno = {
+        "nome": aluno.nome,
+        "nivel": aluno.nivel,
+        "modalidade": aluno.modalidade,
+        "usuario": (
+            usuario_aluno.usuario
+            if usuario_aluno else None
+        )
+    }
 
     # --------------------------------------------------------
     # REMOVER OS TREINOS AGENDADOS DO ALUNO
@@ -1532,6 +1887,17 @@ def excluir_aluno(
     # REMOVER O ALUNO
     # --------------------------------------------------------
 
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="excluir_aluno",
+        entidade="aluno",
+        entidade_id=aluno_id,
+        descricao=f"Aluno {aluno.nome} excluído.",
+        detalhes=dados_auditoria_aluno
+    )
+
     db.delete(aluno)
 
     db.commit()
@@ -1548,6 +1914,8 @@ def excluir_aluno(
 
 @app.post("/api/treinos")
 def agendar_treino(
+
+    request: Request,
 
     treino: schemas.TreinoAgendadoCreate,
 
@@ -1620,6 +1988,28 @@ def agendar_treino(
 
     db.add(
         novo_treino
+    )
+    db.flush()
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="agendar_treino",
+        entidade="treino_agendado",
+        entidade_id=novo_treino.id,
+        descricao=(
+            f"Treino {treino_base.titulo} agendado "
+            f"para {aluno.nome}."
+        ),
+        detalhes={
+            "aluno_id": aluno.id,
+            "aluno": aluno.nome,
+            "treino_base_id": treino_base.id,
+            "treino": treino_base.titulo,
+            "modalidade": treino_base.modalidade,
+            "data_planejada": treino.data_planejada
+        }
     )
 
     db.commit()
@@ -1792,6 +2182,8 @@ def listar_treinos_base(
 @app.post("/api/treinos-base")
 def criar_treino_base(
 
+    request: Request,
+
     treino: schemas.TreinoBaseCreate,
 
     db: Session =
@@ -1819,6 +2211,23 @@ def criar_treino_base(
     db.add(
         novo_treino
     )
+    db.flush()
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="criar_treino_base",
+        entidade="treino_base",
+        entidade_id=novo_treino.id,
+        descricao=f"Treino base {novo_treino.titulo} criado.",
+        detalhes={
+            "titulo": novo_treino.titulo,
+            "modalidade": novo_treino.modalidade,
+            "descricao": novo_treino.descricao,
+            "ritmo_alvo": novo_treino.ritmo_alvo
+        }
+    )
 
     db.commit()
 
@@ -1836,6 +2245,8 @@ def criar_treino_base(
 def editar_treino_base(
 
     treino_base_id: int,
+
+    request: Request,
 
     dados: schemas.TreinoBaseCreate,
 
@@ -1867,6 +2278,13 @@ def editar_treino_base(
             detail="Treino base não encontrado."
         )
 
+    antes = {
+        "titulo": treino_base.titulo,
+        "modalidade": treino_base.modalidade,
+        "descricao": treino_base.descricao,
+        "ritmo_alvo": treino_base.ritmo_alvo
+    }
+
     # Atualiza os dados do treino base
     treino_base.titulo = dados.titulo
 
@@ -1876,7 +2294,28 @@ def editar_treino_base(
 
     treino_base.ritmo_alvo = dados.ritmo_alvo
 
-    # Salva alterações
+    depois = {
+        "titulo": treino_base.titulo,
+        "modalidade": treino_base.modalidade,
+        "descricao": treino_base.descricao,
+        "ritmo_alvo": treino_base.ritmo_alvo
+    }
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="editar_treino_base",
+        entidade="treino_base",
+        entidade_id=treino_base.id,
+        descricao=f"Treino base {treino_base.titulo} editado.",
+        detalhes={
+            "antes": antes,
+            "depois": depois
+        }
+    )
+
+    # Salva alteração e histórico juntos.
     db.commit()
 
     # Atualiza o objeto
@@ -1894,6 +2333,8 @@ def editar_treino_base(
 def excluir_treino_base(
 
     treino_base_id: int,
+
+    request: Request,
 
     db: Session =
         Depends(get_db),
@@ -1947,6 +2388,24 @@ def excluir_treino_base(
             )
         )
 
+    dados_excluidos = {
+        "titulo": treino_base.titulo,
+        "modalidade": treino_base.modalidade,
+        "descricao": treino_base.descricao,
+        "ritmo_alvo": treino_base.ritmo_alvo
+    }
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="excluir_treino_base",
+        entidade="treino_base",
+        entidade_id=treino_base.id,
+        descricao=f"Treino base {treino_base.titulo} excluído.",
+        detalhes=dados_excluidos
+    )
+
     # Exclui o treino base
     db.delete(
         treino_base
@@ -1965,6 +2424,8 @@ def excluir_treino_base(
 
 @app.post("/api/treinos/em-massa")
 def enviar_treino_em_massa(
+
+    request: Request,
 
     dados:
         schemas.TreinoEmMassaCreate,
@@ -2041,6 +2502,25 @@ def enviar_treino_em_massa(
             )
         )
 
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="enviar_treino_em_massa",
+        entidade="treino_agendado",
+        descricao=(
+            f"Treino {treino_base.titulo} enviado "
+            f"para {len(alunos)} alunos."
+        ),
+        detalhes={
+            "treino_base_id": treino_base.id,
+            "treino": treino_base.titulo,
+            "modalidade": treino_base.modalidade,
+            "data_planejada": dados.data_planejada,
+            "total_enviados": len(alunos)
+        }
+    )
+
     db.commit()
 
     return {
@@ -2068,6 +2548,8 @@ def enviar_treino_em_massa(
 
 @app.post("/api/treinos/semana")
 def enviar_planejamento_semanal(
+
+    request: Request,
 
     dados: list[schemas.TreinoDiaSemana],
 
@@ -2287,8 +2769,31 @@ def enviar_planejamento_semanal(
 
 
     # --------------------------------------------------------
-    # SALVAR
+    # SALVAR + AUDITAR
     # --------------------------------------------------------
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="enviar_planejamento_semanal",
+        entidade="planejamento_semanal",
+        descricao=(
+            f"Planejamento da semana {data_segunda} enviado "
+            f"com {total_enviados} agendamentos."
+        ),
+        detalhes={
+            "data_segunda": data_segunda,
+            "total_enviados": total_enviados,
+            "itens": [
+                {
+                    "dia": item.dia,
+                    "treino_base_id": item.treino_base_id
+                }
+                for item in dados
+            ]
+        }
+    )
 
     db.commit()
 
