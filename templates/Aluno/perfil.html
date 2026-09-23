@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.webmanifest?v=20260923-pwa1">
+    <meta name="theme-color" content="#3161CA">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SPY TEAM">
+    <link rel="apple-touch-icon" href="/static/img/pwa-192.png?v=20260923-pwa1">
+
     <title>Meu perfil - SPY TEAM</title>
     
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
@@ -88,6 +95,47 @@
                         <div class="profile-data-item">
                             <span>Modalidades</span>
                             <strong id="profileModality">—</strong>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="dashboard-card pwa-device-card">
+                    <div class="section-heading-row">
+                        <div>
+                            <span class="eyebrow">APLICATIVO</span>
+                            <h2>SPY TEAM no celular</h2>
+                            <p>Instale o SPY TEAM e receba avisos quando novos treinos forem enviados para você.</p>
+                        </div>
+                    </div>
+
+                    <div class="pwa-settings-grid">
+                        <div class="pwa-setting-item">
+                            <div class="pwa-setting-icon">📲</div>
+                            <div class="pwa-setting-copy">
+                                <strong>Instalar aplicativo</strong>
+                                <span id="pwaInstallStatus">Verificando disponibilidade...</span>
+                                <small id="pwaInstallHint">O aplicativo usa o mesmo login e os mesmos treinos do site.</small>
+                            </div>
+                            <button id="btnInstalarPwa" type="button" class="btn btn-primary pwa-action" hidden>
+                                Instalar SPY TEAM
+                            </button>
+                        </div>
+
+                        <div class="pwa-setting-item">
+                            <div class="pwa-setting-icon">🔔</div>
+                            <div class="pwa-setting-copy">
+                                <strong>Notificações de treino</strong>
+                                <span id="pwaNotificationStatus">Verificando notificações...</span>
+                                <small>O navegador sempre pedirá sua autorização antes de ativar.</small>
+                            </div>
+                            <div class="pwa-actions-inline">
+                                <button id="btnNotificacoesPwa" type="button" class="btn btn-primary pwa-action">
+                                    Ativar notificações
+                                </button>
+                                <button id="btnTesteNotificacaoPwa" type="button" class="btn btn-secondary pwa-action" hidden>
+                                    Enviar teste
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </article>
@@ -224,5 +272,7 @@ async function sair(event) {
 }
 </script>
 <script src="/static/js/aluno.js?v=20260920-email1"></script>
+
+<script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
 </body>
 </html>

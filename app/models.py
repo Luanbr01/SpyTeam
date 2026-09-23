@@ -516,3 +516,68 @@ class AuditoriaAdministrativa(Base):
         nullable=False,
         index=True
     )
+
+
+# ============================================================
+# ASSINATURAS DE PUSH (PWA)
+# ============================================================
+# Guarda a assinatura Web Push criada pelo navegador do aluno.
+# endpoint/p256dh/auth são dados técnicos da assinatura do navegador;
+# a chave VAPID privada do servidor NUNCA é salva no banco.
+
+class PushSubscription(Base):
+
+    __tablename__ = "push_subscriptions"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    usuario_id = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+
+    endpoint = Column(
+        String,
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    p256dh = Column(
+        String,
+        nullable=False
+    )
+
+    auth = Column(
+        String,
+        nullable=False
+    )
+
+    user_agent = Column(
+        String,
+        nullable=True
+    )
+
+    ativo = Column(
+        Boolean,
+        default=True,
+        nullable=False,
+        index=True
+    )
+
+    criado_em = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+
+    atualizado_em = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )

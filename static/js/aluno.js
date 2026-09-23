@@ -1087,6 +1087,27 @@ function configurarFormularioSenha() {
 }
 
 
+
+// ==========================================================
+// DEEP LINK DE NOTIFICAÇÃO
+// ==========================================================
+
+function abrirTreinoDaNotificacao() {
+    const params = new URLSearchParams(window.location.search);
+    const treinoId = Number(params.get('treino'));
+
+    if (!Number.isInteger(treinoId) || treinoId <= 0) return;
+
+    const existe = treinos.some(item => item.id === treinoId);
+
+    if (existe) {
+        abrirDetalhesTreino(treinoId);
+
+        // Evita reabrir o modal em cada atualização da página.
+        window.history.replaceState({}, '', '/aluno');
+    }
+}
+
 // ==========================================================
 // CARREGAMENTO
 // ==========================================================
@@ -1207,6 +1228,7 @@ async function carregar() {
         renderizarProximoTreino();
         criarSemana();
         renderizarHistoricoRecente();
+        abrirTreinoDaNotificacao();
 
     } catch (erro) {
         console.error(erro);

@@ -222,3 +222,22 @@ class TreinoDiaSemana(BaseModel):
 
     # ID do treino base
     treino_base_id: int
+
+
+
+# ============================================================
+# PWA / WEB PUSH
+# ============================================================
+
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str = Field(min_length=10, max_length=1000)
+    auth: str = Field(min_length=5, max_length=500)
+
+
+class PushSubscriptionCreate(BaseModel):
+    endpoint: str = Field(min_length=20, max_length=4000)
+    keys: PushSubscriptionKeys
+
+
+class PushSubscriptionRemove(BaseModel):
+    endpoint: str = Field(min_length=20, max_length=4000)

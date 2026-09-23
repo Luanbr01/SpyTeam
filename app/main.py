@@ -10,7 +10,7 @@ import time
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import FastAPI, Depends, HTTPException, Request, status
+from fastapi import FastAPI, Depends, HTTPException, Request, status, BackgroundTasks
 
 from fastapi.responses import (
     FileResponse,
@@ -43,6 +43,13 @@ from .auth import (
 
 from .email_service import (
     enviar_email_recuperacao
+)
+
+from .push_service import (
+    chave_publica_vapid,
+    push_configurado,
+    enviar_push_para_usuario_id,
+    enviar_push_para_aluno_id
 )
 
 from .security import (
@@ -202,6 +209,31 @@ app.mount(
 templates = Jinja2Templates(
     directory="templates"
 )
+
+
+# ============================================================
+# PWA — MANIFESTO E SERVICE WORKER
+# ============================================================
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifest_pwa():
+    return FileResponse(
+        "static/manifest.webmanifest",
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "public, max-age=3600"}
+    )
+
+
+@app.get("/service-worker.js", include_in_schema=False)
+def service_worker_pwa():
+    return FileResponse(
+        "static/js/service-worker.js",
+        media_type="application/javascript",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Service-Worker-Allowed": "/"
+        }
+    )
 
 
 # ============================================================
@@ -1840,6 +1872,132 @@ def me(
 # CADASTRAR E-MAIL NO PRIMEIRO ACESSO
 # ============================================================
 
+
+# ============================================================
+# PWA / WEB PUSH
+# ============================================================
+
+@app.get("/api/push/config")
+def configuracao_push(
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    return {
+        "enabled": push_configurado(),
+        "public_key": chave_publica_vapid() if push_configurado() else None
+    }
+
+
+@app.post("/api/push/subscribe")
+def assinar_push(
+    request: Request,
+    dados: schemas.PushSubscriptionCreate,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    if not push_configurado():
+        raise HTTPException(
+            status_code=503,
+            detail="Web Push ainda não está configurado no servidor."
+        )
+
+    endpoint = dados.endpoint.strip()
+
+    if not endpoint.startswith("https://"):
+        raise HTTPException(
+            status_code=400,
+            detail="Endpoint de notificação inválido."
+        )
+
+    agora = int(time.time())
+
+    assinatura = (
+        db.query(models.PushSubscription)
+        .filter(models.PushSubscription.endpoint == endpoint)
+        .first()
+    )
+
+    if assinatura:
+        assinatura.usuario_id = usuario.id
+        assinatura.p256dh = dados.keys.p256dh
+        assinatura.auth = dados.keys.auth
+        assinatura.user_agent = request.headers.get("user-agent")
+        assinatura.ativo = True
+        assinatura.atualizado_em = agora
+    else:
+        assinatura = models.PushSubscription(
+            usuario_id=usuario.id,
+            endpoint=endpoint,
+            p256dh=dados.keys.p256dh,
+            auth=dados.keys.auth,
+            user_agent=request.headers.get("user-agent"),
+            ativo=True,
+            criado_em=agora,
+            atualizado_em=agora
+        )
+        db.add(assinatura)
+
+    db.commit()
+
+    return {
+        "mensagem": "Notificações ativadas neste dispositivo."
+    }
+
+
+@app.post("/api/push/unsubscribe")
+def desassinar_push(
+    dados: schemas.PushSubscriptionRemove,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    assinatura = (
+        db.query(models.PushSubscription)
+        .filter(
+            models.PushSubscription.endpoint == dados.endpoint.strip(),
+            models.PushSubscription.usuario_id == usuario.id
+        )
+        .first()
+    )
+
+    if assinatura:
+        assinatura.ativo = False
+        assinatura.atualizado_em = int(time.time())
+        db.commit()
+
+    return {
+        "mensagem": "Notificações desativadas neste dispositivo."
+    }
+
+
+@app.post("/api/push/teste")
+def testar_push(
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    if not push_configurado():
+        raise HTTPException(
+            status_code=503,
+            detail="Web Push ainda não está configurado no servidor."
+        )
+
+    enviados = enviar_push_para_usuario_id(
+        usuario_id=usuario.id,
+        titulo="SPY TEAM 🔔",
+        corpo="Notificações ativadas com sucesso neste dispositivo.",
+        url="/aluno",
+        tag=f"teste-push-{usuario.id}"
+    )
+
+    if enviados <= 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Nenhuma assinatura ativa foi encontrada para esta conta."
+        )
+
+    return {
+        "mensagem": "Notificação de teste enviada.",
+        "enviados": enviados
+    }
+
+
 @app.patch("/api/me/email")
 def cadastrar_email_aluno(
     dados: schemas.CadastroEmailAluno,
@@ -2640,6 +2798,8 @@ def agendar_treino(
 
     request: Request,
 
+    background_tasks: BackgroundTasks,
+
     treino: schemas.TreinoAgendadoCreate,
 
     db: Session =
@@ -2739,6 +2899,15 @@ def agendar_treino(
 
     db.refresh(
         novo_treino
+    )
+
+    background_tasks.add_task(
+        enviar_push_para_aluno_id,
+        aluno.id,
+        "Novo treino no SPY TEAM 🏃",
+        f"{treino_base.modalidade} • {treino_base.titulo} • {treino.data_planejada}",
+        f"/aluno?treino={novo_treino.id}",
+        f"treino-{novo_treino.id}"
     )
 
     return novo_treino
@@ -3174,6 +3343,8 @@ def enviar_treino_em_massa(
 
     request: Request,
 
+    background_tasks: BackgroundTasks,
+
     dados:
         schemas.TreinoEmMassaCreate,
 
@@ -3270,6 +3441,16 @@ def enviar_treino_em_massa(
 
     db.commit()
 
+    for aluno in alunos:
+        background_tasks.add_task(
+            enviar_push_para_aluno_id,
+            aluno.id,
+            "Novo treino disponível 🏋️",
+            f"{treino_base.modalidade} • {treino_base.titulo} • {dados.data_planejada}",
+            "/aluno#agenda-semana",
+            f"treino-massa-{treino_base.id}-{dados.data_planejada}"
+        )
+
     return {
 
         "mensagem":
@@ -3297,6 +3478,8 @@ def enviar_treino_em_massa(
 def enviar_planejamento_semanal(
 
     request: Request,
+
+    background_tasks: BackgroundTasks,
 
     dados: list[schemas.TreinoDiaSemana],
 
@@ -3355,6 +3538,7 @@ def enviar_planejamento_semanal(
 
 
     total_enviados = 0
+    notificacoes_por_aluno = {}
 
 
     # --------------------------------------------------------
@@ -3528,6 +3712,10 @@ def enviar_planejamento_semanal(
 
             total_enviados += 1
 
+            notificacoes_por_aluno[aluno.id] = (
+                notificacoes_por_aluno.get(aluno.id, 0) + 1
+            )
+
 
     # --------------------------------------------------------
     # SALVAR + AUDITAR
@@ -3557,6 +3745,22 @@ def enviar_planejamento_semanal(
     )
 
     db.commit()
+
+    for aluno_id, quantidade in notificacoes_por_aluno.items():
+        texto_quantidade = (
+            "1 novo treino foi adicionado à sua semana."
+            if quantidade == 1
+            else f"{quantidade} novos treinos foram adicionados à sua semana."
+        )
+
+        background_tasks.add_task(
+            enviar_push_para_aluno_id,
+            aluno_id,
+            "Sua semana de treinos está pronta 📅",
+            texto_quantidade,
+            "/aluno#agenda-semana",
+            f"planejamento-{data_segunda}-{aluno_id}"
+        )
 
 
     return {

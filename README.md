@@ -55,10 +55,10 @@ A aplicação permite:
 
 - cadastrar alunos;
 - criar contas individuais;
-- separar alunos por modalidade;
+- vincular cada aluno a uma ou mais modalidades;
 - criar treinos reutilizáveis;
 - agendar treinos individuais;
-- distribuir treinos automaticamente por modalidade;
+- distribuir treinos automaticamente por modalidade, inclusive para alunos multimodalidade;
 - organizar uma semana de segunda a sexta;
 - acompanhar conclusão dos treinos;
 - receber nota, dificuldade e comentário do aluno;
@@ -86,6 +86,22 @@ Branch principal atual:
 master
 ```
 
+## Modalidades oficiais
+
+O SPY TEAM trabalha atualmente somente com:
+
+```text
+Corrida
+Natação
+Musculação
+```
+
+Ciclismo e Triathlon foram removidos das opções de cadastro e planejamento.
+
+Um aluno pode possuir **uma, duas ou as três modalidades ao mesmo tempo**. No planejamento semanal, ele recebe automaticamente todos os treinos correspondentes às modalidades vinculadas ao seu cadastro.
+
+Na agenda semanal do aluno, os cards foram simplificados: mostram apenas título, modalidade e status. Ao clicar em um treino, abre-se um modal com a descrição completa, data, ritmo alvo e ação de conclusão.
+
 ---
 
 # 2. Status atual do projeto
@@ -109,6 +125,12 @@ Atualmente o projeto possui as seguintes áreas implementadas.
 - [x] Envio de e-mail pelo Resend
 - [x] Favicon oficial
 - [x] Logo vetorial oficial
+- [x] Proteção CSRF explícita
+- [x] Rate limit no login
+- [x] Rate limit global na recuperação de senha
+- [x] Invalidação de sessões após troca/redefinição de senha
+- [x] Auditoria de logins
+- [x] Histórico de alterações administrativas
 
 ## Professor
 
@@ -161,7 +183,7 @@ Ele pode:
 - definir:
   - nome;
   - nível;
-  - modalidade;
+  - uma ou mais modalidades;
   - usuário;
   - senha inicial;
 - listar alunos cadastrados;
@@ -304,7 +326,7 @@ Define treinos de segunda a sexta
 Cada treino possui uma modalidade
                     |
                     v
-Sistema procura alunos da mesma modalidade
+Sistema procura todos os alunos que possuem essa modalidade
                     |
                     v
 Cria um TreinoAgendado para cada aluno
@@ -323,8 +345,8 @@ Dia: Segunda-feira
          |
          v
 
-Todos os alunos cuja modalidade é Corrida
-recebem esse treino.
+Todos os alunos que tenham Corrida entre suas modalidades
+recebem esse treino, mesmo que também pratiquem Natação ou Musculação.
 ```
 
 ---
@@ -463,7 +485,8 @@ SpyTeam/
 │   │   └── favicon.ico
 │   │
 │   ├── js/
-│   │   └── aluno.js
+│   │   ├── aluno.js
+│   │   └── security.js
 │   │
 │   └── deploy-version.txt
 │
@@ -479,6 +502,7 @@ SpyTeam/
 │   │   ├── home.html
 │   │   ├── novo_aluno.html
 │   │   ├── planejamento_semanal.html
+│   │   ├── seguranca.html
 │   │   │
 │   │   └── treinos/
 │   │       ├── editar_treino_base.html
@@ -574,11 +598,37 @@ alunos
 | id | Integer | Chave primária |
 | nome | String | Nome do aluno |
 | nivel | String | Iniciante, Intermediário, Avançado etc. |
-| modalidade | String | Corrida, Natação, Ciclismo, Triathlon etc. |
+| modalidade | String | Campo legado com a primeira modalidade, mantido para compatibilidade |
 
 ---
 
-## 8.3 Tabela `usuarios`
+## 8.3 Tabela `aluno_modalidades`
+
+Modelo:
+
+```text
+AlunoModalidade
+```
+
+Tabela:
+
+```text
+aluno_modalidades
+```
+
+Essa tabela permite que o mesmo aluno tenha várias modalidades. Existe uma restrição única por combinação de aluno + modalidade para evitar vínculos duplicados.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | Integer | Chave primária |
+| aluno_id | Integer | FK para `alunos` |
+| modalidade | String | `Corrida`, `Natação` ou `Musculação` |
+
+A coluna antiga `alunos.modalidade` permanece apenas para compatibilidade com versões anteriores. A fonte oficial para distribuição de treinos passa a ser `aluno_modalidades`.
+
+---
+
+## 8.4 Tabela `usuarios`
 
 Modelo:
 
@@ -612,7 +662,7 @@ Características:
 
 ---
 
-## 8.4 Tabela `recuperacoes_senha`
+## 8.5 Tabela `recuperacoes_senha`
 
 Modelo:
 
@@ -639,7 +689,7 @@ O token original **não é armazenado**.
 
 ---
 
-## 8.5 Tabela `treinos_base`
+## 8.6 Tabela `treinos_base`
 
 Modelo:
 
@@ -665,7 +715,7 @@ Treinos base são modelos reutilizáveis.
 
 ---
 
-## 8.6 Tabela `treinos_agendados`
+## 8.7 Tabela `treinos_agendados`
 
 Modelo:
 
@@ -713,7 +763,7 @@ Se o professor editar o `TreinoBase` depois, os treinos que já foram enviados c
 
 ---
 
-## 8.7 Migração leve automática
+## 8.8 Migração leve automática
 
 Ao iniciar, o sistema executa uma migração simples para versões antigas do SQLite.
 
@@ -851,6 +901,7 @@ O token inclui:
 ```text
 sub
 tipo
+ver
 exp
 ```
 
@@ -858,7 +909,10 @@ onde:
 
 - `sub` = ID do usuário;
 - `tipo` = aluno/professor;
+- `ver` = versão atual da sessão;
 - `exp` = timestamp de expiração.
+
+A coluna `usuarios.session_version` começa em `0`. Ao trocar ou redefinir a senha, ela é incrementada. Tokens emitidos com uma versão anterior passam a ser rejeitados imediatamente, invalidando sessões abertas em outros navegadores/dispositivos.
 
 A assinatura utiliza:
 
@@ -919,6 +973,153 @@ SPYTEAM_SECRET
 a aplicação encerra a inicialização.
 
 Isso evita utilizar a chave padrão de desenvolvimento em produção.
+
+---
+
+## 9.7 Proteção CSRF explícita
+
+O projeto utiliza o padrão **double-submit cookie** para operações de escrita.
+
+Cookie CSRF:
+
+```text
+spyteam_csrf
+```
+
+Cabeçalho exigido:
+
+```text
+X-CSRF-Token
+```
+
+O arquivo:
+
+```text
+static/js/security.js
+```
+
+lê o cookie e adiciona automaticamente o cabeçalho em chamadas `POST`, `PUT`, `PATCH` e `DELETE` para `/api/*`.
+
+O middleware do FastAPI compara os dois valores com comparação segura. Uma chamada mutável sem token correspondente recebe `403`. O cookie CSRF não é `HttpOnly` porque precisa ser lido pelo JavaScript, mas usa `SameSite=Lax` e `Secure=true` em produção.
+
+---
+
+## 9.8 Rate limit no login
+
+O login possui proteção contra força bruta baseada no histórico de falhas armazenado no SQLite. Por padrão, a janela é de **15 minutos** e são observados três limites:
+
+```text
+30 falhas por IP
+5 falhas para a combinação IP + usuário
+20 falhas contra o mesmo usuário
+```
+
+Tentativas já bloqueadas não prolongam indefinidamente o bloqueio. Quando um limite é atingido, a API retorna `429 Too Many Requests` com `Retry-After`.
+
+As configurações podem ser alteradas por variáveis de ambiente:
+
+```text
+LOGIN_RATE_WINDOW_SECONDS
+LOGIN_RATE_MAX_IP
+LOGIN_RATE_MAX_USER_IP
+LOGIN_RATE_MAX_USER
+```
+
+---
+
+## 9.9 Rate limit global da recuperação
+
+A recuperação de senha possui três limites simultâneos, também em uma janela padrão de 15 minutos:
+
+```text
+10 solicitações por IP
+3 solicitações por e-mail/identificador
+100 solicitações globais na aplicação
+```
+
+O e-mail usado para o controle não é salvo nessa tabela em texto puro; o sistema guarda apenas um **SHA-256 do identificador normalizado**. Solicitações para e-mails inexistentes também contam para o limite, evitando contorno com endereços aleatórios.
+
+Variáveis:
+
+```text
+RECOVERY_RATE_WINDOW_SECONDS
+RECOVERY_RATE_MAX_IP
+RECOVERY_RATE_MAX_IDENTIFIER
+RECOVERY_RATE_MAX_GLOBAL
+```
+
+---
+
+## 9.10 Auditoria de logins
+
+Cada tentativa de login é registrada em:
+
+```text
+auditoria_logins
+```
+
+São armazenados:
+
+- usuário informado;
+- ID do usuário quando conhecido;
+- sucesso ou falha;
+- motivo;
+- IP;
+- user-agent/navegador;
+- timestamp.
+
+**A senha nunca é registrada.**
+
+Motivos atuais:
+
+```text
+sucesso
+credenciais_invalidas
+usuario_invalido
+rate_limit
+```
+
+O professor pode visualizar os eventos em:
+
+```text
+/seguranca
+```
+
+---
+
+## 9.11 Histórico de alterações administrativas
+
+Mudanças administrativas são registradas em:
+
+```text
+auditoria_administrativa
+```
+
+O histórico inclui:
+
+- professor responsável;
+- ação;
+- tipo e ID da entidade;
+- descrição;
+- detalhes em JSON;
+- IP;
+- user-agent;
+- timestamp.
+
+Ações auditadas atualmente incluem:
+
+```text
+criar_aluno
+excluir_aluno
+agendar_treino
+criar_treino_base
+editar_treino_base
+excluir_treino_base
+enviar_treino_em_massa
+enviar_planejamento_semanal
+```
+
+Senhas e tokens não são colocados no histórico. O registro de auditoria é adicionado à mesma transação da alteração administrativa, evitando registrar como concluída uma mudança que não foi salva no banco.
 
 ---
 
@@ -995,15 +1196,15 @@ Isso evita revelar se um endereço possui conta no sistema.
 
 ---
 
-## 10.4 Controle de repetição
+## 10.4 Controle de repetição e rate limit
 
-Existe um intervalo mínimo de aproximadamente:
+Além do rate limit por IP, identificador e volume global descrito na seção de segurança, existe uma proteção adicional por conta: um novo e-mail de recuperação não é disparado se a última solicitação válida ocorreu há menos de aproximadamente:
 
 ```text
 60 segundos
 ```
 
-entre solicitações de recuperação da mesma conta.
+Isso reduz spam mesmo quando a solicitação ainda está abaixo dos limites globais.
 
 ---
 
@@ -1415,6 +1616,7 @@ O sistema possui botão de olho para mostrar/ocultar senha em:
 | GET | `/treinos-base` | Professor | Gerenciar treinos base |
 | GET | `/editar-treino-base/{id}` | Professor | Editar treino base |
 | GET | `/planejamento-semanal` | Professor | Planejamento semanal |
+| GET | `/seguranca` | Professor | Segurança, auditoria de logins e alterações |
 | GET | `/aluno/cadastrar-email` | Aluno | Primeiro acesso |
 | GET | `/aluno` | Aluno com e-mail | Dashboard |
 | GET | `/aluno/historico` | Aluno com e-mail | Histórico |
@@ -1473,7 +1675,7 @@ Resposta de exemplo:
 {
   "nome": "Aluno Exemplo",
   "nivel": "Intermediário",
-  "modalidade": "Corrida",
+  "modalidades": ["Corrida", "Musculação"],
   "usuario": "aluno01",
   "senha": "senha123"
 }
@@ -1494,7 +1696,18 @@ Resposta de exemplo:
 
 ---
 
-## 15.4 Treinos base
+## 15.4 Auditoria de segurança
+
+| Método | Endpoint | Acesso | Função |
+|---|---|---|---|
+| GET | `/api/auditoria/logins` | Professor | Últimos eventos de login |
+| GET | `/api/auditoria/administrativa` | Professor | Histórico de alterações administrativas |
+
+O parâmetro opcional `limite` aceita de 1 a 500 registros.
+
+---
+
+## 15.5 Treinos base
 
 | Método | Endpoint | Acesso | Função |
 |---|---|---|---|
@@ -1698,7 +1911,25 @@ console
 
 ---
 
-## 17.4 Exemplo completo
+## 17.4 Rate limits opcionais
+
+Os valores abaixo já possuem defaults no código e só precisam ser configurados se quiser ajustar a política:
+
+```env
+LOGIN_RATE_WINDOW_SECONDS=900
+LOGIN_RATE_MAX_IP=30
+LOGIN_RATE_MAX_USER_IP=5
+LOGIN_RATE_MAX_USER=20
+
+RECOVERY_RATE_WINDOW_SECONDS=900
+RECOVERY_RATE_MAX_IP=10
+RECOVERY_RATE_MAX_IDENTIFIER=3
+RECOVERY_RATE_MAX_GLOBAL=100
+```
+
+---
+
+## 17.5 Exemplo completo
 
 ```env
 SPYTEAM_SECRET=gere-uma-chave-longa-e-aleatoria
@@ -1713,6 +1944,16 @@ EMAIL_MODE=resend
 
 # Opcional
 # DATABASE_PATH=/data/assessoria.db
+
+# Rate limit - opcionais
+# LOGIN_RATE_WINDOW_SECONDS=900
+# LOGIN_RATE_MAX_IP=30
+# LOGIN_RATE_MAX_USER_IP=5
+# LOGIN_RATE_MAX_USER=20
+# RECOVERY_RATE_WINDOW_SECONDS=900
+# RECOVERY_RATE_MAX_IP=10
+# RECOVERY_RATE_MAX_IDENTIFIER=3
+# RECOVERY_RATE_MAX_GLOBAL=100
 ```
 
 ---
@@ -2330,16 +2571,22 @@ Alembic
 
 ## Segurança
 
-Possíveis evoluções:
+Implementado:
 
-- rate limit no login;
-- rate limit global em recuperação;
-- proteção CSRF explícita;
-- política de senha mais forte;
-- invalidar sessões existentes após troca de senha;
-- auditoria de logins;
-- histórico de alterações administrativas;
-- autenticação de dois fatores.
+- [x] rate limit no login;
+- [x] rate limit por IP, identificador e volume global na recuperação;
+- [x] proteção CSRF explícita;
+- [x] invalidação das sessões existentes após troca ou redefinição de senha;
+- [x] auditoria de logins;
+- [x] histórico de alterações administrativas.
+
+Possíveis evoluções adicionais:
+
+- [ ] política de senha mais forte;
+- [ ] autenticação de dois fatores;
+- [ ] alertas automáticos para padrões suspeitos;
+- [ ] exportação dos relatórios de auditoria;
+- [ ] retenção/arquivamento configurável dos logs de auditoria.
 
 ---
 
@@ -2376,15 +2623,26 @@ Possíveis melhorias:
 
 ## Dashboard
 
-Possíveis indicadores:
+Indicadores implementados no painel do professor:
 
-- aderência;
-- taxa de conclusão;
+- alunos ativos com atividade nos últimos 7 dias;
+- taxa de conclusão no período selecionado;
+- aderência média individual dos últimos 30 dias;
 - treinos por modalidade;
-- frequência semanal;
-- médias de avaliação;
-- alunos inativos;
-- gráficos de evolução.
+- frequência semanal de treinos concluídos;
+- média e distribuição das avaliações;
+- alunos inativos / que precisam de atenção;
+- atividade recente;
+- gráfico de frequência por semana.
+
+O painel do aluno também foi simplificado e passou a destacar:
+
+- treinos programados na semana;
+- concluídos e restantes;
+- próximo treino;
+- agenda semanal clicável;
+- modal com detalhes do treino;
+- histórico recente.
 
 ---
 
@@ -2447,6 +2705,15 @@ Antes de considerar um deploy saudável:
 - [ ] link abre domínio correto
 - [ ] token expira
 - [ ] senha nova funciona
+
+### Segurança
+
+- [ ] CSRF bloqueia requisição mutável sem token
+- [ ] login registra sucesso/falha na auditoria
+- [ ] rate limit retorna 429 após excesso de tentativas
+- [ ] alteração de senha desconecta sessões antigas
+- [ ] `/seguranca` abre somente para professor
+- [ ] alterações administrativas aparecem no histórico
 
 ### Visual
 
@@ -2542,3 +2809,69 @@ O SPY TEAM atualmente reúne em uma única aplicação:
 - identidade visual própria.
 
 A arquitetura atual foi mantida simples para facilitar manutenção e evolução durante o desenvolvimento, sem impedir futuras migrações para componentes mais robustos, como PostgreSQL, Alembic, serviços de fila e uma suíte completa de testes automatizados.
+
+
+---
+
+## PWA e notificações Web Push
+
+O SPY TEAM também pode ser instalado no celular como **Progressive Web App (PWA)**.
+O aluno continua utilizando a mesma aplicação, conta, banco e API do site, mas pode abrir o sistema em modo `standalone`, com ícone próprio na tela inicial.
+
+### Recursos implementados
+
+- manifesto PWA;
+- Service Worker com cache somente de arquivos estáticos;
+- tela neutra quando o dispositivo está offline;
+- ícones 192x192 e 512x512;
+- ícone `maskable` para Android;
+- suporte ao fluxo de instalação do navegador;
+- suporte a Web Push;
+- ativação/desativação das notificações pelo perfil do aluno;
+- notificação de teste;
+- notificação automática quando um treino individual é agendado;
+- notificação após envio em massa;
+- notificação resumida quando o planejamento semanal gera novos treinos;
+- toque na notificação abre o SPY TEAM e pode abrir diretamente o treino individual.
+
+### Configuração do Web Push
+
+Instale as novas dependências:
+
+```bash
+pip install -r requirements.txt
+```
+
+Gere as chaves VAPID **uma única vez**:
+
+```bash
+python scripts/gerar_vapid.py
+```
+
+Cadastre no Railway, em **Variables**:
+
+```text
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:noreply@spyteam.com.br
+```
+
+As chaves VAPID devem permanecer estáveis. Se forem trocadas, navegadores que já estavam inscritos podem precisar ativar as notificações novamente.
+
+### Banco de dados
+
+A tabela abaixo é criada automaticamente pelo SQLAlchemy:
+
+```text
+push_subscriptions
+```
+
+Ela armazena as assinaturas dos navegadores. O banco de produção continua em:
+
+```text
+/data/assessoria.db
+```
+
+### Segurança e cache
+
+O Service Worker **não armazena páginas autenticadas nem respostas de `/api/` no cache**. Somente recursos estáticos são reutilizados offline. Isso evita manter dados pessoais ou informações de treino em cache persistente da PWA.

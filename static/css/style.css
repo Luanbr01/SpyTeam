@@ -2819,3 +2819,91 @@ body.modal-aberto {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
+
+
+/* ==========================================================
+   PWA / INSTALAÇÃO / NOTIFICAÇÕES
+   ========================================================== */
+
+.pwa-device-card {
+    grid-column: 1 / -1;
+}
+
+.pwa-settings-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.pwa-setting-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    padding: 18px;
+    border: 1px solid var(--border, #D9E2F2);
+    border-radius: 18px;
+    background: #F8FAFF;
+}
+
+.pwa-setting-icon {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: rgba(49, 97, 202, .10);
+    font-size: 1.35rem;
+}
+
+.pwa-setting-copy {
+    display: grid;
+    gap: 4px;
+}
+
+.pwa-setting-copy strong {
+    color: #101828;
+    font-size: .98rem;
+}
+
+.pwa-setting-copy span {
+    color: #475467;
+    font-size: .9rem;
+}
+
+.pwa-setting-copy small {
+    color: #98A2B3;
+    line-height: 1.45;
+}
+
+.pwa-action {
+    white-space: nowrap;
+}
+
+.pwa-actions-inline {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+@media (max-width: 760px) {
+    .pwa-setting-item {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .pwa-setting-item > .pwa-action,
+    .pwa-actions-inline {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .pwa-actions-inline {
+        justify-content: stretch;
+    }
+
+    .pwa-actions-inline .btn,
+    .pwa-setting-item > .pwa-action {
+        width: 100%;
+    }
+}
