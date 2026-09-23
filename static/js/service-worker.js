@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spyteam-pwa-v2';
+const CACHE_NAME = 'spyteam-pwa-v3';
 
 const STATIC_ASSETS = [
     '/static/offline.html',
@@ -9,7 +9,9 @@ const STATIC_ASSETS = [
     '/static/img/favicon-spyteam.svg',
     '/static/img/pwa-192.png',
     '/static/img/pwa-512.png',
-    '/static/img/pwa-maskable-512.png'
+    '/static/img/pwa-maskable-512.png',
+    '/static/img/notification-icon-192.png',
+    '/static/img/notification-badge-96.png'
 ];
 
 self.addEventListener('install', event => {
@@ -112,8 +114,8 @@ self.addEventListener('push', event => {
 
     const opcoes = {
         body: dados.body || 'Você tem uma nova atualização.',
-        icon: dados.icon || '/static/img/pwa-192.png',
-        badge: dados.badge || '/static/img/pwa-192.png',
+        icon: dados.icon || '/static/img/notification-icon-192.png',
+        badge: dados.badge || '/static/img/notification-badge-96.png',
         tag: dados.tag || 'spyteam',
         renotify: true,
         data: {

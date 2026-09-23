@@ -47,8 +47,8 @@ def _payload(
             "body": corpo,
             "url": url,
             "tag": tag or "spyteam",
-            "icon": "/static/img/pwa-192.png",
-            "badge": "/static/img/pwa-192.png"
+            "icon": "/static/img/notification-icon-192.png",
+            "badge": "/static/img/notification-badge-96.png"
         },
         ensure_ascii=False
     )
