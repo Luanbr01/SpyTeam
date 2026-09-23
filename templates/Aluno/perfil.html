@@ -137,6 +137,59 @@
                                 </button>
                             </div>
                         </div>
+
+
+                        <div class="pwa-setting-item pwa-preferences-item">
+                            <div class="pwa-setting-icon">⏰</div>
+                            <div class="pwa-setting-copy">
+                                <strong>Lembretes automáticos</strong>
+                                <span>Escolha quais avisos quer receber e em quais horários.</span>
+                                <small id="pwaTimezoneStatus">Os horários seguem o fuso deste dispositivo.</small>
+                            </div>
+
+                            <div class="pwa-preferences-panel">
+                                <label class="pwa-toggle-row">
+                                    <span>
+                                        <strong>Novo treino</strong>
+                                        <small>Avisar quando o professor enviar um novo treino ou planejamento.</small>
+                                    </span>
+                                    <input id="prefNovoTreino" type="checkbox" checked>
+                                </label>
+
+                                <label class="pwa-toggle-row">
+                                    <span>
+                                        <strong>Lembrete no dia</strong>
+                                        <small>Receber um lembrete no dia programado para cada treino.</small>
+                                    </span>
+                                    <input id="prefLembreteTreino" type="checkbox" checked>
+                                </label>
+
+                                <div class="pwa-time-row">
+                                    <label for="prefHorarioLembrete">Horário do lembrete</label>
+                                    <input id="prefHorarioLembrete" type="time" value="07:00">
+                                </div>
+
+                                <label class="pwa-toggle-row">
+                                    <span>
+                                        <strong>Treino ainda pendente</strong>
+                                        <small>Avisar novamente se o treino do dia ainda não estiver concluído.</small>
+                                    </span>
+                                    <input id="prefTreinoPendente" type="checkbox" checked>
+                                </label>
+
+                                <div class="pwa-time-row">
+                                    <label for="prefHorarioPendente">Horário do aviso pendente</label>
+                                    <input id="prefHorarioPendente" type="time" value="19:00">
+                                </div>
+
+                                <div class="pwa-preferences-footer">
+                                    <span id="pwaPreferencesStatus" role="status" aria-live="polite"></span>
+                                    <button id="btnSalvarPreferenciasPush" type="button" class="btn btn-primary pwa-action">
+                                        Salvar preferências
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </article>
 
@@ -273,6 +326,6 @@ async function sair(event) {
 </script>
 <script src="/static/js/aluno.js?v=20260920-email1"></script>
 
-<script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
+<script defer src="/static/js/pwa.js?v=20260923-pwa2"></script>
 </body>
 </html>

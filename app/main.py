@@ -9,6 +9,7 @@ import re
 import time
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, Depends, HTTPException, Request, status, BackgroundTasks
 
@@ -50,6 +51,11 @@ from .push_service import (
     push_configurado,
     enviar_push_para_usuario_id,
     enviar_push_para_aluno_id
+)
+
+from .reminder_service import (
+    iniciar_agendador_notificacoes,
+    parar_agendador_notificacoes
 )
 
 from .security import (
@@ -209,6 +215,20 @@ app.mount(
 templates = Jinja2Templates(
     directory="templates"
 )
+
+
+# ============================================================
+# AGENDADOR DE LEMBRETES DA PWA
+# ============================================================
+
+@app.on_event("startup")
+async def iniciar_lembretes_pwa():
+    iniciar_agendador_notificacoes()
+
+
+@app.on_event("shutdown")
+async def parar_lembretes_pwa():
+    await parar_agendador_notificacoes()
 
 
 # ============================================================
@@ -1887,6 +1907,105 @@ def configuracao_push(
     }
 
 
+
+def _preferencias_push(db: Session, usuario_id: int):
+    preferencias = (
+        db.query(models.PreferenciaNotificacao)
+        .filter(models.PreferenciaNotificacao.usuario_id == usuario_id)
+        .first()
+    )
+
+    if preferencias:
+        return preferencias
+
+    preferencias = models.PreferenciaNotificacao(
+        usuario_id=usuario_id,
+        novo_treino=True,
+        lembrete_treino=True,
+        treino_pendente=True,
+        horario_lembrete="07:00",
+        horario_pendente="19:00",
+        timezone="America/Sao_Paulo",
+        atualizado_em=int(time.time())
+    )
+    db.add(preferencias)
+    db.commit()
+    db.refresh(preferencias)
+    return preferencias
+
+
+def _validar_horario_push(valor: str, campo: str) -> str:
+    texto = str(valor or "").strip()
+
+    if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", texto):
+        raise HTTPException(
+            status_code=422,
+            detail=f"{campo} deve estar no formato HH:MM."
+        )
+
+    return texto
+
+
+@app.get("/api/push/preferencias")
+def obter_preferencias_push(
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    preferencias = _preferencias_push(db, usuario.id)
+
+    return {
+        "novo_treino": bool(preferencias.novo_treino),
+        "lembrete_treino": bool(preferencias.lembrete_treino),
+        "treino_pendente": bool(preferencias.treino_pendente),
+        "horario_lembrete": preferencias.horario_lembrete,
+        "horario_pendente": preferencias.horario_pendente,
+        "timezone": preferencias.timezone
+    }
+
+
+@app.patch("/api/push/preferencias")
+def atualizar_preferencias_push(
+    dados: schemas.PushPreferenciasUpdate,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    horario_lembrete = _validar_horario_push(
+        dados.horario_lembrete,
+        "Horário do lembrete"
+    )
+    horario_pendente = _validar_horario_push(
+        dados.horario_pendente,
+        "Horário do aviso pendente"
+    )
+
+    timezone_nome = str(dados.timezone or "America/Sao_Paulo").strip()
+
+    try:
+        ZoneInfo(timezone_nome)
+    except (ZoneInfoNotFoundError, ValueError):
+        timezone_nome = "America/Sao_Paulo"
+
+    preferencias = _preferencias_push(db, usuario.id)
+    preferencias.novo_treino = bool(dados.novo_treino)
+    preferencias.lembrete_treino = bool(dados.lembrete_treino)
+    preferencias.treino_pendente = bool(dados.treino_pendente)
+    preferencias.horario_lembrete = horario_lembrete
+    preferencias.horario_pendente = horario_pendente
+    preferencias.timezone = timezone_nome
+    preferencias.atualizado_em = int(time.time())
+    db.commit()
+
+    return {
+        "mensagem": "Preferências de notificação salvas.",
+        "novo_treino": bool(preferencias.novo_treino),
+        "lembrete_treino": bool(preferencias.lembrete_treino),
+        "treino_pendente": bool(preferencias.treino_pendente),
+        "horario_lembrete": preferencias.horario_lembrete,
+        "horario_pendente": preferencias.horario_pendente,
+        "timezone": preferencias.timezone
+    }
+
+
 @app.post("/api/push/subscribe")
 def assinar_push(
     request: Request,
@@ -1937,6 +2056,10 @@ def assinar_push(
         db.add(assinatura)
 
     db.commit()
+
+    # Garante que contas antigas recebam as preferências padrão assim que
+    # ativarem notificações pela primeira vez.
+    _preferencias_push(db, usuario.id)
 
     return {
         "mensagem": "Notificações ativadas neste dispositivo."
@@ -2907,7 +3030,8 @@ def agendar_treino(
         "Novo treino no SPY TEAM 🏃",
         f"{treino_base.modalidade} • {treino_base.titulo} • {treino.data_planejada}",
         f"/aluno?treino={novo_treino.id}",
-        f"treino-{novo_treino.id}"
+        f"treino-{novo_treino.id}",
+        "novo_treino"
     )
 
     return novo_treino
@@ -3448,7 +3572,8 @@ def enviar_treino_em_massa(
             "Novo treino disponível 🏋️",
             f"{treino_base.modalidade} • {treino_base.titulo} • {dados.data_planejada}",
             "/aluno#agenda-semana",
-            f"treino-massa-{treino_base.id}-{dados.data_planejada}"
+            f"treino-massa-{treino_base.id}-{dados.data_planejada}",
+            "novo_treino"
         )
 
     return {
@@ -3759,7 +3884,8 @@ def enviar_planejamento_semanal(
             "Sua semana de treinos está pronta 📅",
             texto_quantidade,
             "/aluno#agenda-semana",
-            f"planejamento-{data_segunda}-{aluno_id}"
+            f"planejamento-{data_segunda}-{aluno_id}",
+            "novo_treino"
         )
 
 

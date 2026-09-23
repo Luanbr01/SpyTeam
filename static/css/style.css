@@ -2907,3 +2907,103 @@ body.modal-aberto {
         width: 100%;
     }
 }
+
+/* ==========================================================
+   PWA — PREFERÊNCIAS DE LEMBRETES
+   ========================================================== */
+
+.pwa-preferences-item {
+    align-items: start;
+}
+
+.pwa-preferences-panel {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 12px;
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border, #D9E2F2);
+}
+
+.pwa-toggle-row,
+.pwa-time-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 12px 14px;
+    border: 1px solid #E4EAF5;
+    border-radius: 14px;
+    background: #FFFFFF;
+}
+
+.pwa-toggle-row > span {
+    display: grid;
+    gap: 3px;
+}
+
+.pwa-toggle-row strong,
+.pwa-time-row label {
+    color: #101828;
+    font-size: .92rem;
+    font-weight: 700;
+}
+
+.pwa-toggle-row small {
+    color: #667085;
+    line-height: 1.4;
+}
+
+.pwa-toggle-row input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    accent-color: #3161CA;
+    cursor: pointer;
+}
+
+.pwa-time-row input[type="time"] {
+    width: 132px;
+    min-height: 42px;
+    padding: 8px 10px;
+    border: 1px solid #D9E2F2;
+    border-radius: 10px;
+    background: #FFFFFF;
+    color: #101828;
+    font: inherit;
+}
+
+.pwa-preferences-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    min-height: 42px;
+}
+
+#pwaPreferencesStatus {
+    color: #475467;
+    font-size: .88rem;
+}
+
+@media (max-width: 620px) {
+    .pwa-toggle-row,
+    .pwa-time-row,
+    .pwa-preferences-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .pwa-time-row input[type="time"] {
+        width: 100%;
+    }
+
+    .pwa-toggle-row input[type="checkbox"] {
+        align-self: flex-start;
+    }
+
+    .pwa-preferences-footer .btn {
+        width: 100%;
+    }
+}
+

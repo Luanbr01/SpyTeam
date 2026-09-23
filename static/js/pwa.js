@@ -303,18 +303,105 @@
         }
     }
 
+
+    function timezoneDispositivo() {
+        try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo';
+        } catch (_) {
+            return 'America/Sao_Paulo';
+        }
+    }
+
+    async function carregarPreferenciasPush() {
+        const painel = document.getElementById('prefNovoTreino');
+        if (!painel) return;
+
+        const status = document.getElementById('pwaPreferencesStatus');
+        const timezoneStatus = document.getElementById('pwaTimezoneStatus');
+
+        try {
+            const resposta = await fetch('/api/push/preferencias');
+
+            if (resposta.status === 401) return;
+
+            const dados = await resposta.json().catch(() => ({}));
+
+            if (!resposta.ok) {
+                throw new Error(dados.detail || 'Não foi possível carregar as preferências.');
+            }
+
+            document.getElementById('prefNovoTreino').checked = Boolean(dados.novo_treino);
+            document.getElementById('prefLembreteTreino').checked = Boolean(dados.lembrete_treino);
+            document.getElementById('prefTreinoPendente').checked = Boolean(dados.treino_pendente);
+            document.getElementById('prefHorarioLembrete').value = dados.horario_lembrete || '07:00';
+            document.getElementById('prefHorarioPendente').value = dados.horario_pendente || '19:00';
+
+            if (timezoneStatus) {
+                timezoneStatus.textContent = `Fuso horário detectado: ${timezoneDispositivo()}.`;
+            }
+
+            if (status) status.textContent = '';
+
+        } catch (erro) {
+            if (status) status.textContent = erro.message;
+        }
+    }
+
+    async function salvarPreferenciasPush() {
+        const botao = document.getElementById('btnSalvarPreferenciasPush');
+        const status = document.getElementById('pwaPreferencesStatus');
+
+        if (!botao) return;
+
+        botao.disabled = true;
+        if (status) status.textContent = 'Salvando...';
+
+        try {
+            const payload = {
+                novo_treino: document.getElementById('prefNovoTreino').checked,
+                lembrete_treino: document.getElementById('prefLembreteTreino').checked,
+                treino_pendente: document.getElementById('prefTreinoPendente').checked,
+                horario_lembrete: document.getElementById('prefHorarioLembrete').value || '07:00',
+                horario_pendente: document.getElementById('prefHorarioPendente').value || '19:00',
+                timezone: timezoneDispositivo()
+            };
+
+            const resposta = await fetch('/api/push/preferencias', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const dados = await resposta.json().catch(() => ({}));
+
+            if (!resposta.ok) {
+                throw new Error(dados.detail || 'Não foi possível salvar as preferências.');
+            }
+
+            if (status) status.textContent = 'Preferências salvas.';
+
+        } catch (erro) {
+            if (status) status.textContent = erro.message;
+        } finally {
+            botao.disabled = false;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
         await registrarServiceWorker();
 
         const instalar = document.getElementById('btnInstalarPwa');
         const notificacoes = document.getElementById('btnNotificacoesPwa');
         const teste = document.getElementById('btnTesteNotificacaoPwa');
+        const salvarPreferencias = document.getElementById('btnSalvarPreferenciasPush');
 
         if (instalar) instalar.addEventListener('click', instalarPwa);
         if (notificacoes) notificacoes.addEventListener('click', alternarNotificacoes);
         if (teste) teste.addEventListener('click', enviarNotificacaoTeste);
+        if (salvarPreferencias) salvarPreferencias.addEventListener('click', salvarPreferenciasPush);
 
         atualizarEstadoInstalacao();
         await atualizarEstadoNotificacoes();
+        await carregarPreferenciasPush();
     });
 })();

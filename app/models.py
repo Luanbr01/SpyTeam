@@ -581,3 +581,125 @@ class PushSubscription(Base):
         nullable=False,
         index=True
     )
+
+# ============================================================
+# PREFERÊNCIAS DE NOTIFICAÇÃO (PWA)
+# ============================================================
+# Uma linha por conta de aluno. Os horários são guardados como HH:MM
+# no fuso do próprio aluno.
+
+class PreferenciaNotificacao(Base):
+
+    __tablename__ = "preferencias_notificacao"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    usuario_id = Column(
+        Integer,
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    novo_treino = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    lembrete_treino = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    treino_pendente = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    horario_lembrete = Column(
+        String,
+        default="07:00",
+        nullable=False
+    )
+
+    horario_pendente = Column(
+        String,
+        default="19:00",
+        nullable=False
+    )
+
+    timezone = Column(
+        String,
+        default="America/Sao_Paulo",
+        nullable=False
+    )
+
+    atualizado_em = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+
+
+# ============================================================
+# CONTROLE DE LEMBRETES JÁ ENVIADOS
+# ============================================================
+# Evita repetir o mesmo lembrete após reinício/redeploy do servidor.
+
+class NotificacaoTreinoEnviada(Base):
+
+    __tablename__ = "notificacoes_treino_enviadas"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "usuario_id",
+            "treino_id",
+            "tipo",
+            "data_referencia",
+            name="uq_notificacao_treino_envio"
+        ),
+    )
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    usuario_id = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+
+    treino_id = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+
+    tipo = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    data_referencia = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    criado_em = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spyteam-pwa-v1';
+const CACHE_NAME = 'spyteam-pwa-v2';
 
 const STATIC_ASSETS = [
     '/static/offline.html',
@@ -52,7 +52,28 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Arquivos estáticos: cache com atualização em segundo plano.
+    // JavaScript: rede primeiro. Isso evita que uma atualização do
+    // aplicativo continue executando código antigo depois de um deploy.
+    if (url.origin === self.location.origin && url.pathname.startsWith('/static/js/')) {
+        event.respondWith((async () => {
+            const cache = await caches.open(CACHE_NAME);
+
+            try {
+                const response = await fetch(request);
+
+                if (response && response.ok) {
+                    await cache.put(request, response.clone());
+                }
+
+                return response;
+            } catch (_) {
+                return await cache.match(request, { ignoreSearch: true });
+            }
+        })());
+        return;
+    }
+
+    // Demais arquivos estáticos: cache com atualização em segundo plano.
     if (url.origin === self.location.origin && (
         url.pathname.startsWith('/static/') ||
         url.pathname === '/manifest.webmanifest'

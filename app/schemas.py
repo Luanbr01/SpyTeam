@@ -241,3 +241,12 @@ class PushSubscriptionCreate(BaseModel):
 
 class PushSubscriptionRemove(BaseModel):
     endpoint: str = Field(min_length=20, max_length=4000)
+
+class PushPreferenciasUpdate(BaseModel):
+    novo_treino: bool = True
+    lembrete_treino: bool = True
+    treino_pendente: bool = True
+    horario_lembrete: str = "07:00"
+    horario_pendente: str = "19:00"
+    timezone: str = "America/Sao_Paulo"
+

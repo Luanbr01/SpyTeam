@@ -2875,3 +2875,40 @@ Ela armazena as assinaturas dos navegadores. O banco de produção continua em:
 ### Segurança e cache
 
 O Service Worker **não armazena páginas autenticadas nem respostas de `/api/` no cache**. Somente recursos estáticos são reutilizados offline. Isso evita manter dados pessoais ou informações de treino em cache persistente da PWA.
+
+---
+
+## PWA — lembretes automáticos de treino
+
+A PWA possui preferências individuais de notificação para cada aluno:
+
+- aviso quando um novo treino/planejamento é enviado;
+- lembrete automático no dia do treino;
+- horário configurável para o lembrete;
+- aviso de treino ainda pendente no mesmo dia;
+- horário configurável para o aviso pendente;
+- detecção do fuso horário do dispositivo;
+- deep link: ao tocar no lembrete, o SPY TEAM abre diretamente o treino correspondente.
+
+As preferências ficam na tela **Meu perfil**, na seção **Aplicativo**.
+
+O backend executa um agendador leve e persistente. Os envios já realizados são
+registrados em `notificacoes_treino_enviadas`, evitando notificações duplicadas
+após restart ou deploy.
+
+Novas tabelas:
+
+```text
+preferencias_notificacao
+notificacoes_treino_enviadas
+```
+
+O intervalo padrão de verificação é 60 segundos. Opcionalmente pode ser alterado
+com:
+
+```env
+PUSH_REMINDER_POLL_SECONDS=60
+```
+
+Valores menores que 30 segundos são limitados automaticamente a 30 segundos.
+

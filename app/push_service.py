@@ -59,7 +59,8 @@ def enviar_push_para_usuario_id(
     titulo: str,
     corpo: str,
     url: str = "/aluno",
-    tag: str | None = None
+    tag: str | None = None,
+    tipo_preferencia: str | None = None
 ) -> int:
     """Envia uma notificação para todos os navegadores ativos do usuário."""
 
@@ -70,6 +71,25 @@ def enviar_push_para_usuario_id(
     enviados = 0
 
     try:
+        # As notificações de teste ignoram preferências. Para avisos reais,
+        # o chamador informa qual preferência deve ser respeitada.
+        if tipo_preferencia:
+            preferencias = (
+                db.query(models.PreferenciaNotificacao)
+                .filter(models.PreferenciaNotificacao.usuario_id == usuario_id)
+                .first()
+            )
+
+            if preferencias is not None:
+                mapa = {
+                    "novo_treino": preferencias.novo_treino,
+                    "lembrete_treino": preferencias.lembrete_treino,
+                    "treino_pendente": preferencias.treino_pendente,
+                }
+
+                if tipo_preferencia in mapa and not bool(mapa[tipo_preferencia]):
+                    return 0
+
         assinaturas = (
             db.query(models.PushSubscription)
             .filter(
@@ -135,7 +155,8 @@ def enviar_push_para_aluno_id(
     titulo: str,
     corpo: str,
     url: str = "/aluno",
-    tag: str | None = None
+    tag: str | None = None,
+    tipo_preferencia: str | None = None
 ) -> int:
     """Resolve a conta vinculada ao aluno e envia o Web Push."""
 
@@ -167,5 +188,6 @@ def enviar_push_para_aluno_id(
         titulo=titulo,
         corpo=corpo,
         url=url,
-        tag=tag
+        tag=tag,
+        tipo_preferencia=tipo_preferencia
     )
