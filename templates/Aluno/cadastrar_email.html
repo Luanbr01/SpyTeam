@@ -10,11 +10,11 @@
     <meta name="apple-mobile-web-app-title" content="SPY TEAM">
     <link rel="apple-touch-icon" href="/static/img/pwa-192.png?v=20260923-pwa1">
 
-    <title>Cadastrar e-mail - SPY TEAM</title>
-    
+    <title>Confirmar e-mail - SPY TEAM</title>
+
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
-<link rel="stylesheet" href="/static/css/style.css?v=20260922-multimodal1">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260925-conta1">
     <script src="/static/js/security.js?v=20260922-security1"></script>
 </head>
 <body>
@@ -23,9 +23,19 @@
         <a class="brand brand-official" href="/" aria-label="SPY TEAM">
             <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="logo-spy-team brand-logo">
         </a>
+
         <span class="eyebrow">PRIMEIRO ACESSO</span>
-        <h1>Cadastre seu e-mail</h1>
-        <p class="subtitle">Este e-mail será usado para recuperar sua senha caso você a esqueça.</p>
+        <h1>Confirme seu e-mail</h1>
+        <p class="subtitle">
+            O e-mail será usado para recuperar sua senha e proteger sua conta.
+            Enviaremos um link de confirmação antes de liberar sua área de aluno.
+        </p>
+
+        <div id="pendenciaEmail" class="email-pending-box" hidden>
+            <strong>Confirmação pendente</strong>
+            <span id="pendenciaEmailTexto"></span>
+            <small>Abra o e-mail recebido e toque em “Confirmar e-mail”.</small>
+        </div>
 
         <form id="formEmail">
             <div class="form-group">
@@ -38,7 +48,9 @@
                 <input type="email" id="confirmarEmail" autocomplete="email" placeholder="Digite o e-mail novamente" required>
             </div>
 
-            <button class="btn btn-primary" id="btnSalvar" type="submit">Salvar e continuar</button>
+            <button class="btn btn-primary" id="btnSalvar" type="submit">
+                Enviar confirmação
+            </button>
         </form>
 
         <div id="mensagem" class="message"></div>
@@ -56,6 +68,23 @@ const form = document.getElementById('formEmail');
 const mensagem = document.getElementById('mensagem');
 const botao = document.getElementById('btnSalvar');
 
+async function carregarPendencia() {
+    try {
+        const resposta = await fetch('/api/me');
+        if (!resposta.ok) return;
+        const dados = await resposta.json();
+
+        if (dados.email_pendente) {
+            document.getElementById('pendenciaEmail').hidden = false;
+            document.getElementById('pendenciaEmailTexto').textContent =
+                `Aguardando confirmação de ${dados.email_pendente}.`;
+            document.getElementById('email').value = dados.email_pendente;
+            document.getElementById('confirmarEmail').value = dados.email_pendente;
+            botao.textContent = 'Reenviar confirmação';
+        }
+    } catch (_) {}
+}
+
 form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -69,7 +98,7 @@ form.addEventListener('submit', async (event) => {
     }
 
     mensagem.className = 'message';
-    mensagem.textContent = 'Salvando...';
+    mensagem.textContent = 'Enviando confirmação...';
     botao.disabled = true;
 
     try {
@@ -86,22 +115,26 @@ form.addEventListener('submit', async (event) => {
 
         if (!resposta.ok) {
             mensagem.className = 'message error';
-            mensagem.textContent = dados.detail || 'Não foi possível cadastrar o e-mail.';
-            botao.disabled = false;
+            mensagem.textContent = dados.detail || 'Não foi possível enviar a confirmação.';
             return;
         }
 
         mensagem.className = 'message success';
-        mensagem.textContent = 'E-mail cadastrado. Entrando na sua área...';
-        window.location.href = dados.redirect || '/aluno';
+        mensagem.textContent = dados.mensagem || 'Confira sua caixa de entrada.';
+        document.getElementById('pendenciaEmail').hidden = false;
+        document.getElementById('pendenciaEmailTexto').textContent =
+            `Aguardando confirmação de ${dados.email_pendente || email}.`;
+        botao.textContent = 'Reenviar confirmação';
     } catch (erro) {
         mensagem.className = 'message error';
         mensagem.textContent = 'Não foi possível conectar ao servidor.';
+    } finally {
         botao.disabled = false;
     }
 });
-</script>
 
-<script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
+carregarPendencia();
+</script>
+<script defer src="/static/js/pwa.js?v=20260923-pwa2"></script>
 </body>
 </html>

@@ -6,12 +6,13 @@
 import json
 import os
 import re
+import secrets
 import time
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import FastAPI, Depends, HTTPException, Request, status, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, Request, status, BackgroundTasks, UploadFile, File
 
 from fastapi.responses import (
     FileResponse,
@@ -26,7 +27,8 @@ from sqlalchemy.orm import Session
 
 from .database import (
     engine,
-    SessionLocal
+    SessionLocal,
+    CAMINHO_BANCO
 )
 
 from . import models
@@ -43,7 +45,8 @@ from .auth import (
 )
 
 from .email_service import (
-    enviar_email_recuperacao
+    enviar_email_recuperacao,
+    enviar_email_verificacao
 )
 
 from .push_service import (
@@ -133,6 +136,29 @@ def migrar_banco():
                 "ALTER TABLE usuarios ADD COLUMN email VARCHAR"
             )
 
+        if "nome" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios ADD COLUMN nome VARCHAR"
+            )
+
+        if "email_verificado" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios "
+                "ADD COLUMN email_verificado BOOLEAN NOT NULL DEFAULT 0"
+            )
+
+            # Compatibilidade: e-mails cadastrados antes desta funcionalidade
+            # passam a ser tratados como já verificados.
+            conexao.exec_driver_sql(
+                "UPDATE usuarios SET email_verificado = 1 "
+                "WHERE email IS NOT NULL AND TRIM(email) <> ''"
+            )
+
+        if "foto_perfil" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios ADD COLUMN foto_perfil VARCHAR"
+            )
+
         if "session_version" not in colunas:
             conexao.exec_driver_sql(
                 "ALTER TABLE usuarios "
@@ -165,6 +191,12 @@ def migrar_banco():
             ON usuarios(email COLLATE NOCASE)
             WHERE email IS NOT NULL AND email <> ''
             """
+        )
+
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS "
+            "ix_verificacoes_email_usuario_ativo "
+            "ON verificacoes_email(usuario_id, usado, criado_em)"
         )
 
         # Migração de modalidade única -> múltiplas modalidades.
@@ -505,8 +537,77 @@ def normalizar_email(valor: str) -> str:
     return email
 
 
+def usuario_sem_email_verificado(usuario: models.Usuario) -> bool:
+    return (
+        not str(usuario.email or "").strip()
+        or not bool(usuario.email_verificado)
+    )
+
+
 def aluno_sem_email(usuario: models.Usuario) -> bool:
-    return not str(usuario.email or "").strip()
+    """Compatibilidade com o fluxo antigo: agora exige e-mail verificado."""
+    return usuario_sem_email_verificado(usuario)
+
+
+def obter_email_pendente(db: Session, usuario_id: int) -> str | None:
+    agora = int(time.time())
+    verificacao = (
+        db.query(models.VerificacaoEmail)
+        .filter(
+            models.VerificacaoEmail.usuario_id == usuario_id,
+            models.VerificacaoEmail.usado == False,
+            models.VerificacaoEmail.expira_em >= agora
+        )
+        .order_by(models.VerificacaoEmail.criado_em.desc())
+        .first()
+    )
+    return verificacao.email if verificacao else None
+
+
+def nome_exibicao_usuario(usuario: models.Usuario) -> str:
+    nome = str(usuario.nome or "").strip()
+    return nome or ("Professor" if usuario.tipo == "professor" else usuario.usuario)
+
+
+# Fotos ficam na mesma área persistente do banco em produção.
+PASTA_FOTOS_PERFIL = os.path.join(
+    os.path.dirname(CAMINHO_BANCO),
+    "uploads",
+    "perfis"
+)
+os.makedirs(PASTA_FOTOS_PERFIL, exist_ok=True)
+
+
+def caminho_foto_perfil(nome_arquivo: str | None) -> str | None:
+    nome = os.path.basename(str(nome_arquivo or "").strip())
+    if not nome:
+        return None
+    return os.path.join(PASTA_FOTOS_PERFIL, nome)
+
+
+def remover_arquivo_foto(nome_arquivo: str | None) -> None:
+    caminho = caminho_foto_perfil(nome_arquivo)
+    if not caminho:
+        return
+    try:
+        if os.path.isfile(caminho):
+            os.remove(caminho)
+    except OSError as erro:
+        print("[SpyTeam] Não foi possível remover foto antiga:", erro)
+
+
+def detectar_extensao_imagem(conteudo: bytes) -> tuple[str, str] | None:
+    if conteudo.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png", "image/png"
+    if conteudo.startswith(b"\xff\xd8\xff"):
+        return ".jpg", "image/jpeg"
+    if (
+        len(conteudo) >= 12
+        and conteudo[:4] == b"RIFF"
+        and conteudo[8:12] == b"WEBP"
+    ):
+        return ".webp", "image/webp"
+    return None
 
 
 # ============================================================
@@ -723,11 +824,25 @@ def seed_professor():
             )
             return
 
+        email_professor = os.getenv("PROFESSOR_EMAIL", "").strip()
+        email_normalizado = None
+
+        if email_professor:
+            try:
+                email_normalizado = normalizar_email(email_professor)
+            except ValueError as erro:
+                print("[SpyTeam] PROFESSOR_EMAIL inválido:", erro)
+
         db.add(
             models.Usuario(
                 usuario=usuario_normalizado,
                 senha_hash=hash_senha(senha),
-                tipo="professor"
+                tipo="professor",
+                nome=(os.getenv("PROFESSOR_NOME") or "Professor").strip(),
+                email=email_normalizado,
+                # E-mail vindo de variável de ambiente é considerado
+                # administrativamente confirmado.
+                email_verificado=bool(email_normalizado)
             )
         )
 
@@ -855,6 +970,77 @@ def pagina_redefinir_senha(
     )
 
 
+@app.get("/verificar-email")
+def verificar_email_por_token(
+    request: Request,
+    token: str = "",
+    db: Session = Depends(get_db)
+):
+    mensagem = "Este link de confirmação é inválido ou expirou."
+    sucesso = False
+    redirect = "/login"
+
+    token_limpo = str(token or "").strip()
+    if token_limpo:
+        registro = (
+            db.query(models.VerificacaoEmail)
+            .filter(
+                models.VerificacaoEmail.token_hash
+                == hash_token_recuperacao(token_limpo),
+                models.VerificacaoEmail.usado == False
+            )
+            .first()
+        )
+
+        agora = int(time.time())
+        if registro and registro.expira_em >= agora:
+            usuario_db = db.query(models.Usuario).filter(
+                models.Usuario.id == registro.usuario_id
+            ).first()
+
+            if usuario_db:
+                conflito = db.query(models.Usuario).filter(
+                    func.lower(models.Usuario.email) == registro.email,
+                    models.Usuario.id != usuario_db.id
+                ).first()
+
+                if conflito:
+                    registro.usado = True
+                    db.commit()
+                    mensagem = "Este e-mail já está vinculado a outra conta."
+                else:
+                    usuario_db.email = registro.email
+                    usuario_db.email_verificado = True
+
+                    db.query(models.VerificacaoEmail).filter(
+                        models.VerificacaoEmail.usuario_id == usuario_db.id,
+                        models.VerificacaoEmail.usado == False
+                    ).update({models.VerificacaoEmail.usado: True})
+
+                    db.commit()
+                    sucesso = True
+                    mensagem = "E-mail confirmado com sucesso."
+
+                    usuario_sessao, _ = obter_usuario_da_sessao(request, db)
+                    if usuario_sessao and usuario_sessao.id == usuario_db.id:
+                        redirect = (
+                            "/home"
+                            if usuario_db.tipo == "professor"
+                            else "/aluno"
+                        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="email_verificado.html",
+        context={
+            "request": request,
+            "sucesso": sucesso,
+            "mensagem": mensagem,
+            "redirect": redirect
+        }
+    )
+
+
 # ============================================================
 # PRIMEIRO ACESSO - CADASTRAR E-MAIL
 # ============================================================
@@ -892,6 +1078,25 @@ def home(
     return templates.TemplateResponse(
         request=request,
         name="Professor/home.html",
+        context={
+            "request": request,
+            "professor_usuario": usuario.usuario
+        }
+    )
+
+
+# ============================================================
+# PERFIL DO PROFESSOR
+# ============================================================
+
+@app.get("/professor/perfil")
+def professor_perfil(
+    request: Request,
+    usuario: models.Usuario = Depends(require_professor)
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="Professor/perfil.html",
         context={
             "request": request,
             "professor_usuario": usuario.usuario
@@ -1851,8 +2056,27 @@ def me(
         "email":
             usuario.email,
 
+        "email_verificado":
+            bool(usuario.email_verificado),
+
         "email_cadastrado":
-            not aluno_sem_email(usuario)
+            not usuario_sem_email_verificado(usuario),
+
+        "email_pendente":
+            obter_email_pendente(db, usuario.id),
+
+        "nome":
+            nome_exibicao_usuario(usuario),
+
+        "foto_perfil":
+            bool(usuario.foto_perfil),
+
+        "foto_perfil_url":
+            (
+                f"/api/me/foto?v={int(time.time())}"
+                if usuario.foto_perfil
+                else None
+            )
     }
 
     # Se for aluno,
@@ -2136,28 +2360,21 @@ def testar_push(
 def cadastrar_email_aluno(
     dados: schemas.CadastroEmailAluno,
     db: Session = Depends(get_db),
-    aluno_logado: models.Usuario =
-    Depends(require_aluno)
+    aluno_logado: models.Usuario = Depends(require_aluno)
 ):
+    """Primeiro acesso: envia confirmação antes de liberar a área do aluno."""
 
-    if not aluno_sem_email(aluno_logado):
+    if not usuario_sem_email_verificado(aluno_logado):
         raise HTTPException(
             status_code=400,
-            detail="O e-mail já foi cadastrado."
+            detail="O e-mail da conta já está verificado."
         )
 
     try:
-        email = normalizar_email(
-            dados.email
-        )
-        confirmar = normalizar_email(
-            dados.confirmar_email
-        )
+        email = normalizar_email(dados.email)
+        confirmar = normalizar_email(dados.confirmar_email)
     except ValueError as erro:
-        raise HTTPException(
-            status_code=400,
-            detail=str(erro)
-        )
+        raise HTTPException(status_code=400, detail=str(erro))
 
     if email != confirmar:
         raise HTTPException(
@@ -2165,32 +2382,20 @@ def cadastrar_email_aluno(
             detail="Os e-mails não conferem."
         )
 
-    existente = (
-        db.query(models.Usuario)
-        .filter(
-            func.lower(models.Usuario.email)
-            == email,
-            models.Usuario.id
-            != aluno_logado.id
-        )
-        .first()
+    _solicitar_verificacao_email(
+        db=db,
+        usuario=aluno_logado,
+        email=email,
+        troca=False
     )
 
-    if existente:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Este e-mail já está vinculado "
-                "a outra conta."
-            )
-        )
-
-    aluno_logado.email = email
-    db.commit()
-
     return {
-        "mensagem": "E-mail cadastrado com sucesso.",
-        "redirect": "/aluno"
+        "mensagem": (
+            "Enviamos um link de confirmação para seu e-mail. "
+            "Abra a mensagem e confirme o endereço para continuar."
+        ),
+        "email_pendente": email,
+        "verificacao_pendente": True
     }
 
 
@@ -2245,9 +2450,8 @@ def solicitar_recuperacao_senha(
     usuario = (
         db.query(models.Usuario)
         .filter(
-            func.lower(models.Usuario.email)
-            == email,
-            models.Usuario.tipo == "aluno"
+            func.lower(models.Usuario.email) == email,
+            models.Usuario.email_verificado == True
         )
         .first()
     )
@@ -2435,7 +2639,312 @@ def redefinir_senha_por_token(
 
 
 # ============================================================
-# ALTERAR SENHA DO ALUNO LOGADO
+# PERFIL, E-MAIL E FOTO DA CONTA
+# ============================================================
+
+EMAIL_VERIFICACAO_MIN_INTERVALO = 60
+EMAIL_VERIFICACAO_EXPIRACAO = 30 * 60
+FOTO_PERFIL_MAX_BYTES = 3 * 1024 * 1024
+
+
+def _email_disponivel(
+    db: Session,
+    email: str,
+    usuario_id: int
+) -> None:
+    existente = (
+        db.query(models.Usuario)
+        .filter(
+            func.lower(models.Usuario.email) == email,
+            models.Usuario.id != usuario_id
+        )
+        .first()
+    )
+
+    if existente:
+        raise HTTPException(
+            status_code=400,
+            detail="Este e-mail já está vinculado a outra conta."
+        )
+
+    pendente = (
+        db.query(models.VerificacaoEmail)
+        .filter(
+            func.lower(models.VerificacaoEmail.email) == email,
+            models.VerificacaoEmail.usuario_id != usuario_id,
+            models.VerificacaoEmail.usado == False,
+            models.VerificacaoEmail.expira_em >= int(time.time())
+        )
+        .first()
+    )
+
+    if pendente:
+        raise HTTPException(
+            status_code=400,
+            detail="Este e-mail já está aguardando confirmação em outra conta."
+        )
+
+
+def _solicitar_verificacao_email(
+    *,
+    db: Session,
+    usuario: models.Usuario,
+    email: str,
+    troca: bool
+) -> None:
+    _email_disponivel(db, email, usuario.id)
+
+    agora = int(time.time())
+    ultimo = (
+        db.query(models.VerificacaoEmail)
+        .filter(models.VerificacaoEmail.usuario_id == usuario.id)
+        .order_by(models.VerificacaoEmail.criado_em.desc())
+        .first()
+    )
+
+    if ultimo and agora - ultimo.criado_em < EMAIL_VERIFICACAO_MIN_INTERVALO:
+        raise HTTPException(
+            status_code=429,
+            detail="Aguarde um minuto antes de solicitar outro e-mail de confirmação.",
+            headers={"Retry-After": str(EMAIL_VERIFICACAO_MIN_INTERVALO)}
+        )
+
+    db.query(models.VerificacaoEmail).filter(
+        models.VerificacaoEmail.usuario_id == usuario.id,
+        models.VerificacaoEmail.usado == False
+    ).update({models.VerificacaoEmail.usado: True})
+
+    token = criar_token_recuperacao()
+    verificacao = models.VerificacaoEmail(
+        usuario_id=usuario.id,
+        email=email,
+        token_hash=hash_token_recuperacao(token),
+        criado_em=agora,
+        expira_em=agora + EMAIL_VERIFICACAO_EXPIRACAO,
+        usado=False
+    )
+    db.add(verificacao)
+    db.commit()
+    db.refresh(verificacao)
+
+    try:
+        enviar_email_verificacao(
+            email,
+            token,
+            troca=troca
+        )
+    except Exception as erro:
+        verificacao.usado = True
+        db.commit()
+        print("[SpyTeam] Falha no envio da verificação de e-mail:", erro)
+        raise HTTPException(
+            status_code=502,
+            detail="Não foi possível enviar o e-mail de confirmação agora. Tente novamente."
+        )
+
+
+@app.patch("/api/me/perfil")
+def atualizar_meu_perfil(
+    dados: schemas.AtualizarPerfil,
+    db: Session = Depends(get_db),
+    usuario_logado: models.Usuario = Depends(get_current_user)
+):
+    nome = str(dados.nome or "").strip()
+    if len(nome) < 2:
+        raise HTTPException(status_code=400, detail="Informe um nome válido.")
+
+    try:
+        usuario_normalizado = normalizar_usuario(dados.usuario)
+    except ValueError as erro:
+        raise HTTPException(status_code=400, detail=str(erro))
+
+    existente = (
+        db.query(models.Usuario)
+        .filter(
+            func.lower(func.trim(models.Usuario.usuario)) == usuario_normalizado,
+            models.Usuario.id != usuario_logado.id
+        )
+        .first()
+    )
+
+    if existente:
+        raise HTTPException(status_code=400, detail="Esse usuário já está cadastrado.")
+
+    usuario_db = db.query(models.Usuario).filter(
+        models.Usuario.id == usuario_logado.id
+    ).first()
+
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    usuario_db.usuario = usuario_normalizado
+
+    if usuario_db.tipo == "aluno" and usuario_db.aluno_id:
+        aluno_db = db.query(models.Aluno).filter(
+            models.Aluno.id == usuario_db.aluno_id
+        ).first()
+        if not aluno_db:
+            raise HTTPException(status_code=404, detail="Aluno não encontrado.")
+        aluno_db.nome = nome
+    else:
+        usuario_db.nome = nome
+
+    db.commit()
+
+    return {
+        "mensagem": "Dados pessoais atualizados com sucesso.",
+        "nome": nome,
+        "usuario": usuario_normalizado
+    }
+
+
+@app.post("/api/me/email/troca")
+def solicitar_troca_email(
+    dados: schemas.SolicitarTrocaEmail,
+    db: Session = Depends(get_db),
+    usuario_logado: models.Usuario = Depends(get_current_user)
+):
+    usuario_db = db.query(models.Usuario).filter(
+        models.Usuario.id == usuario_logado.id
+    ).first()
+
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    if not verificar_senha(dados.senha_atual, usuario_db.senha_hash):
+        raise HTTPException(status_code=400, detail="Senha atual incorreta.")
+
+    try:
+        email = normalizar_email(dados.email)
+        confirmar = normalizar_email(dados.confirmar_email)
+    except ValueError as erro:
+        raise HTTPException(status_code=400, detail=str(erro))
+
+    if email != confirmar:
+        raise HTTPException(status_code=400, detail="Os e-mails não conferem.")
+
+    if (
+        usuario_db.email_verificado
+        and str(usuario_db.email or "").strip().casefold() == email
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Este já é o e-mail verificado da sua conta."
+        )
+
+    _solicitar_verificacao_email(
+        db=db,
+        usuario=usuario_db,
+        email=email,
+        troca=bool(usuario_db.email)
+    )
+
+    return {
+        "mensagem": (
+            "Enviamos um link de confirmação para o novo e-mail. "
+            "O endereço atual só será trocado depois da confirmação."
+        ),
+        "email_pendente": email
+    }
+
+
+@app.get("/api/me/foto")
+def minha_foto_perfil(
+    usuario: models.Usuario = Depends(get_current_user)
+):
+    caminho = caminho_foto_perfil(usuario.foto_perfil)
+
+    if not caminho or not os.path.isfile(caminho):
+        raise HTTPException(status_code=404, detail="Foto de perfil não cadastrada.")
+
+    extensao = os.path.splitext(caminho)[1].lower()
+    media_types = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+    }
+
+    return FileResponse(
+        caminho,
+        media_type=media_types.get(extensao, "application/octet-stream"),
+        headers={"Cache-Control": "private, max-age=3600"}
+    )
+
+
+@app.post("/api/me/foto")
+async def atualizar_foto_perfil(
+    foto: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    usuario_logado: models.Usuario = Depends(get_current_user)
+):
+    conteudo = await foto.read(FOTO_PERFIL_MAX_BYTES + 1)
+
+    if len(conteudo) > FOTO_PERFIL_MAX_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail="A foto deve ter no máximo 3 MB."
+        )
+
+    formato = detectar_extensao_imagem(conteudo)
+    if not formato:
+        raise HTTPException(
+            status_code=400,
+            detail="Use uma imagem PNG, JPG ou WEBP válida."
+        )
+
+    extensao, _ = formato
+    nome_novo = f"usuario-{usuario_logado.id}-{secrets.token_hex(12)}{extensao}"
+    caminho_novo = caminho_foto_perfil(nome_novo)
+
+    if not caminho_novo:
+        raise HTTPException(status_code=500, detail="Falha ao preparar a foto de perfil.")
+
+    with open(caminho_novo, "wb") as arquivo:
+        arquivo.write(conteudo)
+
+    usuario_db = db.query(models.Usuario).filter(
+        models.Usuario.id == usuario_logado.id
+    ).first()
+
+    if not usuario_db:
+        remover_arquivo_foto(nome_novo)
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    foto_antiga = usuario_db.foto_perfil
+    usuario_db.foto_perfil = nome_novo
+    db.commit()
+
+    remover_arquivo_foto(foto_antiga)
+
+    return {
+        "mensagem": "Foto de perfil atualizada com sucesso.",
+        "foto_perfil_url": f"/api/me/foto?v={int(time.time())}"
+    }
+
+
+@app.delete("/api/me/foto")
+def excluir_foto_perfil(
+    db: Session = Depends(get_db),
+    usuario_logado: models.Usuario = Depends(get_current_user)
+):
+    usuario_db = db.query(models.Usuario).filter(
+        models.Usuario.id == usuario_logado.id
+    ).first()
+
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    foto_antiga = usuario_db.foto_perfil
+    usuario_db.foto_perfil = None
+    db.commit()
+    remover_arquivo_foto(foto_antiga)
+
+    return {"mensagem": "Foto de perfil removida."}
+
+
+# ============================================================
+# ALTERAR SENHA DA CONTA LOGADA
 # ============================================================
 
 @app.patch("/api/me/senha")
@@ -2445,15 +2954,15 @@ def alterar_senha_aluno(
     db: Session =
     Depends(get_db),
 
-    aluno_logado: models.Usuario =
-    Depends(require_aluno_com_email)
+    usuario_logado: models.Usuario =
+    Depends(get_current_user)
 ):
 
     usuario_db = (
         db.query(models.Usuario)
         .filter(
             models.Usuario.id
-            == aluno_logado.id
+            == usuario_logado.id
         )
         .first()
     )

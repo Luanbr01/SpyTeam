@@ -78,13 +78,20 @@ function preencherIdentidade(me) {
         sidebarName.textContent = me.aluno.nome;
     }
 
-    if (sidebarAvatar) {
-        sidebarAvatar.textContent = inicial;
-    }
+    const aplicarAvatar = (elemento) => {
+        if (!elemento) return;
 
-    if (topAvatar) {
-        topAvatar.textContent = inicial;
-    }
+        if (me.foto_perfil_url) {
+            elemento.innerHTML = `<img src="${me.foto_perfil_url}" alt="Foto de perfil">`;
+            elemento.classList.add('has-photo');
+        } else {
+            elemento.textContent = inicial;
+            elemento.classList.remove('has-photo');
+        }
+    };
+
+    aplicarAvatar(sidebarAvatar);
+    aplicarAvatar(topAvatar);
 }
 
 
@@ -1184,8 +1191,6 @@ async function carregar() {
             mostrarPerfil(
                 usuarioAtual
             );
-
-            configurarFormularioSenha();
 
             return;
         }

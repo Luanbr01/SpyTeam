@@ -136,6 +136,29 @@ class Usuario(Base):
         index=True
     )
 
+    # Nome de exibição da conta. Para alunos, o nome oficial continua
+    # armazenado em ``alunos.nome``; este campo é usado principalmente
+    # pelo professor e fica disponível para futuras contas administrativas.
+    nome = Column(
+        String,
+        nullable=True
+    )
+
+    # E-mails antigos são marcados como verificados pela migração para
+    # manter compatibilidade. Novos cadastros/trocas passam por confirmação.
+    email_verificado = Column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    # Guarda somente o nome do arquivo da foto. O arquivo em si fica fora
+    # do diretório público e é entregue por uma rota autenticada.
+    foto_perfil = Column(
+        String,
+        nullable=True
+    )
+
     # Incrementado quando a senha muda. Tokens de sessão antigos
     # deixam de ser aceitos imediatamente.
     session_version = Column(
@@ -146,6 +169,61 @@ class Usuario(Base):
 
     aluno = relationship(
         "Aluno"
+    )
+
+
+# ============================================================
+# VERIFICAÇÃO / TROCA DE E-MAIL
+# ============================================================
+
+class VerificacaoEmail(Base):
+
+    __tablename__ = "verificacoes_email"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    usuario_id = Column(
+        Integer,
+        ForeignKey("usuarios.id"),
+        nullable=False,
+        index=True
+    )
+
+    email = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    token_hash = Column(
+        String,
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    expira_em = Column(
+        Integer,
+        nullable=False
+    )
+
+    criado_em = Column(
+        Integer,
+        nullable=False
+    )
+
+    usado = Column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    usuario = relationship(
+        "Usuario"
     )
 
 

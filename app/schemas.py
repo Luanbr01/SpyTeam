@@ -45,6 +45,41 @@ class CadastroEmailAluno(BaseModel):
 
 
 # ============================================================
+# CONTA / PERFIL
+# ============================================================
+
+class AtualizarPerfil(BaseModel):
+
+    nome: str = Field(
+        min_length=2,
+        max_length=120
+    )
+
+    usuario: str = Field(
+        min_length=3,
+        max_length=100
+    )
+
+
+class SolicitarTrocaEmail(BaseModel):
+
+    email: str = Field(
+        min_length=5,
+        max_length=254
+    )
+
+    confirmar_email: str = Field(
+        min_length=5,
+        max_length=254
+    )
+
+    senha_atual: str = Field(
+        min_length=1,
+        max_length=200
+    )
+
+
+# ============================================================
 # RECUPERAÇÃO DE SENHA
 # ============================================================
 
@@ -75,7 +110,7 @@ class RedefinirSenha(BaseModel):
 
 
 # ============================================================
-# ALTERAR SENHA DO ALUNO
+# ALTERAR SENHA DA CONTA
 # ============================================================
 
 class AlterarSenhaAluno(BaseModel):

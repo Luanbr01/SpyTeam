@@ -102,6 +102,17 @@
             <span>Agendar treino</span>
         </a>
 
+        <a class="app-nav-item {% if request.url.path == '/professor/perfil' %}active{% endif %}" href="/professor/perfil">
+            <span class="app-nav-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M4 21c0-5 3-8 8-8s8 3 8 8"/>
+                </svg>
+            </span>
+            <span>Meu perfil</span>
+        </a>
+
     </div>
 
 </nav>
+<script defer src="/static/js/avatar-global.js?v=20260925-conta1"></script>

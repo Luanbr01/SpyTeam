@@ -3200,3 +3200,260 @@ body.modal-aberto {
         min-width: 840px;
     }
 }
+
+/* ==========================================================
+   SPY TEAM — CONTA / PERFIL V4
+   ========================================================== */
+
+.sidebar-avatar.has-photo,
+.top-avatar.has-photo,
+.student-profile-avatar.has-photo {
+    overflow: hidden;
+    padding: 0;
+    background: #EAF2FF;
+}
+
+.sidebar-avatar.has-photo img,
+.top-avatar.has-photo img,
+.student-profile-avatar.has-photo img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.account-profile-hero {
+    align-items: flex-start;
+}
+
+.account-profile-hero-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.account-photo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.account-photo-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.account-photo-button {
+    width: auto;
+    min-height: 34px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: .72rem;
+}
+
+.account-link-button {
+    border: 0;
+    background: transparent;
+    color: #5C6F8B;
+    padding: 7px 5px;
+    box-shadow: none;
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.account-link-button:hover {
+    color: #B42318;
+    background: transparent;
+    transform: none;
+}
+
+.account-photo-hint {
+    display: block;
+    margin-top: 7px;
+    color: #8A99AD;
+    font-size: .65rem;
+}
+
+.account-settings-grid {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.account-settings-card .section-heading-row {
+    margin-bottom: 18px;
+}
+
+.account-settings-card .section-heading-row p,
+.account-password-card .section-heading-row p {
+    margin: 5px 0 0;
+    color: #7A8AA2;
+    font-size: .76rem;
+    line-height: 1.5;
+}
+
+.account-form {
+    width: 100%;
+}
+
+.account-form .form-group {
+    margin-bottom: 14px;
+}
+
+.account-form .form-group small {
+    display: block;
+    margin-top: 6px;
+    color: #8A99AD;
+    font-size: .67rem;
+}
+
+.account-inline-message {
+    min-height: 22px;
+    margin: 4px 0 10px;
+    color: #657690;
+    font-size: .74rem;
+    font-weight: 700;
+}
+
+.account-inline-message.success {
+    color: #137A47;
+}
+
+.account-inline-message.error {
+    color: #B42318;
+}
+
+.account-email-current {
+    display: grid;
+    gap: 4px;
+    padding: 13px 14px;
+    margin-bottom: 14px;
+    border: 1px solid #DDE7F5;
+    border-radius: 10px;
+    background: #F8FBFF;
+}
+
+.account-email-current > span:first-child {
+    color: #8391A7;
+    font-size: .66rem;
+    font-weight: 700;
+}
+
+.account-email-current strong {
+    color: #173A70;
+    font-size: .86rem;
+    overflow-wrap: anywhere;
+}
+
+.account-email-badge {
+    width: max-content;
+    margin-top: 3px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #EEF2F8;
+    color: #657690;
+    font-size: .62rem;
+    font-weight: 800;
+}
+
+.account-email-badge.verified {
+    background: #ECFDF3;
+    color: #067647;
+}
+
+.account-email-badge.pending {
+    background: #FFF7E8;
+    color: #9A6700;
+}
+
+.email-pending-box {
+    display: grid;
+    gap: 3px;
+    padding: 12px 13px;
+    margin: 0 0 14px;
+    border: 1px solid #F5D08A;
+    border-radius: 10px;
+    background: #FFF9ED;
+    color: #76561B;
+    font-size: .73rem;
+    line-height: 1.45;
+}
+
+.email-pending-box[hidden] {
+    display: none !important;
+}
+
+.email-pending-box strong {
+    color: #8A5D00;
+}
+
+.email-pending-box small {
+    color: #8B7448;
+}
+
+.email-result-icon {
+    width: 64px;
+    height: 64px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    font-size: 1.55rem;
+    font-weight: 900;
+}
+
+.email-result-icon.success {
+    color: #087A4A;
+    background: #ECFDF3;
+}
+
+.email-result-icon.error {
+    color: #B42318;
+    background: #FFF1F0;
+}
+
+.email-verified-card {
+    text-align: center;
+}
+
+.email-result-action {
+    width: 100%;
+    margin-top: 16px;
+}
+
+.professor-account-layout {
+    max-width: 1050px;
+}
+
+.professor-profile-data-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+    .account-settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .account-profile-hero {
+        flex-direction: column;
+    }
+
+    .account-photo-actions {
+        align-items: stretch;
+    }
+
+    .account-photo-button,
+    .account-link-button {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}

@@ -14,7 +14,7 @@
     
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
-<link rel="stylesheet" href="/static/css/style.css?v=20260922-multimodal1">
+<link rel="stylesheet" href="/static/css/style.css?v=20260925-conta1">
     <script src="/static/js/security.js?v=20260922-security1"></script>
 </head>
 
@@ -54,12 +54,28 @@
             </section>
 
             <section class="student-profile-layout">
-                <article class="dashboard-card student-profile-hero">
-                    <div class="student-profile-avatar" id="profileAvatar">A</div>
-                    <div>
+                <article class="dashboard-card student-profile-hero account-profile-hero">
+                    <div class="student-profile-avatar account-avatar" id="profileAvatar">A</div>
+                    <div class="account-profile-hero-copy">
                         <span class="profile-role">ALUNO</span>
                         <h2 id="profileName">Carregando...</h2>
                         <p id="profileSummary">SPY TEAM</p>
+                        <div class="account-photo-actions">
+                            <label class="btn btn-secondary account-photo-button" for="fotoPerfilInput">
+                                Alterar foto
+                            </label>
+                            <input
+                                id="fotoPerfilInput"
+                                class="account-photo-input"
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                            >
+                            <button id="btnRemoverFoto" type="button" class="account-link-button">
+                                Remover foto
+                            </button>
+                        </div>
+                        <small class="account-photo-hint">PNG, JPG ou WEBP • máximo 3 MB</small>
+                        <div id="mensagemFoto" class="account-inline-message" role="status"></div>
                     </div>
                 </article>
 
@@ -98,6 +114,75 @@
                         </div>
                     </div>
                 </article>
+
+                <section class="account-settings-grid">
+                    <article class="dashboard-card account-settings-card">
+                        <div class="section-heading-row">
+                            <div>
+                                <span class="eyebrow">DADOS PESSOAIS</span>
+                                <h2>Editar perfil</h2>
+                                <p>Você pode atualizar seu nome e usuário de acesso.</p>
+                            </div>
+                        </div>
+
+                        <form id="formDadosPessoais" class="account-form">
+                            <div class="form-group">
+                                <label for="editNome">Nome</label>
+                                <input id="editNome" type="text" maxlength="120" autocomplete="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editUsuario">Usuário</label>
+                                <input id="editUsuario" type="text" maxlength="100" autocomplete="username" required>
+                                <small>O usuário não pode conter espaços.</small>
+                            </div>
+                            <div id="mensagemDados" class="account-inline-message" role="status"></div>
+                            <button class="btn btn-primary" type="submit">Salvar dados</button>
+                        </form>
+                    </article>
+
+                    <article class="dashboard-card account-settings-card">
+                        <div class="section-heading-row">
+                            <div>
+                                <span class="eyebrow">E-MAIL</span>
+                                <h2>Trocar e-mail</h2>
+                                <p>O novo endereço só substitui o atual depois da confirmação.</p>
+                            </div>
+                        </div>
+
+                        <div class="account-email-current">
+                            <span>E-mail atual</span>
+                            <strong id="currentEmailValue">—</strong>
+                            <span id="currentEmailBadge" class="account-email-badge">Verificando...</span>
+                        </div>
+
+                        <div id="pendingEmailBox" class="email-pending-box" hidden>
+                            <strong>Confirmação pendente</strong>
+                            <span id="pendingEmailText"></span>
+                        </div>
+
+                        <form id="formTrocarEmail" class="account-form">
+                            <div class="form-group">
+                                <label for="novoEmail">Novo e-mail</label>
+                                <input id="novoEmail" type="email" maxlength="254" autocomplete="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmarNovoEmail">Confirmar novo e-mail</label>
+                                <input id="confirmarNovoEmail" type="email" maxlength="254" autocomplete="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="senhaEmail">Senha atual</label>
+                                <div class="password-field">
+                                    <input id="senhaEmail" type="password" autocomplete="current-password" required>
+                                    <button class="password-toggle" type="button" data-password-target="senhaEmail" aria-label="Mostrar senha" title="Mostrar senha">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.8"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="mensagemEmail" class="account-inline-message" role="status"></div>
+                            <button class="btn btn-primary" type="submit">Enviar confirmação</button>
+                        </form>
+                    </article>
+                </section>
 
                 <article class="dashboard-card pwa-device-card">
                     <div class="section-heading-row">
@@ -324,7 +409,8 @@ async function sair(event) {
     window.location.href = '/login';
 }
 </script>
-<script src="/static/js/aluno.js?v=20260920-email1"></script>
+<script src="/static/js/aluno.js?v=20260925-conta1"></script>
+<script src="/static/js/perfil-conta.js?v=20260925-conta1"></script>
 
 <script defer src="/static/js/pwa.js?v=20260923-pwa2"></script>
 </body>
