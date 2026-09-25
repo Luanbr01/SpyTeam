@@ -1,2914 +1,4637 @@
-# SPY TEAM
-
-Sistema web para **gestão de assessoria esportiva, alunos, treinos, planejamento semanal e acompanhamento de desempenho**, desenvolvido com **Python, FastAPI, SQLAlchemy, SQLite, Jinja2, HTML, CSS e JavaScript**.
-
-O projeto possui dois perfis principais:
-
-- **Professor**: administra alunos, contas de acesso, treinos base, agendamentos, planejamento semanal e feedbacks.
-- **Aluno**: acessa seu painel pessoal, acompanha os treinos da semana, conclui treinos, envia feedback, consulta histórico, gerencia sua senha e recupera o acesso por e-mail.
-
-O SPY TEAM está preparado para rodar localmente e também em produção no **Railway**, com banco SQLite persistente em **Volume**, domínio próprio e envio de e-mails transacionais pelo **Resend**.
-
----
-
-## Sumário
-
-1. [Visão geral](#1-visão-geral)
-2. [Status atual do projeto](#2-status-atual-do-projeto)
-3. [Principais funcionalidades](#3-principais-funcionalidades)
-4. [Fluxos de uso](#4-fluxos-de-uso)
-5. [Tecnologias utilizadas](#5-tecnologias-utilizadas)
-6. [Arquitetura](#6-arquitetura)
-7. [Estrutura de pastas](#7-estrutura-de-pastas)
-8. [Banco de dados](#8-banco-de-dados)
-9. [Autenticação e segurança](#9-autenticação-e-segurança)
-10. [Sistema de recuperação de senha](#10-sistema-de-recuperação-de-senha)
-11. [Sistema de treinos](#11-sistema-de-treinos)
-12. [Planejamento semanal](#12-planejamento-semanal)
-13. [Frontend e identidade visual](#13-frontend-e-identidade-visual)
-14. [Rotas de páginas](#14-rotas-de-páginas)
-15. [API](#15-api)
-16. [Instalação local](#16-instalação-local)
-17. [Variáveis de ambiente](#17-variáveis-de-ambiente)
-18. [Execução local](#18-execução-local)
-19. [Deploy no Railway](#19-deploy-no-railway)
-20. [Banco persistente no Railway](#20-banco-persistente-no-railway)
-21. [Domínio próprio](#21-domínio-próprio)
-22. [Resend e envio de e-mail](#22-resend-e-envio-de-e-mail)
-23. [Git e fluxo de atualização](#23-git-e-fluxo-de-atualização)
-24. [Backup e restauração](#24-backup-e-restauração)
-25. [Troubleshooting](#25-troubleshooting)
-26. [Regras importantes do sistema](#26-regras-importantes-do-sistema)
-27. [Limitações atuais e melhorias futuras](#27-limitações-atuais-e-melhorias-futuras)
-28. [Checklist de produção](#28-checklist-de-produção)
-29. [Referência rápida](#29-referência-rápida)
-
----
-
-# 1. Visão geral
-
-O **SPY TEAM** foi criado para centralizar o trabalho de uma assessoria esportiva.
-
-Em vez de o professor organizar alunos, treinos e feedbacks manualmente em ferramentas separadas, o sistema concentra essas informações em uma única aplicação web.
-
-A aplicação permite:
-
-- cadastrar alunos;
-- criar contas individuais;
-- vincular cada aluno a uma ou mais modalidades;
-- criar treinos reutilizáveis;
-- agendar treinos individuais;
-- distribuir treinos automaticamente por modalidade, inclusive para alunos multimodalidade;
-- organizar uma semana de segunda a sexta;
-- acompanhar conclusão dos treinos;
-- receber nota, dificuldade e comentário do aluno;
-- manter histórico;
-- oferecer recuperação de senha por e-mail;
-- operar pela internet com banco persistente.
-
-### Produção
-
-Domínio principal utilizado:
-
-```text
-https://www.spyteam.com.br
-```
-
-Repositório:
-
-```text
-https://github.com/Luanbr01/SpyTeam
-```
-
-Branch principal atual:
-
-```text
-master
-```
-
-## Modalidades oficiais
-
-O SPY TEAM trabalha atualmente somente com:
-
-```text
-Corrida
-Natação
-Musculação
-```
-
-Ciclismo e Triathlon foram removidos das opções de cadastro e planejamento.
-
-Um aluno pode possuir **uma, duas ou as três modalidades ao mesmo tempo**. No planejamento semanal, ele recebe automaticamente todos os treinos correspondentes às modalidades vinculadas ao seu cadastro.
-
-Na agenda semanal do aluno, os cards foram simplificados: mostram apenas título, modalidade e status. Ao clicar em um treino, abre-se um modal com a descrição completa, data, ritmo alvo e ação de conclusão.
-
----
-
-# 2. Status atual do projeto
-
-Atualmente o projeto possui as seguintes áreas implementadas.
-
-## Infraestrutura
-
-- [x] Aplicação FastAPI
-- [x] Templates Jinja2
-- [x] CSS responsivo
-- [x] JavaScript no frontend
-- [x] SQLite
-- [x] SQLAlchemy ORM
-- [x] Deploy no Railway
-- [x] Volume persistente
-- [x] HTTPS
-- [x] Domínio próprio
-- [x] Healthcheck
-- [x] Variáveis de ambiente
-- [x] Envio de e-mail pelo Resend
-- [x] Favicon oficial
-- [x] Logo vetorial oficial
-- [x] Proteção CSRF explícita
-- [x] Rate limit no login
-- [x] Rate limit global na recuperação de senha
-- [x] Invalidação de sessões após troca/redefinição de senha
-- [x] Auditoria de logins
-- [x] Histórico de alterações administrativas
-
-## Professor
-
-- [x] Login
-- [x] Dashboard
-- [x] Cadastro de aluno
-- [x] Criação automática da conta do aluno
-- [x] Listagem de alunos
-- [x] Exclusão de aluno
-- [x] Criação de treino base
-- [x] Edição de treino base
-- [x] Exclusão segura de treino base
-- [x] Agendamento individual
-- [x] Listagem de treinos
-- [x] Planejamento semanal
-- [x] Distribuição por modalidade
-- [x] Visualização de feedbacks
-
-## Aluno
-
-- [x] Login
-- [x] Primeiro acesso com cadastro obrigatório de e-mail
-- [x] Dashboard pessoal
-- [x] Agenda semanal
-- [x] Histórico de treinos
-- [x] Perfil
-- [x] Alteração de senha
-- [x] Mostrar/ocultar senha
-- [x] Conclusão de treino
-- [x] Nota de 1 a 5
-- [x] Dificuldade
-- [x] Comentário
-- [x] Recuperação de senha por e-mail
-
----
-
-# 3. Principais funcionalidades
-
-## 3.1 Professor
-
-O professor possui acesso administrativo.
-
-Ele pode:
-
-- visualizar o dashboard;
-- acompanhar quantidade de alunos;
-- visualizar os treinos cadastrados;
-- acessar atalhos rápidos de gestão;
-- cadastrar alunos;
-- definir:
-  - nome;
-  - nível;
-  - uma ou mais modalidades;
-  - usuário;
-  - senha inicial;
-- listar alunos cadastrados;
-- abrir os detalhes de cada aluno;
-- visualizar os treinos enviados ao aluno;
-- visualizar feedbacks;
-- excluir alunos;
-- criar treinos base;
-- editar treinos base;
-- excluir treinos base ainda não utilizados;
-- agendar um treino específico para um aluno;
-- montar um planejamento semanal;
-- distribuir treinos automaticamente para os alunos da modalidade correspondente.
-
-## 3.2 Aluno
-
-O aluno possui uma conta própria criada pelo professor.
-
-Ele pode:
-
-- fazer login;
-- cadastrar o e-mail no primeiro acesso;
-- acessar o dashboard;
-- visualizar total de treinos;
-- visualizar treinos pendentes;
-- visualizar treinos concluídos;
-- acompanhar a agenda de segunda a sexta;
-- concluir um treino;
-- atribuir uma nota;
-- informar dificuldade;
-- escrever um comentário;
-- consultar histórico;
-- acessar o perfil;
-- visualizar:
-  - nome;
-  - usuário;
-  - nível;
-  - modalidade;
-  - e-mail;
-- trocar a própria senha;
-- recuperar a senha por e-mail;
-- fazer logout.
-
----
-
-# 4. Fluxos de uso
-
-## 4.1 Cadastro e primeiro acesso do aluno
-
-```text
-Professor
-   |
-   v
-Cadastra aluno
-   |
-   +--> nome
-   +--> nível
-   +--> modalidade
-   +--> usuário
-   +--> senha inicial
-   |
-   v
-Conta do aluno criada
-   |
-   v
-Aluno acessa /login
-   |
-   v
-Primeiro login
-   |
-   v
-Sem e-mail cadastrado?
-   |
-  Sim
-   |
-   v
-/aluno/cadastrar-email
-   |
-   v
-Aluno informa e confirma e-mail
-   |
-   v
-/aluno
-```
-
-O cadastro do e-mail é obrigatório antes de acessar a área principal do aluno.
-
----
-
-## 4.2 Recuperação de senha
-
-```text
-Aluno esqueceu a senha
-        |
-        v
-/esqueci-senha
-        |
-        v
-Informa o e-mail cadastrado
-        |
-        v
-SPY TEAM procura a conta
-        |
-        v
-Gera token aleatório
-        |
-        v
-Salva somente o HASH do token
-        |
-        v
-Resend envia o e-mail
-        |
-        v
-Aluno recebe link
-        |
-        v
-/redefinir-senha?token=...
-        |
-        v
-Nova senha + confirmação
-        |
-        v
-Token é invalidado
-        |
-        v
-Login com a nova senha
-```
-
----
-
-## 4.3 Planejamento semanal
-
-```text
-Professor escolhe a segunda-feira da semana
-                    |
-                    v
-Define treinos de segunda a sexta
-                    |
-                    v
-Cada treino possui uma modalidade
-                    |
-                    v
-Sistema procura todos os alunos que possuem essa modalidade
-                    |
-                    v
-Cria um TreinoAgendado para cada aluno
-                    |
-                    v
-Aluno visualiza o treino na própria agenda
-```
-
-Exemplo:
-
-```text
-Treino: Corrida intervalada
-Modalidade: Corrida
-Dia: Segunda-feira
-
-         |
-         v
-
-Todos os alunos que tenham Corrida entre suas modalidades
-recebem esse treino, mesmo que também pratiquem Natação ou Musculação.
-```
-
----
-
-# 5. Tecnologias utilizadas
-
-| Tecnologia | Uso |
-|---|---|
-| Python 3.12 | Backend |
-| FastAPI | Framework web e API |
-| Uvicorn | Servidor ASGI |
-| SQLAlchemy | ORM |
-| SQLite | Banco de dados |
-| Pydantic | Validação de payloads |
-| Jinja2 | Templates HTML |
-| HTML5 | Estrutura visual |
-| CSS3 | Layout e identidade |
-| JavaScript | Interatividade e chamadas Fetch |
-| Resend | E-mail transacional |
-| Railway | Hospedagem |
-| Railway Volume | Persistência do SQLite |
-| Registro.br | Administração do domínio |
-| Git | Versionamento |
-| GitHub | Repositório e integração com deploy |
-
-Dependências atuais:
-
-```text
-fastapi
-uvicorn
-sqlalchemy
-pydantic
-jinja2
-resend
-```
-
-O arquivo:
-
-```text
-.python-version
-```
-
-define:
-
-```text
-3.12
-```
-
----
-
-# 6. Arquitetura
-
-A aplicação segue uma estrutura simples de aplicação web server-side com API interna.
-
-```mermaid
-flowchart TD
-    Browser[Navegador] --> FastAPI[FastAPI / Uvicorn]
-
-    FastAPI --> Templates[Jinja2 Templates]
-    FastAPI --> Static[CSS / JS / SVG]
-    FastAPI --> Auth[Autenticação]
-    FastAPI --> ORM[SQLAlchemy]
-
-    ORM --> SQLite[(SQLite)]
-
-    FastAPI --> Resend[Resend API]
-    Resend --> Email[E-mail do aluno]
-
-    Railway[Railway] --> FastAPI
-    Volume[Railway Volume /data] --> SQLite
-```
-
-## Backend
-
-Localizado em:
-
-```text
-app/
-```
-
-Responsável por:
-
-- rotas;
-- autenticação;
-- banco;
-- modelos;
-- schemas;
-- e-mail;
-- regras de negócio.
-
-## Frontend
-
-Localizado em:
-
-```text
-templates/
-static/
-```
-
-Responsável por:
-
-- layout;
-- formulários;
-- dashboard;
-- sidebar;
-- interações;
-- chamadas à API.
-
----
-
-# 7. Estrutura de pastas
-
-Estrutura relevante atual:
-
-```text
-SpyTeam/
-│
-├── app/
-│   ├── __init__.py
-│   ├── auth.py
-│   ├── database.py
-│   ├── email_service.py
-│   ├── main.py
-│   ├── models.py
-│   └── schemas.py
-│
-├── static/
-│   ├── css/
-│   │   └── style.css
-│   │
-│   ├── img/
-│   │   ├── logo-spy-team.svg
-│   │   ├── logo-spy-team.png
-│   │   ├── favicon-spyteam.svg
-│   │   ├── favicon-32x32.png
-│   │   └── favicon.ico
-│   │
-│   ├── js/
-│   │   ├── aluno.js
-│   │   └── security.js
-│   │
-│   └── deploy-version.txt
-│
-├── templates/
-│   ├── Aluno/
-│   │   ├── cadastrar_email.html
-│   │   ├── historico.html
-│   │   ├── home.html
-│   │   └── perfil.html
-│   │
-│   ├── Professor/
-│   │   ├── alunos.html
-│   │   ├── home.html
-│   │   ├── novo_aluno.html
-│   │   ├── planejamento_semanal.html
-│   │   ├── seguranca.html
-│   │   │
-│   │   └── treinos/
-│   │       ├── editar_treino_base.html
-│   │       ├── novo_treino.html
-│   │       ├── novo_treino_base.html
-│   │       └── treinos_base.html
-│   │
-│   ├── componentes/
-│   │   ├── sidebar.html
-│   │   └── sidebar_aluno.html
-│   │
-│   ├── esqueci_senha.html
-│   ├── login.html
-│   └── redefinir_senha.html
-│
-├── .env.example
-├── .gitignore
-├── .python-version
-├── DEPLOY_RAILWAY.md
-├── Procfile
-├── README.md
-├── requirements.txt
-└── assessoria.db
-```
-
-### Arquivos de banco que podem existir localmente
-
-Durante o desenvolvimento também podem existir:
-
-```text
-assessoria_backup.db
-banco_de_dados.db
-```
-
-A aplicação atual utiliza **`assessoria.db`**.
-
-Em produção, quando existe Volume Railway, o caminho utilizado é:
-
-```text
-/data/assessoria.db
-```
-
----
-
-# 8. Banco de dados
-
-O projeto utiliza **SQLite + SQLAlchemy**.
-
-Arquivo de configuração:
-
-```text
-app/database.py
-```
-
-## 8.1 Ordem de seleção do banco
-
-O sistema escolhe o banco nesta ordem:
-
-1. `DATABASE_PATH`, caso exista;
-2. `RAILWAY_VOLUME_MOUNT_PATH`, caso esteja no Railway;
-3. `assessoria.db` na raiz do projeto.
-
-Exemplo local:
-
-```text
-SpyTeam/assessoria.db
-```
-
-Exemplo Railway:
-
-```text
-/data/assessoria.db
-```
-
----
-
-## 8.2 Tabela `alunos`
-
-Modelo:
-
-```text
-Aluno
-```
-
-Tabela:
-
-```text
-alunos
-```
-
-| Campo | Tipo | Observação |
-|---|---|---|
-| id | Integer | Chave primária |
-| nome | String | Nome do aluno |
-| nivel | String | Iniciante, Intermediário, Avançado etc. |
-| modalidade | String | Campo legado com a primeira modalidade, mantido para compatibilidade |
-
----
-
-## 8.3 Tabela `aluno_modalidades`
-
-Modelo:
-
-```text
-AlunoModalidade
-```
-
-Tabela:
-
-```text
-aluno_modalidades
-```
-
-Essa tabela permite que o mesmo aluno tenha várias modalidades. Existe uma restrição única por combinação de aluno + modalidade para evitar vínculos duplicados.
-
-| Campo | Tipo | Observação |
-|---|---|---|
-| id | Integer | Chave primária |
-| aluno_id | Integer | FK para `alunos` |
-| modalidade | String | `Corrida`, `Natação` ou `Musculação` |
-
-A coluna antiga `alunos.modalidade` permanece apenas para compatibilidade com versões anteriores. A fonte oficial para distribuição de treinos passa a ser `aluno_modalidades`.
-
----
-
-## 8.4 Tabela `usuarios`
-
-Modelo:
-
-```text
-Usuario
-```
-
-Tabela:
-
-```text
-usuarios
-```
-
-| Campo | Tipo | Observação |
-|---|---|---|
-| id | Integer | Chave primária |
-| usuario | String | Login único |
-| senha_hash | String | Hash PBKDF2 |
-| tipo | String | `professor` ou `aluno` |
-| aluno_id | Integer | FK para `alunos` |
-| email | String | E-mail para recuperação |
-
-Características:
-
-- `usuario` é único;
-- `aluno_id` é único;
-- um usuário aluno é vinculado a exatamente um cadastro de aluno;
-- o professor normalmente possui `aluno_id = NULL`;
-- o e-mail é opcional inicialmente;
-- o aluno cadastra o e-mail no primeiro acesso.
-
----
-
-## 8.5 Tabela `recuperacoes_senha`
-
-Modelo:
-
-```text
-RecuperacaoSenha
-```
-
-Tabela:
-
-```text
-recuperacoes_senha
-```
-
-| Campo | Tipo | Uso |
-|---|---|---|
-| id | Integer | Chave primária |
-| usuario_id | Integer | Dono da recuperação |
-| token_hash | String | SHA-256 do token |
-| expira_em | Integer | Timestamp de expiração |
-| criado_em | Integer | Timestamp de criação |
-| usado | Boolean | Invalidação do token |
-
-O token original **não é armazenado**.
-
----
-
-## 8.6 Tabela `treinos_base`
-
-Modelo:
-
-```text
-TreinoBase
-```
-
-Tabela:
-
-```text
-treinos_base
-```
-
-| Campo | Tipo | Uso |
-|---|---|---|
-| id | Integer | Chave primária |
-| titulo | String | Nome do treino |
-| modalidade | String | Modalidade |
-| descricao | String | Conteúdo do treino |
-| ritmo_alvo | String | Opcional |
-
-Treinos base são modelos reutilizáveis.
-
----
-
-## 8.7 Tabela `treinos_agendados`
-
-Modelo:
-
-```text
-TreinoAgendado
-```
-
-Tabela:
-
-```text
-treinos_agendados
-```
-
-| Campo | Tipo | Uso |
-|---|---|---|
-| id | Integer | Chave primária |
-| aluno_id | Integer | Aluno destinatário |
-| treino_base_id | Integer | Treino que originou o agendamento |
-| titulo | String | Snapshot |
-| modalidade | String | Snapshot |
-| descricao | String | Snapshot |
-| ritmo_alvo | String | Snapshot |
-| data_planejada | String | Data ISO |
-| concluido | Boolean | Status |
-| feedback_nota | Integer | 1 a 5 |
-| feedback_comentario | String | Comentário |
-| feedback_dificuldade | String | Dificuldade |
-
-### Snapshot
-
-O treino agendado copia:
-
-```text
-titulo
-modalidade
-descricao
-ritmo_alvo
-```
-
-do treino base no momento do agendamento.
-
-Isso é proposital.
-
-Se o professor editar o `TreinoBase` depois, os treinos que já foram enviados continuam preservando o conteúdo original.
-
----
-
-## 8.8 Migração leve automática
-
-Ao iniciar, o sistema executa uma migração simples para versões antigas do SQLite.
-
-Atualmente ela:
-
-- verifica as colunas de `usuarios`;
-- adiciona `email` se necessário;
-- cria índice único case-insensitive para e-mails.
-
-Índice:
-
-```text
-ux_usuarios_email_nocase
-```
-
-O projeto ainda **não utiliza Alembic**.
-
----
-
-# 9. Autenticação e segurança
-
-Arquivo:
-
-```text
-app/auth.py
-```
-
----
-
-## 9.1 Hash de senha
-
-Senhas não são armazenadas em texto puro.
-
-Algoritmo:
-
-```text
-PBKDF2-HMAC-SHA256
-```
-
-Iterações:
-
-```text
-310000
-```
-
-Salt:
-
-```text
-16 bytes aleatórios
-```
-
-Formato salvo:
-
-```text
-ITERACOES$SALT$HASH
-```
-
-Exemplo conceitual:
-
-```text
-310000$a1b2c3...$9f8e7d...
-```
-
----
-
-## 9.2 Usuário não diferencia maiúsculas/minúsculas
-
-O login é normalizado com:
-
-```python
-casefold()
-```
-
-Portanto:
-
-```text
-Professor
-professor
-PROFESSOR
-PrOfEsSoR
-```
-
-são tratados como o mesmo usuário.
-
----
-
-## 9.3 Espaços no usuário
-
-Espaços internos não são permitidos.
-
-Inválido:
-
-```text
-prof essor
-luan nascimento
-```
-
-Espaços acidentais no início/fim são removidos:
-
-```text
-" professor "
-```
-
-vira:
-
-```text
-professor
-```
-
-A senha não recebe essa normalização.
-
----
-
-## 9.4 Sessão
-
-O sistema utiliza um token assinado armazenado em cookie.
-
-Cookie:
-
-```text
-spyteam_session
-```
-
-Propriedades:
-
-```text
-HttpOnly: true
-SameSite: lax
-Secure: true em produção
-Validade: 1 dia
-```
-
-O token inclui:
-
-```text
-sub
-tipo
-ver
-exp
-```
-
-onde:
-
-- `sub` = ID do usuário;
-- `tipo` = aluno/professor;
-- `ver` = versão atual da sessão;
-- `exp` = timestamp de expiração.
-
-A coluna `usuarios.session_version` começa em `0`. Ao trocar ou redefinir a senha, ela é incrementada. Tokens emitidos com uma versão anterior passam a ser rejeitados imediatamente, invalidando sessões abertas em outros navegadores/dispositivos.
-
-A assinatura utiliza:
-
-```text
-HMAC-SHA256
-```
-
-com a variável:
-
-```text
-SPYTEAM_SECRET
-```
-
----
-
-## 9.5 Proteção por perfil
-
-Dependências principais:
-
-```text
-get_current_user
-require_professor
-require_aluno
-require_aluno_com_email
-```
-
-### `require_professor`
-
-Bloqueia qualquer conta que não tenha:
-
-```text
-tipo = professor
-```
-
-### `require_aluno`
-
-Exige:
-
-```text
-tipo = aluno
-aluno_id != NULL
-```
-
-### `require_aluno_com_email`
-
-Além das regras de aluno, exige que o e-mail já tenha sido cadastrado.
-
----
-
-## 9.6 Produção
-
-No Railway, se não existir:
-
-```text
-SPYTEAM_SECRET
-```
-
-a aplicação encerra a inicialização.
-
-Isso evita utilizar a chave padrão de desenvolvimento em produção.
-
----
-
-## 9.7 Proteção CSRF explícita
-
-O projeto utiliza o padrão **double-submit cookie** para operações de escrita.
-
-Cookie CSRF:
-
-```text
-spyteam_csrf
-```
-
-Cabeçalho exigido:
-
-```text
-X-CSRF-Token
-```
-
-O arquivo:
-
-```text
-static/js/security.js
-```
-
-lê o cookie e adiciona automaticamente o cabeçalho em chamadas `POST`, `PUT`, `PATCH` e `DELETE` para `/api/*`.
-
-O middleware do FastAPI compara os dois valores com comparação segura. Uma chamada mutável sem token correspondente recebe `403`. O cookie CSRF não é `HttpOnly` porque precisa ser lido pelo JavaScript, mas usa `SameSite=Lax` e `Secure=true` em produção.
-
----
-
-## 9.8 Rate limit no login
-
-O login possui proteção contra força bruta baseada no histórico de falhas armazenado no SQLite. Por padrão, a janela é de **15 minutos** e são observados três limites:
-
-```text
-30 falhas por IP
-5 falhas para a combinação IP + usuário
-20 falhas contra o mesmo usuário
-```
-
-Tentativas já bloqueadas não prolongam indefinidamente o bloqueio. Quando um limite é atingido, a API retorna `429 Too Many Requests` com `Retry-After`.
-
-As configurações podem ser alteradas por variáveis de ambiente:
-
-```text
-LOGIN_RATE_WINDOW_SECONDS
-LOGIN_RATE_MAX_IP
-LOGIN_RATE_MAX_USER_IP
-LOGIN_RATE_MAX_USER
-```
-
----
-
-## 9.9 Rate limit global da recuperação
-
-A recuperação de senha possui três limites simultâneos, também em uma janela padrão de 15 minutos:
-
-```text
-10 solicitações por IP
-3 solicitações por e-mail/identificador
-100 solicitações globais na aplicação
-```
-
-O e-mail usado para o controle não é salvo nessa tabela em texto puro; o sistema guarda apenas um **SHA-256 do identificador normalizado**. Solicitações para e-mails inexistentes também contam para o limite, evitando contorno com endereços aleatórios.
-
-Variáveis:
-
-```text
-RECOVERY_RATE_WINDOW_SECONDS
-RECOVERY_RATE_MAX_IP
-RECOVERY_RATE_MAX_IDENTIFIER
-RECOVERY_RATE_MAX_GLOBAL
-```
-
----
-
-## 9.10 Auditoria de logins
-
-Cada tentativa de login é registrada em:
-
-```text
-auditoria_logins
-```
-
-São armazenados:
-
-- usuário informado;
-- ID do usuário quando conhecido;
-- sucesso ou falha;
-- motivo;
-- IP;
-- user-agent/navegador;
-- timestamp.
-
-**A senha nunca é registrada.**
-
-Motivos atuais:
-
-```text
-sucesso
-credenciais_invalidas
-usuario_invalido
-rate_limit
-```
-
-O professor pode visualizar os eventos em:
-
-```text
-/seguranca
-```
-
----
-
-## 9.11 Histórico de alterações administrativas
-
-Mudanças administrativas são registradas em:
-
-```text
-auditoria_administrativa
-```
-
-O histórico inclui:
-
-- professor responsável;
-- ação;
-- tipo e ID da entidade;
-- descrição;
-- detalhes em JSON;
-- IP;
-- user-agent;
-- timestamp.
-
-Ações auditadas atualmente incluem:
-
-```text
-criar_aluno
-excluir_aluno
-agendar_treino
-criar_treino_base
-editar_treino_base
-excluir_treino_base
-enviar_treino_em_massa
-enviar_planejamento_semanal
-```
-
-Senhas e tokens não são colocados no histórico. O registro de auditoria é adicionado à mesma transação da alteração administrativa, evitando registrar como concluída uma mudança que não foi salva no banco.
-
----
-
-# 10. Sistema de recuperação de senha
-
-O projeto utiliza **Resend** para envio de e-mail.
-
-Arquivo:
-
-```text
-app/email_service.py
-```
-
----
-
-## 10.1 Primeiro acesso
-
-Ao primeiro login de um aluno sem e-mail:
-
-```text
-/aluno/cadastrar-email
-```
-
-é obrigatório.
-
-Enquanto o e-mail não for cadastrado, o aluno não acessa:
-
-```text
-/aluno
-/aluno/historico
-/aluno/perfil
-/api/me/treinos
-/api/me/senha
-```
-
----
-
-## 10.2 Validação de e-mail
-
-O e-mail:
-
-- é convertido para minúsculas;
-- tem espaços externos removidos;
-- precisa passar pelo regex de validação;
-- precisa ser confirmado duas vezes;
-- não pode estar associado a outra conta.
-
----
-
-## 10.3 Solicitação
-
-Endpoint:
-
-```text
-POST /api/senha/esqueci
-```
-
-Payload:
-
-```json
-{
-  "email": "aluno@email.com"
+# ============================================================
+# MAIN.PY
+# API principal do SpyTeam
+# ============================================================
+
+import json
+import os
+import re
+import time
+import unicodedata
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from fastapi import FastAPI, Depends, HTTPException, Request, status, BackgroundTasks
+
+from fastapi.responses import (
+    FileResponse,
+    JSONResponse,
+    RedirectResponse
+)
+
+from fastapi.staticfiles import StaticFiles
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from .database import (
+    engine,
+    SessionLocal
+)
+
+from . import models
+from . import schemas
+
+from .auth import (
+    COOKIE_NAME,
+    criar_token,
+    criar_token_recuperacao,
+    hash_senha,
+    hash_token_recuperacao,
+    ler_token,
+    verificar_senha
+)
+
+from .email_service import (
+    enviar_email_recuperacao
+)
+
+from .push_service import (
+    chave_publica_vapid,
+    push_configurado,
+    enviar_push_para_usuario_id,
+    enviar_push_para_aluno_id
+)
+
+from .reminder_service import (
+    iniciar_agendador_notificacoes,
+    parar_agendador_notificacoes
+)
+
+from .security import (
+    CSRF_COOKIE_NAME,
+    CSRF_HEADER_NAME,
+    LOGIN_RATE_WINDOW_SECONDS,
+    RECOVERY_RATE_WINDOW_SECONDS,
+    criar_token_csrf,
+    validar_token_csrf,
+    registrar_auditoria_login,
+    verificar_rate_limit_login,
+    registrar_e_verificar_rate_limit_recuperacao,
+    registrar_acao_admin
+)
+
+# ============================================================
+# MODALIDADES OFICIAIS DO SPY TEAM
+# ============================================================
+
+MODALIDADES_PERMITIDAS = (
+    "Corrida",
+    "Natação",
+    "Musculação",
+)
+
+
+def _normalizar_modalidade_texto(valor: str) -> str:
+    return (
+        unicodedata.normalize("NFD", str(valor or ""))
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .strip()
+        .lower()
+    )
+
+
+MODALIDADES_POR_CHAVE = {
+    _normalizar_modalidade_texto(nome): nome
+    for nome in MODALIDADES_PERMITIDAS
 }
-```
 
-A resposta pública é sempre genérica:
+# ============================================================
+# CRIA AS TABELAS
+# ============================================================
+#
+# Se a tabela ainda não existir, ela será criada.
+#
+# IMPORTANTE:
+# Isso NÃO apaga seu banco.
+#
+# ============================================================
+
+models.Base.metadata.create_all(
+    bind=engine
+)
+
+
+# ============================================================
+# MIGRAÇÃO LEVE DO SQLITE
+# ============================================================
+
+def migrar_banco():
+    """Adiciona colunas novas sem apagar os dados existentes."""
+
+    with engine.begin() as conexao:
+        colunas = {
+            linha[1]
+            for linha in conexao.exec_driver_sql(
+                "PRAGMA table_info(usuarios)"
+            ).fetchall()
+        }
+
+        if "email" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios ADD COLUMN email VARCHAR"
+            )
+
+        if "session_version" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios "
+                "ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0"
+            )
+
+        colunas_treinos = {
+            linha[1]
+            for linha in conexao.exec_driver_sql(
+                "PRAGMA table_info(treinos_agendados)"
+            ).fetchall()
+        }
+
+        if "concluido_em" not in colunas_treinos:
+            conexao.exec_driver_sql(
+                "ALTER TABLE treinos_agendados "
+                "ADD COLUMN concluido_em INTEGER"
+            )
+
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS "
+            "ix_treinos_agendados_concluido_em "
+            "ON treinos_agendados(concluido_em)"
+        )
+
+        conexao.exec_driver_sql(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            ux_usuarios_email_nocase
+            ON usuarios(email COLLATE NOCASE)
+            WHERE email IS NOT NULL AND email <> ''
+            """
+        )
+
+        # Migração de modalidade única -> múltiplas modalidades.
+        # A tabela aluno_modalidades é criada pelo SQLAlchemy antes daqui.
+        alunos_legados = conexao.exec_driver_sql(
+            "SELECT id, modalidade FROM alunos "
+            "WHERE modalidade IS NOT NULL AND TRIM(modalidade) <> ''"
+        ).fetchall()
+
+        for aluno_id, modalidade_legada in alunos_legados:
+            chave = _normalizar_modalidade_texto(modalidade_legada)
+            modalidade_oficial = MODALIDADES_POR_CHAVE.get(chave)
+
+            # Ciclismo/Triathlon e outros valores antigos não são migrados,
+            # pois deixaram de fazer parte das modalidades oficiais.
+            if not modalidade_oficial:
+                continue
+
+            conexao.exec_driver_sql(
+                """
+                INSERT OR IGNORE INTO aluno_modalidades
+                    (aluno_id, modalidade)
+                VALUES (?, ?)
+                """,
+                (aluno_id, modalidade_oficial)
+            )
+
+
+migrar_banco()
+
+
+# ============================================================
+# FASTAPI
+# ============================================================
+
+from fastapi.templating import Jinja2Templates
+
+app = FastAPI(
+    title="SpyTeam"
+)
+
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static"
+)
 
-```text
-Se existir uma conta associada a este e-mail,
-enviaremos as instruções de recuperação.
-```
+templates = Jinja2Templates(
+    directory="templates"
+)
 
-Isso evita revelar se um endereço possui conta no sistema.
 
----
+# ============================================================
+# AGENDADOR DE LEMBRETES DA PWA
+# ============================================================
 
-## 10.4 Controle de repetição e rate limit
+@app.on_event("startup")
+async def iniciar_lembretes_pwa():
+    iniciar_agendador_notificacoes()
 
-Além do rate limit por IP, identificador e volume global descrito na seção de segurança, existe uma proteção adicional por conta: um novo e-mail de recuperação não é disparado se a última solicitação válida ocorreu há menos de aproximadamente:
 
-```text
-60 segundos
-```
+@app.on_event("shutdown")
+async def parar_lembretes_pwa():
+    await parar_agendador_notificacoes()
+
 
-Isso reduz spam mesmo quando a solicitação ainda está abaixo dos limites globais.
+# ============================================================
+# PWA — MANIFESTO E SERVICE WORKER
+# ============================================================
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifest_pwa():
+    return FileResponse(
+        "static/manifest.webmanifest",
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "public, max-age=3600"}
+    )
+
+
+@app.get("/service-worker.js", include_in_schema=False)
+def service_worker_pwa():
+    return FileResponse(
+        "static/js/service-worker.js",
+        media_type="application/javascript",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Service-Worker-Allowed": "/"
+        }
+    )
+
+
+# ============================================================
+# ERROS DE AUTENTICAÇÃO NAS PÁGINAS HTML
+# ============================================================
+
+@app.exception_handler(HTTPException)
+async def tratar_http_exception(request: Request, exc: HTTPException):
+    """
+    Mantém os erros da API em JSON, mas trata as páginas HTML de forma
+    amigável. Se alguém abrir uma página protegida sem sessão válida,
+    redireciona para /login em vez de exibir o JSON de erro 401.
+
+    Isso também cobre sessão expirada, cookie inválido e sessão invalidada
+    após troca/redefinição de senha.
+    """
+    caminho = request.url.path
+    eh_api = caminho.startswith("/api/")
+
+    if exc.status_code == 401 and not eh_api:
+        resposta = RedirectResponse(
+            url="/login",
+            status_code=303
+        )
+
+        # Remove um cookie antigo/inválido para que o próximo login comece
+        # com uma sessão limpa.
+        resposta.delete_cookie(
+            key=COOKIE_NAME,
+            path="/"
+        )
+
+        return resposta
+
+    # APIs continuam respondendo exatamente como API: status + JSON.
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=exc.headers
+    )
+
+
+# ============================================================
+# CONFIGURAÇÃO DE PRODUÇÃO
+# ============================================================
+
+def _env_bool(nome: str, padrao: bool = False) -> bool:
+    valor = os.getenv(nome)
+
+    if valor is None:
+        return padrao
+
+    return valor.strip().lower() in {
+        "1", "true", "sim", "yes", "on"
+    }
+
+
+EM_RAILWAY = bool(
+    os.getenv("RAILWAY_ENVIRONMENT_NAME")
+)
+
+COOKIE_SECURE = _env_bool(
+    "COOKIE_SECURE",
+    padrao=EM_RAILWAY
+)
+
+
+# ============================================================
+# PROTEÇÃO CSRF EXPLÍCITA
+# ============================================================
+
+@app.middleware("http")
+async def proteger_csrf(request: Request, call_next):
+    """
+    Aplica double-submit cookie a todas as rotas mutáveis da API.
+
+    O navegador recebe um cookie aleatório e o JavaScript do próprio
+    SpyTeam precisa reenviar o mesmo valor no cabeçalho X-CSRF-Token.
+    Sites externos não conseguem ler esse cookie por causa da política
+    de mesma origem do navegador.
+    """
+    token_cookie = request.cookies.get(CSRF_COOKIE_NAME)
+
+    metodo_mutavel = request.method.upper() in {
+        "POST", "PUT", "PATCH", "DELETE"
+    }
+
+    if metodo_mutavel and request.url.path.startswith("/api/"):
+        token_header = request.headers.get(CSRF_HEADER_NAME)
+
+        if not validar_token_csrf(token_cookie, token_header):
+            resposta = JSONResponse(
+                status_code=403,
+                content={
+                    "detail": (
+                        "Validação de segurança expirada ou inválida. "
+                        "Atualize a página e tente novamente."
+                    )
+                }
+            )
+
+            # Facilita a recuperação do cliente sem reduzir a proteção:
+            # a próxima página carregada terá um token novo.
+            if not token_cookie:
+                resposta.set_cookie(
+                    key=CSRF_COOKIE_NAME,
+                    value=criar_token_csrf(),
+                    httponly=False,
+                    secure=COOKIE_SECURE,
+                    samesite="lax",
+                    max_age=60 * 60 * 24,
+                    path="/"
+                )
+
+            return resposta
+
+    resposta = await call_next(request)
+
+    if not token_cookie:
+        resposta.set_cookie(
+            key=CSRF_COOKIE_NAME,
+            value=criar_token_csrf(),
+            httponly=False,
+            secure=COOKIE_SECURE,
+            samesite="lax",
+            max_age=60 * 60 * 24,
+            path="/"
+        )
+
+    return resposta
+
+
+# ============================================================
+# NORMALIZAR MODALIDADE
+# ============================================================
+def normalizar_modalidade(valor: str) -> str:
+    """Compara modalidades sem diferença de maiúsculas/acentos."""
+    return _normalizar_modalidade_texto(valor)
+
+
+def canonicalizar_modalidade(valor: str) -> str:
+    """Retorna o nome oficial da modalidade ou gera erro de validação."""
+    chave = normalizar_modalidade(valor)
+    modalidade = MODALIDADES_POR_CHAVE.get(chave)
+
+    if not modalidade:
+        raise ValueError(
+            "Modalidade inválida. Use somente Corrida, Natação ou Musculação."
+        )
+
+    return modalidade
+
+
+def validar_modalidades(valores) -> list[str]:
+    """Valida, remove duplicidades e mantém a ordem oficial das modalidades."""
+    if not valores:
+        raise ValueError("Selecione pelo menos uma modalidade.")
 
----
+    escolhidas = {
+        canonicalizar_modalidade(valor)
+        for valor in valores
+    }
 
-## 10.5 Token
+    return [
+        modalidade
+        for modalidade in MODALIDADES_PERMITIDAS
+        if modalidade in escolhidas
+    ]
 
-O token é gerado com:
 
-```python
-secrets.token_urlsafe(32)
-```
+def obter_modalidades_aluno(db: Session, aluno_id: int) -> list[str]:
+    registros = (
+        db.query(models.AlunoModalidade)
+        .filter(models.AlunoModalidade.aluno_id == aluno_id)
+        .all()
+    )
 
-No banco fica apenas:
+    existentes = {registro.modalidade for registro in registros}
 
-```text
-SHA-256(token)
-```
+    return [
+        modalidade
+        for modalidade in MODALIDADES_PERMITIDAS
+        if modalidade in existentes
+    ]
 
-Validade:
 
-```text
-15 minutos
-```
+def definir_modalidades_aluno(
+    db: Session,
+    aluno_db: models.Aluno,
+    modalidades
+) -> list[str]:
+    modalidades_validas = validar_modalidades(modalidades)
 
-Ao gerar um novo token, tokens antigos ainda não utilizados são marcados como usados.
+    db.query(models.AlunoModalidade).filter(
+        models.AlunoModalidade.aluno_id == aluno_db.id
+    ).delete(synchronize_session=False)
 
-Ao redefinir a senha, os tokens pendentes também são invalidados.
+    for modalidade in modalidades_validas:
+        db.add(
+            models.AlunoModalidade(
+                aluno_id=aluno_db.id,
+                modalidade=modalidade
+            )
+        )
 
----
+    # Compatibilidade com versões antigas do banco/código.
+    aluno_db.modalidade = modalidades_validas[0]
 
-## 10.6 Link de recuperação
+    return modalidades_validas
 
-Formato:
 
-```text
-APP_URL/redefinir-senha?token=TOKEN
-```
+# ============================================================
+# NORMALIZAR USUÁRIO E E-MAIL
+# ============================================================
 
-Em produção:
+def normalizar_usuario(valor: str) -> str:
+    """
+    Usuários não diferenciam maiúsculas/minúsculas.
+    Espaços no começo/fim são ignorados e espaços internos
+    não são permitidos.
+    """
 
-```text
-https://www.spyteam.com.br/redefinir-senha?token=...
-```
+    usuario = str(valor or "").strip()
 
----
+    if not usuario:
+        raise ValueError("Usuário inválido.")
 
-## 10.7 Modo de desenvolvimento
+    if any(caractere.isspace() for caractere in usuario):
+        raise ValueError(
+            "O usuário não pode conter espaços."
+        )
 
-É possível testar recuperação sem enviar e-mail real:
+    return usuario.casefold()
 
-```text
-EMAIL_MODE=console
-```
 
-Nesse modo, o link é impresso no terminal.
+EMAIL_REGEX = re.compile(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
+)
 
----
 
-# 11. Sistema de treinos
+def normalizar_email(valor: str) -> str:
+    email = str(valor or "").strip().casefold()
 
-## 11.1 Treino base
+    if not EMAIL_REGEX.fullmatch(email):
+        raise ValueError("Informe um e-mail válido.")
 
-Um treino base possui:
+    return email
 
-```text
-Título
-Modalidade
-Descrição
-Ritmo alvo opcional
-```
 
-Exemplo:
+def aluno_sem_email(usuario: models.Usuario) -> bool:
+    return not str(usuario.email or "").strip()
 
-```text
-Título: Intervalado 5x1 km
-Modalidade: Corrida
-Descrição: 10 min aquecimento + 5x1 km...
-Ritmo alvo: 4:30 min/km
-```
 
----
+# ============================================================
+# CONEXÃO COM BANCO
+# ============================================================
 
-## 11.2 Agendamento individual
+def get_db():
 
-O professor seleciona:
+    db = SessionLocal()
 
-```text
-Aluno
-Treino base
-Data planejada
-```
+    try:
 
-O sistema cria um `TreinoAgendado`.
+        yield db
 
----
+    finally:
 
-## 11.3 Treino em massa
+        db.close()
 
-Endpoint:
 
-```text
-POST /api/treinos/em-massa
-```
+# ============================================================
+# IDENTIFICAR USUÁRIO LOGADO
+# ============================================================
 
-No estado atual, essa rota distribui o treino informado para **todos os alunos cadastrados**.
+def obter_usuario_da_sessao(
+    request: Request,
+    db: Session
+):
+    """
+    Retorna (usuario, payload) somente se a assinatura, expiração e
+    versão da sessão forem válidas.
 
-A distribuição específica por modalidade é feita pelo recurso de **planejamento semanal**.
+    A versão da sessão é incrementada quando a senha muda. Dessa forma,
+    todos os navegadores que possuírem tokens antigos são desconectados.
+    """
+    payload = ler_token(
+        request.cookies.get(COOKIE_NAME)
+    )
 
----
+    if not payload:
+        return None, None
 
-## 11.4 Edição de treino base
+    try:
+        usuario_id = int(payload["sub"])
+        versao_token = int(payload.get("ver", 0))
+    except (KeyError, TypeError, ValueError):
+        return None, None
 
-É permitido editar:
+    usuario = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.id == usuario_id)
+        .first()
+    )
 
-- título;
-- modalidade;
-- descrição;
-- ritmo alvo.
+    if not usuario:
+        return None, None
 
-Treinos já agendados não mudam porque possuem snapshot.
+    versao_banco = int(usuario.session_version or 0)
 
----
+    if versao_token != versao_banco:
+        return None, None
 
-## 11.5 Exclusão de treino base
+    # Não confia apenas no tipo presente no token.
+    if payload.get("tipo") != usuario.tipo:
+        return None, None
 
-Um treino base só pode ser excluído se ainda não tiver sido usado em nenhum agendamento.
+    return usuario, payload
 
-Se existir um `TreinoAgendado` referenciando o treino base, a API retorna erro.
 
----
+def get_current_user(
+    request: Request,
+    db: Session = Depends(get_db)
+):
 
-## 11.6 Conclusão
+    usuario, _ = obter_usuario_da_sessao(
+        request,
+        db
+    )
 
-O aluno conclui através de:
+    if not usuario:
+        raise HTTPException(
+            status_code=401,
+            detail=(
+                "Sessão inválida ou expirada. "
+                "Entre novamente."
+            )
+        )
 
-```text
-PATCH /api/treinos/{treino_id}/concluir
-```
+    return usuario
 
-O sistema valida que o treino pertence ao aluno autenticado.
 
-Também impede concluir novamente um treino já finalizado.
+# ============================================================
+# EXIGIR PROFESSOR
+# ============================================================
 
----
+def require_professor(
+    usuario: models.Usuario =
+    Depends(get_current_user)
+):
 
-## 11.7 Feedback
+    # Verifica o tipo da conta
+    if usuario.tipo != "professor":
 
-Ao concluir, o aluno informa:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Acesso permitido somente "
+                "para professores."
+            )
+        )
 
-```text
-nota
-dificuldade
-comentario
-```
+    return usuario
+
+
+# ============================================================
+# EXIGIR ALUNO
+# ============================================================
+
+def require_aluno(
+    usuario: models.Usuario =
+    Depends(get_current_user)
+):
+
+    # Precisa ser aluno
+    #
+    # E também precisa ter aluno_id
+    if (
+        usuario.tipo != "aluno"
+        or usuario.aluno_id is None
+    ):
+
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Acesso permitido somente "
+                "para alunos."
+            )
+        )
 
-A nota deve estar entre:
+    return usuario
 
-```text
-1 e 5
-```
 
----
+# ============================================================
+# EXIGIR ALUNO COM E-MAIL CADASTRADO
+# ============================================================
+
+def require_aluno_com_email(
+    usuario: models.Usuario =
+    Depends(require_aluno)
+):
 
-# 12. Planejamento semanal
+    if aluno_sem_email(usuario):
+        raise HTTPException(
+            status_code=428,
+            detail=(
+                "Cadastre seu e-mail antes "
+                "de continuar."
+            )
+        )
+
+    return usuario
+
 
-Rota:
-
-```text
-POST /api/treinos/semana
-```
-
-O parâmetro:
-
-```text
-data_segunda
-```
-
-precisa representar uma segunda-feira.
-
-Os dias utilizam:
-
-```text
-0 = segunda
-1 = terça
-2 = quarta
-3 = quinta
-4 = sexta
-```
-
-Somente segunda a sexta são aceitos.
-
----
-
-## 12.1 Modalidades
-
-A comparação de modalidades ignora:
-
-- maiúsculas/minúsculas;
-- acentos;
-- espaços externos.
-
-Por exemplo:
-
-```text
-Corrida
-corrida
-CORRIDA
-```
-
-são equivalentes.
-
-E:
-
-```text
-Natação
-natacao
-```
-
-também são comparáveis pela normalização usada no backend.
-
----
-
-## 12.2 Evitar duplicidade
-
-Antes de criar o treino, o sistema verifica:
-
-```text
-aluno_id
-treino_base_id
-data_planejada
-```
-
-Se a mesma combinação já existir, o treino não é criado novamente.
-
----
-
-# 13. Frontend e identidade visual
-
-## 13.1 Identidade
-
-Cores principais:
-
-```text
-Primária:        #3161CA
-Primária escura: #24499C
-Destaque:        #57C0FF
-Navy:            #08152F
-Fundo:           #F5F8FF
-Branco:          #FFFFFF
-Texto principal: #101828
-Texto secundário:#667085
-Muted:           #98A2B3
-Borda:           #D9E2F2
-```
-
-Semânticas:
-
-```text
-Sucesso: #22C55E
-Alerta:  #F59E0B
-Erro:    #EF4444
-```
-
----
-
-## 13.2 Tipografia
-
-Fonte principal:
-
-```text
-Inter
-```
-
-Fallback:
-
-```text
-system-ui
--apple-system
-BlinkMacSystemFont
-Segoe UI
-sans-serif
-```
-
-A fonte Inter é carregada pelo Google Fonts.
-
----
-
-## 13.3 Logo
-
-Logo principal:
-
-```text
-static/img/logo-spy-team.svg
-```
-
-Também existe versão PNG:
-
-```text
-static/img/logo-spy-team.png
-```
-
----
-
-## 13.4 Favicon
-
-O navegador utiliza somente o símbolo da marca para manter legibilidade em tamanho pequeno.
-
-Arquivos:
-
-```text
-static/img/favicon-spyteam.svg
-static/img/favicon-32x32.png
-static/img/favicon.ico
-```
-
----
-
-## 13.5 Área do professor
-
-Possui:
-
-- sidebar;
-- dashboard;
-- cards;
-- gerenciamento de alunos;
-- gerenciamento de treinos;
-- planejamento semanal;
-- formulários responsivos.
-
----
-
-## 13.6 Área do aluno
-
-A área foi dividida em telas distintas:
-
-### Início
-
-```text
-/aluno
-```
-
-Mostra:
-
-- saudação;
-- nível;
-- total de treinos;
-- pendentes;
-- concluídos;
-- agenda de segunda a sexta.
-
-### Histórico
-
-```text
-/aluno/historico
-```
-
-Mostra:
-
-- treinos concluídos;
-- modalidade;
-- data;
-- descrição;
-- dificuldade;
-- avaliação;
-- comentário.
-
-### Meu perfil
-
-```text
-/aluno/perfil
-```
-
-Mostra:
-
-- nome;
-- usuário;
-- nível;
-- modalidade;
-- e-mail;
-- alteração de senha.
-
----
-
-## 13.7 Mostrar senha
-
-O sistema possui botão de olho para mostrar/ocultar senha em:
-
-- login;
-- senha atual no perfil;
-- nova senha;
-- confirmação da nova senha;
-- redefinição de senha.
-
----
-
-# 14. Rotas de páginas
-
-| Método | Rota | Acesso | Página |
-|---|---|---|---|
-| GET | `/` | Geral | Redirecionamento |
-| GET | `/login` | Público | Login |
-| GET | `/esqueci-senha` | Público | Solicitação de recuperação |
-| GET | `/redefinir-senha` | Público | Nova senha via token |
-| GET | `/health` | Público | Healthcheck |
-| GET | `/home` | Professor | Dashboard |
-| GET | `/novo-aluno` | Professor | Cadastro de aluno |
-| GET | `/alunos` | Professor | Gestão de alunos |
-| GET | `/novo-treino` | Professor | Agendamento individual |
-| GET | `/novo-treino-base` | Professor | Criar treino base |
-| GET | `/treinos-base` | Professor | Gerenciar treinos base |
-| GET | `/editar-treino-base/{id}` | Professor | Editar treino base |
-| GET | `/planejamento-semanal` | Professor | Planejamento semanal |
-| GET | `/seguranca` | Professor | Segurança, auditoria de logins e alterações |
-| GET | `/aluno/cadastrar-email` | Aluno | Primeiro acesso |
-| GET | `/aluno` | Aluno com e-mail | Dashboard |
-| GET | `/aluno/historico` | Aluno com e-mail | Histórico |
-| GET | `/aluno/perfil` | Aluno com e-mail | Perfil |
-
----
-
-# 15. API
-
-## 15.1 Autenticação e conta
-
-| Método | Endpoint | Acesso | Função |
-|---|---|---|---|
-| POST | `/api/login` | Público | Login |
-| POST | `/api/logout` | Logado | Logout |
-| GET | `/api/me` | Logado | Dados da sessão |
-| PATCH | `/api/me/email` | Aluno | Primeiro e-mail |
-| PATCH | `/api/me/senha` | Aluno com e-mail | Alterar senha |
-| POST | `/api/senha/esqueci` | Público | Solicitar recuperação |
-| POST | `/api/senha/redefinir` | Público | Redefinir por token |
-
-### Login
-
-```json
-{
-  "usuario": "professor",
-  "senha": "senha"
-}
-```
-
-Resposta de exemplo:
-
-```json
-{
-  "mensagem": "Login realizado com sucesso!",
-  "tipo": "professor",
-  "usuario": "professor",
-  "redirect": "/home"
-}
-```
-
----
-
-## 15.2 Alunos
-
-| Método | Endpoint | Acesso | Função |
-|---|---|---|---|
-| POST | `/api/alunos` | Professor | Criar aluno |
-| GET | `/api/alunos` | Professor | Listar alunos |
-| DELETE | `/api/alunos/{aluno_id}` | Professor | Excluir aluno |
-| GET | `/api/alunos/{aluno_id}/treinos` | Professor | Treinos do aluno |
-
-### Criar aluno
-
-```json
-{
-  "nome": "Aluno Exemplo",
-  "nivel": "Intermediário",
-  "modalidades": ["Corrida", "Musculação"],
-  "usuario": "aluno01",
-  "senha": "senha123"
-}
-```
-
----
-
-## 15.3 Treinos agendados
-
-| Método | Endpoint | Acesso | Função |
-|---|---|---|---|
-| POST | `/api/treinos` | Professor | Agendar individual |
-| GET | `/api/treinos` | Professor | Listar todos |
-| POST | `/api/treinos/em-massa` | Professor | Enviar a todos |
-| POST | `/api/treinos/semana` | Professor | Planejamento semanal |
-| GET | `/api/me/treinos` | Aluno | Próprios treinos |
-| PATCH | `/api/treinos/{treino_id}/concluir` | Aluno | Concluir + feedback |
-
----
-
-## 15.4 Auditoria de segurança
-
-| Método | Endpoint | Acesso | Função |
-|---|---|---|---|
-| GET | `/api/auditoria/logins` | Professor | Últimos eventos de login |
-| GET | `/api/auditoria/administrativa` | Professor | Histórico de alterações administrativas |
-
-O parâmetro opcional `limite` aceita de 1 a 500 registros.
-
----
-
-## 15.5 Treinos base
-
-| Método | Endpoint | Acesso | Função |
-|---|---|---|---|
-| GET | `/api/treinos-base` | Professor | Listar |
-| POST | `/api/treinos-base` | Professor | Criar |
-| PATCH | `/api/treinos-base/{id}` | Professor | Editar |
-| DELETE | `/api/treinos-base/{id}` | Professor | Excluir |
-
-### Criar treino base
-
-```json
-{
-  "titulo": "Treino intervalado",
-  "modalidade": "Corrida",
-  "descricao": "10 min de aquecimento...",
-  "ritmo_alvo": "4:30 min/km"
-}
-```
-
----
-
-# 16. Instalação local
-
-## 16.1 Pré-requisitos
-
-- Python 3.12 recomendado;
-- Git;
-- VS Code opcional.
-
-Clone:
-
-```bash
-git clone https://github.com/Luanbr01/SpyTeam.git
-cd SpyTeam
-```
-
----
-
-## 16.2 Ambiente virtual
-
-Windows PowerShell:
-
-```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-```
-
-CMD:
-
-```cmd
-python -m venv venv
-venv\Scripts\activate
-```
-
-Linux/macOS:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
----
-
-## 16.3 Dependências
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-# 17. Variáveis de ambiente
-
-Arquivo de referência:
-
-```text
-.env.example
-```
-
-Não coloque `.env` no GitHub.
-
----
-
-## 17.1 Autenticação
-
-### `SPYTEAM_SECRET`
-
-Assina as sessões.
-
-Exemplo para gerar:
-
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(48))"
-```
-
-Obrigatória em produção.
-
----
-
-### `PROFESSOR_USUARIO`
-
-Usuário criado automaticamente caso não exista nenhum professor.
-
-Exemplo:
-
-```text
-professor
-```
-
----
-
-### `PROFESSOR_SENHA`
-
-Senha inicial do professor.
-
-Essa variável é utilizada apenas quando é necessário criar o professor.
-
-Se o professor já existe no banco, mudar essa variável **não muda a senha existente**.
-
----
-
-### `COOKIE_SECURE`
-
-Produção:
-
-```text
-true
-```
-
----
-
-## 17.2 Banco
-
-### `DATABASE_PATH`
-
-Opcional.
-
-Exemplo:
-
-```text
-/data/assessoria.db
-```
-
-Normalmente não precisa ser definida no Railway porque o sistema detecta:
-
-```text
-RAILWAY_VOLUME_MOUNT_PATH
-```
-
-automaticamente.
-
----
-
-## 17.3 E-mail
-
-### `RESEND_API_KEY`
-
-Chave da API do Resend.
-
-```text
-re_...
-```
-
-Nunca publique essa chave.
-
----
-
-### `EMAIL_FROM`
-
-Produção atual:
-
-```text
-SPY TEAM <noreply@spyteam.com.br>
-```
-
----
-
-### `APP_URL`
-
-Produção atual:
-
-```text
-https://www.spyteam.com.br
-```
-
----
-
-### `EMAIL_MODE`
-
-Produção:
-
-```text
-resend
-```
-
-Desenvolvimento sem envio real:
-
-```text
-console
-```
-
----
-
-## 17.4 Rate limits opcionais
-
-Os valores abaixo já possuem defaults no código e só precisam ser configurados se quiser ajustar a política:
-
-```env
-LOGIN_RATE_WINDOW_SECONDS=900
-LOGIN_RATE_MAX_IP=30
-LOGIN_RATE_MAX_USER_IP=5
-LOGIN_RATE_MAX_USER=20
-
-RECOVERY_RATE_WINDOW_SECONDS=900
-RECOVERY_RATE_MAX_IP=10
-RECOVERY_RATE_MAX_IDENTIFIER=3
-RECOVERY_RATE_MAX_GLOBAL=100
-```
-
----
-
-## 17.5 Exemplo completo
-
-```env
-SPYTEAM_SECRET=gere-uma-chave-longa-e-aleatoria
-PROFESSOR_USUARIO=professor
-PROFESSOR_SENHA=senha-forte
-COOKIE_SECURE=true
-
-RESEND_API_KEY=re_xxxxxxxxxxxxxxxxx
-EMAIL_FROM=SPY TEAM <noreply@spyteam.com.br>
-APP_URL=https://www.spyteam.com.br
-EMAIL_MODE=resend
-
-# Opcional
-# DATABASE_PATH=/data/assessoria.db
-
-# Rate limit - opcionais
-# LOGIN_RATE_WINDOW_SECONDS=900
-# LOGIN_RATE_MAX_IP=30
-# LOGIN_RATE_MAX_USER_IP=5
-# LOGIN_RATE_MAX_USER=20
-# RECOVERY_RATE_WINDOW_SECONDS=900
-# RECOVERY_RATE_MAX_IP=10
-# RECOVERY_RATE_MAX_IDENTIFIER=3
-# RECOVERY_RATE_MAX_GLOBAL=100
-```
-
----
-
-# 18. Execução local
-
-Com o ambiente virtual ativado:
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Acesse:
-
-```text
-http://127.0.0.1:8000
-```
-
-Healthcheck:
-
-```text
-http://127.0.0.1:8000/health
-```
-
-Resposta:
-
-```json
-{
-  "status": "ok",
-  "app": "SpyTeam"
-}
-```
-
----
-
-## Professor local padrão
-
-Se não estiver no Railway e não houver professor no banco:
-
-```text
-Usuário: professor
-Senha: 1234
-```
-
-Isso é apenas fallback de desenvolvimento.
-
-Não utilize essa credencial padrão em produção.
-
----
-
-# 19. Deploy no Railway
-
-O projeto inclui:
-
-```text
-Procfile
-```
-
-Conteúdo:
-
-```text
-web: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
-```
-
-### Por que `--proxy-headers`?
-
-O Railway funciona atrás de proxy.
-
-Essas opções permitem ao Uvicorn interpretar corretamente informações encaminhadas pelo proxy, inclusive HTTPS.
-
----
-
-## 19.1 Fluxo
-
-```text
-VS Code
-   |
-   v
-git push
-   |
-   v
-GitHub
-   |
-   v
-Railway
-   |
-   v
-Build
-   |
-   v
-Deploy
-   |
-   v
-www.spyteam.com.br
-```
-
----
-
-## 19.2 Healthcheck
-
-Configure:
-
-```text
-/health
-```
-
----
-
-# 20. Banco persistente no Railway
-
-O SQLite não deve depender do filesystem temporário do container.
-
-O SPY TEAM utiliza um Railway Volume.
-
-Mount path:
-
-```text
-/data
-```
-
-Banco:
-
-```text
-/data/assessoria.db
-```
-
-O `app/database.py` detecta automaticamente:
-
-```text
-RAILWAY_VOLUME_MOUNT_PATH
-```
-
----
-
-## 20.1 Railway CLI
-
-Instalação:
-
-```bash
-npm install -g @railway/cli
-```
-
-Login:
-
-```bash
-railway login
-```
-
-Vincular projeto:
-
-```bash
-railway link
-```
-
----
-
-## 20.2 Ver volumes
-
-```bash
-railway volume list
-```
-
----
-
-## 20.3 Ver arquivos
-
-```bash
-railway volume files list /
-```
-
-Resultado esperado:
-
-```text
-assessoria.db
-lost+found/
-```
-
----
-
-## 20.4 SSH
-
-```bash
-railway ssh
-```
-
-Dentro do container:
-
-```bash
-echo $RAILWAY_VOLUME_MOUNT_PATH
-```
-
-Esperado:
-
-```text
-/data
-```
-
-Ver banco:
-
-```bash
-ls -lh /data
-```
-
----
-
-# 21. Domínio próprio
-
-Domínio atual:
-
-```text
-www.spyteam.com.br
-```
-
-O domínio está ligado ao Railway através de registros DNS.
-
-No Registro.br, o DNS permanece administrado pelo próprio Registro.br.
-
-O Railway utiliza registros como:
-
-```text
-CNAME
-TXT de verificação
-```
-
-Não publique tokens de verificação DNS em documentação pública.
-
----
-
-## HTTPS
-
-O Railway emite certificado TLS/SSL após verificar o domínio.
-
-Sempre utilize:
-
-```text
-https://www.spyteam.com.br
-```
-
----
-
-# 22. Resend e envio de e-mail
-
-O domínio:
-
-```text
-spyteam.com.br
-```
-
-é utilizado para envio transacional.
-
-Remetente:
-
-```text
-SPY TEAM <noreply@spyteam.com.br>
-```
-
-O domínio precisa estar verificado no Resend.
-
----
-
-## SDK
-
-O projeto utiliza o SDK oficial:
-
-```python
-import resend
-```
-
-Envio:
-
-```python
-resend.Emails.send(...)
-```
-
----
-
-## E-mail enviado
-
-Assunto:
-
-```text
-Redefinição de senha - SPY TEAM
-```
-
-Conteúdo inclui:
-
-- aviso de recuperação;
-- e-mail associado;
-- link;
-- validade de 15 minutos;
-- aviso para ignorar se não tiver solicitado.
-
----
-
-# 23. Git e fluxo de atualização
-
-Fluxo comum:
-
-```bash
-git status
-git add .
-git commit -m "Descrição da alteração"
-git push
-```
-
-O Railway recebe as alterações através do GitHub e realiza novo deploy.
-
----
-
-## Arquivos ignorados
-
-O `.gitignore` atual inclui:
-
-```text
-venv/
-.venv/
-__pycache__/
-*.py[cod]
-.env
-.env.*
-!.env.example
-*.db
-.vscode/
-.idea/
-.pytest_cache/
-.DS_Store
-```
-
-Isso evita enviar:
-
-- banco;
-- ambiente virtual;
-- segredos;
-- cache;
-- arquivos locais de IDE.
-
----
-
-# 24. Backup e restauração
-
-## 24.1 Backup local
-
-Antes de alterações delicadas:
-
-```powershell
-copy assessoria.db assessoria_backup.db
-```
-
----
-
-## 24.2 Banco de produção
-
-O banco de produção fica no Volume.
-
-Confira:
-
-```bash
-railway volume files list /
-```
-
-Nunca sobrescreva o banco de produção sem backup.
-
----
-
-## 24.3 Enviar banco local para o Volume
-
-Quando realmente necessário:
-
-```bash
-railway volume files upload ./assessoria.db /assessoria.db
-```
-
-Depois reinicie o serviço.
-
----
-
-# 25. Troubleshooting
-
-## 25.1 `SPYTEAM_SECRET não configurado`
-
-Erro:
-
-```text
-RuntimeError: SPYTEAM_SECRET não configurado
-```
-
-Solução:
-
-Railway:
-
-```text
-Variables
-```
-
-adicione:
-
-```text
-SPYTEAM_SECRET
-```
-
-e faça deploy.
-
----
-
-## 25.2 CSS não carrega no Railway
-
-Sintoma:
-
-```text
-Mixed Content
-HTTP stylesheet em página HTTPS
-```
-
-Os templates devem usar:
-
-```html
-<link rel="stylesheet" href="/static/css/style.css">
-```
-
-e não URL absoluta com `http://`.
-
----
-
-## 25.3 Site está online mas sem domínio
-
-Railway pode mostrar:
-
-```text
-Unexposed service
-```
-
-Nesse caso:
-
-```text
-Settings
-→ Networking
-→ Public Networking
-→ Generate Domain / Custom Domain
-```
-
----
-
-## 25.4 Banco vazio após deploy
-
-Confira:
-
-```bash
-railway volume list
-```
-
-e:
-
-```bash
-railway volume files list /
-```
-
-O banco precisa estar no Volume.
-
----
-
-## 25.5 Login retorna 401
-
-Logs:
-
-```text
-POST /api/login 401 Unauthorized
-```
-
-Verifique:
-
-- usuário;
-- senha;
-- banco correto;
-- registro da conta no SQLite.
-
-O usuário não diferencia maiúsculas/minúsculas.
-
----
-
-## 25.6 Usuário contém espaço
-
-Inválido:
-
-```text
-joao silva
-```
-
-Use:
-
-```text
-joaosilva
-```
-
-ou outro identificador sem espaços.
-
----
-
-## 25.7 E-mail não chega
-
-Confira:
-
-```bash
-railway logs
-```
-
-E também:
-
-```text
-Resend → Emails
-```
-
-Variáveis necessárias:
-
-```text
-EMAIL_MODE=resend
-RESEND_API_KEY=...
-EMAIL_FROM=...
-APP_URL=...
-```
-
----
-
-## 25.8 Favicon antigo continua aparecendo
-
-Favicons possuem cache agressivo.
-
-Tente:
-
-```text
-Ctrl + F5
-```
-
-ou feche todas as abas e abra novamente.
-
----
-
-## 25.9 SSL ainda aparece como inseguro
-
-Após alteração de DNS:
-
-- aguarde propagação;
-- confirme DNS no Railway;
-- teste janela anônima;
-- limpe DNS local:
-
-```powershell
-ipconfig /flushdns
-```
-
----
-
-# 26. Regras importantes do sistema
-
-## Contas
-
-- professor cria contas de aluno;
-- aluno não cria sua própria conta;
-- usuário é case-insensitive;
-- usuário não aceita espaços internos;
-- senha é case-sensitive;
-- senha nunca é salva em texto puro.
-
-## E-mail
-
-- aluno cadastra no primeiro acesso;
-- e-mail precisa ser único;
-- recuperação é destinada a alunos;
-- mensagem de recuperação não revela se a conta existe.
-
-## Treinos
-
-- treino base é reutilizável;
-- treino agendado guarda snapshot;
-- treino base usado não pode ser excluído;
-- aluno só conclui treino que pertence a ele;
-- nota é de 1 a 5;
-- planejamento semanal distribui por modalidade;
-- semana aceita segunda a sexta.
-
-## Banco
-
-- banco principal local: `assessoria.db`;
-- banco de produção: `/data/assessoria.db`;
-- `.db` não deve ir ao GitHub.
-
----
-
-# 27. Limitações atuais e melhorias futuras
-
-O estado atual é funcional, mas há espaço para evolução.
-
-## Banco
-
-SQLite é adequado para o estágio atual.
-
-Para maior número de usuários/conexões simultâneas, considerar:
-
-```text
-PostgreSQL
-```
-
----
-
-## Migrações
-
-Atualmente há migrações leves manuais.
-
-Melhoria recomendada:
-
-```text
-Alembic
-```
-
----
-
-## Segurança
-
-Implementado:
-
-- [x] rate limit no login;
-- [x] rate limit por IP, identificador e volume global na recuperação;
-- [x] proteção CSRF explícita;
-- [x] invalidação das sessões existentes após troca ou redefinição de senha;
-- [x] auditoria de logins;
-- [x] histórico de alterações administrativas.
-
-Possíveis evoluções adicionais:
-
-- [ ] política de senha mais forte;
-- [ ] autenticação de dois fatores;
-- [ ] alertas automáticos para padrões suspeitos;
-- [ ] exportação dos relatórios de auditoria;
-- [ ] retenção/arquivamento configurável dos logs de auditoria.
-
----
-
-## Conta
-
-Ainda podem ser adicionados:
-
-- troca de e-mail;
-- confirmação/verificação do e-mail;
-- recuperação do professor;
-- alteração de senha do professor no painel;
-- foto de perfil;
-- edição de dados pessoais.
-
----
-
-## Treinos
-
-Possíveis melhorias:
-
-- duplicar semana;
-- copiar treino;
-- excluir agendamento individual;
-- reagendar treino;
-- calendário mensal;
-- exercícios estruturados;
-- séries/repetições;
-- anexos;
-- vídeos;
-- observações do professor;
-- métricas por aluno.
-
----
-
-## Dashboard
-
-Indicadores implementados no painel do professor:
-
-- alunos ativos com atividade nos últimos 7 dias;
-- taxa de conclusão no período selecionado;
-- aderência média individual dos últimos 30 dias;
-- treinos por modalidade;
-- frequência semanal de treinos concluídos;
-- média e distribuição das avaliações;
-- alunos inativos / que precisam de atenção;
-- atividade recente;
-- gráfico de frequência por semana.
-
-O painel do aluno também foi simplificado e passou a destacar:
-
-- treinos programados na semana;
-- concluídos e restantes;
-- próximo treino;
-- agenda semanal clicável;
-- modal com detalhes do treino;
-- histórico recente.
-
----
-
-## Testes
-
-O projeto atualmente não possui uma suíte permanente de testes automatizados dentro de uma pasta `tests/`.
-
-Melhoria recomendada:
-
-```text
-pytest
-FastAPI TestClient
-```
-
----
-
-# 28. Checklist de produção
-
-Antes de considerar um deploy saudável:
-
-### Aplicação
-
-- [ ] `/health` retorna `200`
-- [ ] login professor funciona
-- [ ] login aluno funciona
-- [ ] logout funciona
-
-### Banco
-
-- [ ] Volume conectado
-- [ ] mount path `/data`
-- [ ] `assessoria.db` presente
-- [ ] dados continuam após restart
-
-### Professor
-
-- [ ] cadastrar aluno
-- [ ] listar aluno
-- [ ] excluir aluno
-- [ ] criar treino base
-- [ ] editar treino base
-- [ ] agendar treino
-- [ ] planejamento semanal
-
-### Aluno
-
-- [ ] primeiro e-mail
-- [ ] dashboard
-- [ ] histórico
-- [ ] perfil
-- [ ] alteração de senha
-- [ ] concluir treino
-- [ ] feedback
-
-### Recuperação
-
-- [ ] Resend configurado
-- [ ] domínio verificado
-- [ ] e-mail recebido
-- [ ] link abre domínio correto
-- [ ] token expira
-- [ ] senha nova funciona
-
-### Segurança
-
-- [ ] CSRF bloqueia requisição mutável sem token
-- [ ] login registra sucesso/falha na auditoria
-- [ ] rate limit retorna 429 após excesso de tentativas
-- [ ] alteração de senha desconecta sessões antigas
-- [ ] `/seguranca` abre somente para professor
-- [ ] alterações administrativas aparecem no histórico
-
-### Visual
-
-- [ ] CSS carregando
-- [ ] logo carregando
-- [ ] favicon carregando
-- [ ] mobile funcionando
-
----
-
-# 29. Referência rápida
-
-## Iniciar localmente
-
-```bash
-uvicorn app.main:app --reload
-```
-
-## URL local
-
-```text
-http://127.0.0.1:8000
-```
-
-## Produção
-
-```text
-https://www.spyteam.com.br
-```
-
-## Healthcheck
-
-```text
-/health
-```
-
-## Banco local
-
-```text
-assessoria.db
-```
-
-## Banco Railway
-
-```text
-/data/assessoria.db
-```
-
-## E-mail remetente
-
-```text
-SPY TEAM <noreply@spyteam.com.br>
-```
-
-## Usuário professor de desenvolvimento
-
-```text
-professor
-```
-
-## Senha professor de desenvolvimento
-
-```text
-1234
-```
-
-> Apenas quando executado fora do Railway, não existir professor no banco e nenhuma credencial tiver sido configurada.
-
----
-
-# Observações finais
-
-O SPY TEAM atualmente reúne em uma única aplicação:
-
-- autenticação;
-- controle de perfil;
-- gestão de alunos;
-- organização de modalidades;
-- treinos base;
-- agendamento;
-- planejamento semanal;
-- distribuição automática;
-- feedback;
-- histórico;
-- perfil do aluno;
-- alteração de senha;
-- recuperação de senha;
-- e-mail transacional;
-- banco persistente;
-- deploy contínuo;
-- domínio próprio;
-- HTTPS;
-- identidade visual própria.
-
-A arquitetura atual foi mantida simples para facilitar manutenção e evolução durante o desenvolvimento, sem impedir futuras migrações para componentes mais robustos, como PostgreSQL, Alembic, serviços de fila e uma suíte completa de testes automatizados.
-
-
----
-
-## PWA e notificações Web Push
-
-O SPY TEAM também pode ser instalado no celular como **Progressive Web App (PWA)**.
-O aluno continua utilizando a mesma aplicação, conta, banco e API do site, mas pode abrir o sistema em modo `standalone`, com ícone próprio na tela inicial.
-
-### Recursos implementados
-
-- manifesto PWA;
-- Service Worker com cache somente de arquivos estáticos;
-- tela neutra quando o dispositivo está offline;
-- ícones 192x192 e 512x512;
-- ícone `maskable` para Android;
-- suporte ao fluxo de instalação do navegador;
-- suporte a Web Push;
-- ativação/desativação das notificações pelo perfil do aluno;
-- notificação de teste;
-- notificação automática quando um treino individual é agendado;
-- notificação após envio em massa;
-- notificação resumida quando o planejamento semanal gera novos treinos;
-- toque na notificação abre o SPY TEAM e pode abrir diretamente o treino individual.
-
-### Configuração do Web Push
-
-Instale as novas dependências:
-
-```bash
-pip install -r requirements.txt
-```
-
-Gere as chaves VAPID **uma única vez**:
-
-```bash
-python scripts/gerar_vapid.py
-```
-
-Cadastre no Railway, em **Variables**:
-
-```text
-VAPID_PUBLIC_KEY=...
-VAPID_PRIVATE_KEY=...
-VAPID_SUBJECT=mailto:noreply@spyteam.com.br
-```
-
-As chaves VAPID devem permanecer estáveis. Se forem trocadas, navegadores que já estavam inscritos podem precisar ativar as notificações novamente.
-
-### Banco de dados
-
-A tabela abaixo é criada automaticamente pelo SQLAlchemy:
-
-```text
-push_subscriptions
-```
-
-Ela armazena as assinaturas dos navegadores. O banco de produção continua em:
-
-```text
-/data/assessoria.db
-```
-
-### Segurança e cache
-
-O Service Worker **não armazena páginas autenticadas nem respostas de `/api/` no cache**. Somente recursos estáticos são reutilizados offline. Isso evita manter dados pessoais ou informações de treino em cache persistente da PWA.
-
----
-
-## PWA — lembretes automáticos de treino
-
-A PWA possui preferências individuais de notificação para cada aluno:
-
-- aviso quando um novo treino/planejamento é enviado;
-- lembrete automático no dia do treino;
-- horário configurável para o lembrete;
-- aviso de treino ainda pendente no mesmo dia;
-- horário configurável para o aviso pendente;
-- detecção do fuso horário do dispositivo;
-- deep link: ao tocar no lembrete, o SPY TEAM abre diretamente o treino correspondente.
-
-As preferências ficam na tela **Meu perfil**, na seção **Aplicativo**.
-
-O backend executa um agendador leve e persistente. Os envios já realizados são
-registrados em `notificacoes_treino_enviadas`, evitando notificações duplicadas
-após restart ou deploy.
-
-Novas tabelas:
-
-```text
-preferencias_notificacao
-notificacoes_treino_enviadas
-```
-
-O intervalo padrão de verificação é 60 segundos. Opcionalmente pode ser alterado
-com:
-
-```env
-PUSH_REMINDER_POLL_SECONDS=60
-```
-
-Valores menores que 30 segundos são limitados automaticamente a 30 segundos.
+# ============================================================
+# PROFESSOR INICIAL
+# ============================================================
+
+def seed_professor():
+    """
+    Cria um professor automaticamente caso nenhum professor exista.
+
+    Em produção, usuário e senha precisam estar nas variáveis:
+    PROFESSOR_USUARIO e PROFESSOR_SENHA.
+    """
+
+    db = SessionLocal()
+
+    try:
+        existe = (
+            db.query(models.Usuario)
+            .filter(
+                models.Usuario.tipo == "professor"
+            )
+            .first()
+        )
+
+        # Banco migrado com professor existente: não altera nada.
+        if existe:
+            return
+
+        usuario = os.getenv("PROFESSOR_USUARIO")
+        senha = os.getenv("PROFESSOR_SENHA")
+
+        # No ambiente local mantemos os valores de desenvolvimento.
+        if not EM_RAILWAY:
+            usuario = usuario or "professor"
+            senha = senha or "1234"
+
+        # Em produção, não cria credenciais padrão conhecidas.
+        if not usuario or not senha:
+            print(
+                "[SpyTeam] Professor inicial não criado. "
+                "Configure PROFESSOR_USUARIO e PROFESSOR_SENHA."
+            )
+            return
+
+        try:
+            usuario_normalizado = normalizar_usuario(
+                usuario
+            )
+        except ValueError as erro:
+            print(
+                "[SpyTeam] PROFESSOR_USUARIO inválido:",
+                erro
+            )
+            return
+
+        db.add(
+            models.Usuario(
+                usuario=usuario_normalizado,
+                senha_hash=hash_senha(senha),
+                tipo="professor"
+            )
+        )
+
+        db.commit()
+
+    finally:
+        db.close()
+
+
+# Executa criação do professor
+seed_professor()
+
+
+# ============================================================
+# HEALTHCHECK
+# ============================================================
+
+@app.get("/health", include_in_schema=False)
+def health():
+    return {
+        "status": "ok",
+        "app": "SpyTeam"
+    }
+
+
+# ============================================================
+# ROTA RAIZ
+# ============================================================
+
+@app.get("/")
+def index(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+
+    usuario, payload = obter_usuario_da_sessao(
+        request,
+        db
+    )
+
+    if not usuario or not payload:
+        return RedirectResponse(
+            "/login",
+            status_code=303
+        )
+
+    if usuario.tipo == "professor":
+        return RedirectResponse(
+            "/home",
+            status_code=303
+        )
+
+    if aluno_sem_email(usuario):
+        return RedirectResponse(
+            "/aluno/cadastrar-email",
+            status_code=303
+        )
+
+    return RedirectResponse(
+        "/aluno",
+        status_code=303
+    )
+
+
+# ============================================================
+# PÁGINA DE LOGIN
+# ============================================================
+
+@app.get("/login")
+def pagina_login(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+
+    usuario, _ = obter_usuario_da_sessao(
+        request,
+        db
+    )
+
+    if usuario:
+        if usuario.tipo == "professor":
+            return RedirectResponse(
+                "/home",
+                status_code=303
+            )
+
+        if aluno_sem_email(usuario):
+            return RedirectResponse(
+                "/aluno/cadastrar-email",
+                status_code=303
+            )
+
+        return RedirectResponse(
+            "/aluno",
+            status_code=303
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html"
+    )
+
+
+# ============================================================
+# RECUPERAÇÃO DE SENHA - PÁGINAS PÚBLICAS
+# ============================================================
+
+@app.get("/esqueci-senha")
+def pagina_esqueci_senha(
+    request: Request
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="esqueci_senha.html"
+    )
+
+
+@app.get("/redefinir-senha")
+def pagina_redefinir_senha(
+    request: Request
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="redefinir_senha.html"
+    )
+
+
+# ============================================================
+# PRIMEIRO ACESSO - CADASTRAR E-MAIL
+# ============================================================
+
+@app.get("/aluno/cadastrar-email")
+def pagina_cadastrar_email(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_aluno)
+):
+
+    if not aluno_sem_email(usuario):
+        return RedirectResponse(
+            "/aluno",
+            status_code=303
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="Aluno/cadastrar_email.html"
+    )
+
+
+# ============================================================
+# HOME DO PROFESSOR
+# ============================================================
+
+@app.get("/home")
+def home(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_professor)
+):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="Professor/home.html",
+        context={
+            "request": request,
+            "professor_usuario": usuario.usuario
+        }
+    )
+
+
+# ============================================================
+# PAINEL DO ALUNO
+# ============================================================
+
+@app.get("/aluno")
+def aluno(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_aluno)
+):
+
+    if aluno_sem_email(usuario):
+        return RedirectResponse(
+            "/aluno/cadastrar-email",
+            status_code=303
+        )
+
+    return templates.TemplateResponse(
+    request=request,
+    name="Aluno/home.html"
+)
+
+
+# ============================================================
+# HISTÓRICO DO ALUNO
+# ============================================================
+
+@app.get("/aluno/historico")
+def aluno_historico(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_aluno)
+):
+
+    if aluno_sem_email(usuario):
+        return RedirectResponse(
+            "/aluno/cadastrar-email",
+            status_code=303
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="Aluno/historico.html"
+    )
+
+
+# ============================================================
+# PERFIL DO ALUNO
+# ============================================================
+
+@app.get("/aluno/perfil")
+def aluno_perfil(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_aluno)
+):
+
+    if aluno_sem_email(usuario):
+        return RedirectResponse(
+            "/aluno/cadastrar-email",
+            status_code=303
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="Aluno/perfil.html"
+    )
+
+
+# ============================================================
+# NOVO ALUNO
+# ============================================================
+
+@app.get("/novo-aluno")
+def pagina_novo_aluno(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_professor)
+):
+
+    return templates.TemplateResponse(
+    request=request,
+    name="Professor/novo_aluno.html"
+)
+# ============================================================
+# PÁGINA DE ALUNOS
+# ============================================================
+
+@app.get("/alunos")
+def pagina_alunos(
+
+    request: Request,
+
+    professor: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    return templates.TemplateResponse(
+
+        request=request,
+
+        name="Professor/alunos.html"
+    )
+
+
+# ============================================================
+# NOVO TREINO
+# ============================================================
+
+@app.get("/novo-treino")
+def pagina_novo_treino(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_professor)
+):
+
+    return templates.TemplateResponse(
+    request=request,
+    name="Professor/treinos/novo_treino.html"
+)
+
+
+# ============================================================
+# NOVO TREINO BASE
+# ============================================================
+
+@app.get("/novo-treino-base")
+def pagina_novo_treino_base(
+    request: Request,
+    usuario: models.Usuario =
+    Depends(require_professor)
+):
+
+    return templates.TemplateResponse(
+    request=request,
+    name="Professor/treinos/novo_treino_base.html"
+)
+
+# ============================================================
+# GERENCIAR TREINOS BASE
+# ============================================================
+
+@app.get("/treinos-base")
+def pagina_treinos_base(
+
+    request: Request,
+
+    usuario: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    return templates.TemplateResponse(
+
+        request=request,
+
+        name="Professor/treinos/treinos_base.html"
+    )
+
+# ============================================================
+# EDITAR TREINO BASE - PÁGINA
+# ============================================================
+
+@app.get("/editar-treino-base/{treino_base_id}")
+def pagina_editar_treino_base(
+
+    treino_base_id: int,
+
+    request: Request,
+
+    usuario: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    return templates.TemplateResponse(
+
+        request=request,
+
+        name="Professor/treinos/editar_treino_base.html"
+    )
+
+@app.get("/planejamento-semanal")
+def pagina_planejamento_semanal(
+    request: Request,
+    usuario: models.Usuario = Depends(require_professor)
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="Professor/planejamento_semanal.html",
+        context={
+            "request": request
+        }
+    )
+
+
+@app.get("/calendario")
+def pagina_calendario(
+    request: Request,
+    usuario: models.Usuario = Depends(require_professor)
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="Professor/calendario.html"
+    )
+
+
+# ============================================================
+# SEGURANÇA E AUDITORIA - PROFESSOR
+# ============================================================
+
+@app.get("/seguranca")
+def pagina_seguranca(
+    request: Request,
+    professor: models.Usuario = Depends(require_professor)
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="Professor/seguranca.html"
+    )
+
+
+@app.get("/api/auditoria/logins")
+def listar_auditoria_logins(
+    limite: int = 100,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    limite = max(1, min(int(limite), 500))
+
+    registros = (
+        db.query(models.AuditoriaLogin)
+        .order_by(models.AuditoriaLogin.criado_em.desc())
+        .limit(limite)
+        .all()
+    )
+
+    return [
+        {
+            "id": item.id,
+            "usuario_id": item.usuario_id,
+            "usuario": item.usuario_informado,
+            "sucesso": bool(item.sucesso),
+            "motivo": item.motivo,
+            "ip": item.ip,
+            "user_agent": item.user_agent,
+            "criado_em": item.criado_em
+        }
+        for item in registros
+    ]
+
+
+@app.get("/api/auditoria/administrativa")
+def listar_auditoria_administrativa(
+    limite: int = 100,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    limite = max(1, min(int(limite), 500))
+
+    registros = (
+        db.query(models.AuditoriaAdministrativa)
+        .order_by(
+            models.AuditoriaAdministrativa.criado_em.desc()
+        )
+        .limit(limite)
+        .all()
+    )
+
+    resultado = []
+
+    for item in registros:
+        detalhes = None
+
+        if item.dados_json:
+            try:
+                detalhes = json.loads(item.dados_json)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                detalhes = None
+
+        resultado.append({
+            "id": item.id,
+            "professor_id": item.professor_id,
+            "professor": item.professor_usuario,
+            "acao": item.acao,
+            "entidade": item.entidade,
+            "entidade_id": item.entidade_id,
+            "descricao": item.descricao,
+            "detalhes": detalhes,
+            "ip": item.ip,
+            "user_agent": item.user_agent,
+            "criado_em": item.criado_em
+        })
+
+    return resultado
+
+
+# ============================================================
+# DASHBOARD ANALÍTICO DO PROFESSOR
+# ============================================================
+
+
+def _data_planejada_segura(valor):
+    """Converte YYYY-MM-DD / ISO para date sem quebrar registros antigos."""
+    if not valor:
+        return None
+
+    try:
+        return datetime.strptime(
+            str(valor).split("T")[0],
+            "%Y-%m-%d"
+        ).date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _timestamp_data_referencia(valor_data):
+    """Timestamp UTC ao meio-dia, usado só como fallback histórico."""
+    data_ref = _data_planejada_segura(valor_data)
+
+    if not data_ref:
+        return None
+
+    return int(
+        datetime.combine(
+            data_ref,
+            datetime.min.time()
+        ).replace(
+            hour=12,
+            tzinfo=timezone.utc
+        ).timestamp()
+    )
+
+
+def _percentual(parte, total):
+    if not total:
+        return 0.0
+
+    return round((parte / total) * 100, 1)
+
+
+@app.get("/api/dashboard/professor")
+def dashboard_professor(
+    semanas: int = 4,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    """
+    Resumo operacional do professor.
+
+    Regras principais:
+    - Taxa de conclusão: treinos planejados no período até hoje.
+    - Aderência 30 dias: média da taxa individual de conclusão dos
+      alunos que tiveram ao menos um treino devido nos últimos 30 dias.
+    - Ativo: login bem-sucedido ou treino concluído nos últimos 7 dias.
+    - Inativo: nenhuma dessas atividades nos últimos 7 dias.
+    """
+
+    semanas = max(1, min(int(semanas or 4), 12))
+
+    hoje = date.today()
+    agora_ts = int(time.time())
+    inicio_periodo = hoje - timedelta(days=(semanas * 7) - 1)
+    inicio_30 = hoje - timedelta(days=29)
+    limite_atividade_ts = agora_ts - (7 * 24 * 60 * 60)
+
+    alunos = (
+        db.query(models.Aluno)
+        .order_by(models.Aluno.nome.asc())
+        .all()
+    )
+
+    usuarios_alunos = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.tipo == "aluno")
+        .all()
+    )
+
+    treinos = db.query(models.TreinoAgendado).all()
+
+    usuario_por_id = {
+        usuario.id: usuario
+        for usuario in usuarios_alunos
+    }
+
+    usuario_por_aluno = {
+        usuario.aluno_id: usuario
+        for usuario in usuarios_alunos
+        if usuario.aluno_id
+    }
+
+    nome_aluno = {
+        aluno.id: aluno.nome
+        for aluno in alunos
+    }
+
+    modalidades_por_aluno = {
+        aluno.id: []
+        for aluno in alunos
+    }
+
+    for vinculo in db.query(models.AlunoModalidade).all():
+        if vinculo.aluno_id in modalidades_por_aluno:
+            modalidades_por_aluno[vinculo.aluno_id].append(
+                vinculo.modalidade
+            )
+
+    # Compatibilidade com bancos migrados onde a relação ainda não
+    # tenha sido preenchida por algum registro antigo.
+    for aluno in alunos:
+        if not modalidades_por_aluno[aluno.id] and aluno.modalidade:
+            try:
+                modalidade = canonicalizar_modalidade(aluno.modalidade)
+                modalidades_por_aluno[aluno.id] = [modalidade]
+            except ValueError:
+                pass
+
+    data_por_treino = {
+        treino.id: _data_planejada_segura(treino.data_planejada)
+        for treino in treinos
+    }
+
+    treinos_periodo = [
+        treino
+        for treino in treinos
+        if (
+            data_por_treino[treino.id]
+            and inicio_periodo <= data_por_treino[treino.id] <= hoje
+        )
+    ]
+
+    treinos_30 = [
+        treino
+        for treino in treinos
+        if (
+            data_por_treino[treino.id]
+            and inicio_30 <= data_por_treino[treino.id] <= hoje
+        )
+    ]
+
+    concluidos_periodo = [
+        treino
+        for treino in treinos_periodo
+        if treino.concluido
+    ]
+
+    taxa_conclusao = _percentual(
+        len(concluidos_periodo),
+        len(treinos_periodo)
+    )
+
+    # Média da aderência individual, evitando que alunos com grande
+    # quantidade de treinos pesem mais que os demais.
+    taxas_individuais = []
+
+    for aluno in alunos:
+        devidos = [
+            treino
+            for treino in treinos_30
+            if treino.aluno_id == aluno.id
+        ]
+
+        if not devidos:
+            continue
+
+        concluidos = sum(
+            1 for treino in devidos
+            if treino.concluido
+        )
+
+        taxas_individuais.append(
+            _percentual(concluidos, len(devidos))
+        )
+
+    aderencia_30 = round(
+        sum(taxas_individuais) / len(taxas_individuais),
+        1
+    ) if taxas_individuais else 0.0
+
+    # Última atividade = login bem-sucedido OU conclusão de treino.
+    ultima_atividade = {
+        aluno.id: None
+        for aluno in alunos
+    }
+
+    logins = (
+        db.query(models.AuditoriaLogin)
+        .filter(models.AuditoriaLogin.sucesso.is_(True))
+        .all()
+    )
+
+    for login in logins:
+        usuario = usuario_por_id.get(login.usuario_id)
+
+        if not usuario or not usuario.aluno_id:
+            continue
+
+        atual = ultima_atividade.get(usuario.aluno_id)
+
+        if atual is None or login.criado_em > atual:
+            ultima_atividade[usuario.aluno_id] = login.criado_em
+
+    for treino in treinos:
+        if not treino.concluido:
+            continue
+
+        timestamp = (
+            treino.concluido_em
+            or _timestamp_data_referencia(treino.data_planejada)
+        )
+
+        if timestamp is None:
+            continue
+
+        atual = ultima_atividade.get(treino.aluno_id)
+
+        if atual is None or timestamp > atual:
+            ultima_atividade[treino.aluno_id] = timestamp
+
+    alunos_ativos = []
+    alunos_inativos = []
+
+    for aluno in alunos:
+        timestamp = ultima_atividade.get(aluno.id)
+
+        if timestamp is not None and timestamp >= limite_atividade_ts:
+            alunos_ativos.append(aluno)
+        else:
+            alunos_inativos.append(aluno)
+
+    alunos_atencao = []
+
+    for aluno in alunos_inativos:
+        timestamp = ultima_atividade.get(aluno.id)
+        dias = None
+
+        if timestamp is not None:
+            dias = max(
+                0,
+                int((agora_ts - timestamp) // (24 * 60 * 60))
+            )
+
+        alunos_atencao.append({
+            "id": aluno.id,
+            "nome": aluno.nome,
+            "nivel": aluno.nivel,
+            "modalidades": modalidades_por_aluno.get(aluno.id, []),
+            "dias_sem_atividade": dias,
+            "ultima_atividade": timestamp
+        })
+
+    alunos_atencao.sort(
+        key=lambda item: (
+            item["dias_sem_atividade"] is None,
+            item["dias_sem_atividade"] or 0
+        ),
+        reverse=True
+    )
+
+    # Frequência semanal: número de treinos efetivamente concluídos.
+    segunda_atual = hoje - timedelta(days=hoje.weekday())
+    primeira_segunda = segunda_atual - timedelta(
+        weeks=semanas - 1
+    )
+
+    frequencia_semanal = []
+
+    for indice in range(semanas):
+        inicio_semana = primeira_segunda + timedelta(weeks=indice)
+        fim_semana = inicio_semana + timedelta(days=6)
+        total = 0
+
+        for treino in treinos:
+            if not treino.concluido:
+                continue
+
+            data_conclusao = None
+
+            if treino.concluido_em:
+                data_conclusao = datetime.fromtimestamp(
+                    treino.concluido_em,
+                    tz=timezone.utc
+                ).date()
+            else:
+                data_conclusao = data_por_treino.get(treino.id)
+
+            if (
+                data_conclusao
+                and inicio_semana <= data_conclusao <= fim_semana
+            ):
+                total += 1
+
+        frequencia_semanal.append({
+            "indice": indice + 1,
+            "rotulo": f"Sem {indice + 1}",
+            "inicio": inicio_semana.isoformat(),
+            "fim": fim_semana.isoformat(),
+            "concluidos": total
+        })
+
+    # Distribuição dos treinos agendados por modalidade no período.
+    modalidades = []
+    total_modalidades = len(treinos_periodo)
+
+    for modalidade in MODALIDADES_PERMITIDAS:
+        itens = [
+            treino
+            for treino in treinos_periodo
+            if _normalizar_modalidade_texto(treino.modalidade)
+            == _normalizar_modalidade_texto(modalidade)
+        ]
+
+        quantidade_alunos = sum(
+            1
+            for lista in modalidades_por_aluno.values()
+            if modalidade in lista
+        )
+
+        modalidades.append({
+            "nome": modalidade,
+            "treinos": len(itens),
+            "concluidos": sum(1 for item in itens if item.concluido),
+            "percentual": _percentual(len(itens), total_modalidades),
+            "alunos": quantidade_alunos
+        })
+
+    # Avaliações deixadas pelos alunos no período selecionado.
+    avaliados = [
+        treino
+        for treino in treinos_periodo
+        if treino.feedback_nota is not None
+    ]
+
+    total_avaliacoes = len(avaliados)
+    media_avaliacao = round(
+        sum(treino.feedback_nota for treino in avaliados)
+        / total_avaliacoes,
+        1
+    ) if total_avaliacoes else 0.0
+
+    distribuicao_avaliacao = {}
+
+    for nota in range(5, 0, -1):
+        quantidade = sum(
+            1
+            for treino in avaliados
+            if treino.feedback_nota == nota
+        )
+
+        distribuicao_avaliacao[str(nota)] = {
+            "quantidade": quantidade,
+            "percentual": _percentual(
+                quantidade,
+                total_avaliacoes
+            )
+        }
+
+    # Atividade recente combina ações administrativas e conclusões.
+    atividades = []
+
+    for item in (
+        db.query(models.AuditoriaAdministrativa)
+        .order_by(models.AuditoriaAdministrativa.criado_em.desc())
+        .limit(20)
+        .all()
+    ):
+        atividades.append({
+            "tipo": "administrativa",
+            "acao": item.acao,
+            "descricao": item.descricao,
+            "timestamp": item.criado_em
+        })
+
+    for treino in treinos:
+        if not treino.concluido:
+            continue
+
+        timestamp = (
+            treino.concluido_em
+            or _timestamp_data_referencia(treino.data_planejada)
+        )
+
+        if timestamp is None:
+            continue
+
+        aluno_nome = nome_aluno.get(
+            treino.aluno_id,
+            "Aluno"
+        )
+
+        atividades.append({
+            "tipo": "treino_concluido",
+            "acao": "concluir_treino",
+            "descricao": (
+                f"{aluno_nome} concluiu {treino.titulo} "
+                f"({treino.modalidade})."
+            ),
+            "timestamp": timestamp,
+            "aluno_id": treino.aluno_id,
+            "treino_id": treino.id
+        })
+
+    atividades.sort(
+        key=lambda item: item["timestamp"],
+        reverse=True
+    )
+
+    return {
+        "periodo": {
+            "semanas": semanas,
+            "inicio": inicio_periodo.isoformat(),
+            "fim": hoje.isoformat()
+        },
+        "resumo": {
+            "total_alunos": len(alunos),
+            "alunos_ativos": len(alunos_ativos),
+            "taxa_conclusao": taxa_conclusao,
+            "aderencia_30_dias": aderencia_30,
+            "alunos_inativos": len(alunos_inativos),
+            "avaliacao_media": media_avaliacao
+        },
+        "frequencia_semanal": frequencia_semanal,
+        "modalidades": modalidades,
+        "alunos_atencao": alunos_atencao[:6],
+        "avaliacoes": {
+            "media": media_avaliacao,
+            "total": total_avaliacoes,
+            "distribuicao": distribuicao_avaliacao
+        },
+        "atividade_recente": atividades[:8]
+    }
+
+
+# ============================================================
+# LOGIN
+# ============================================================
+
+@app.post("/api/login")
+def login(
+    request: Request,
+    dados: schemas.Login,
+    db: Session = Depends(get_db)
+):
+    # Chave usada para rate limit/auditoria. Nunca armazenamos a senha.
+    usuario_informado = str(
+        dados.usuario or ""
+    ).strip().casefold()[:100]
+
+    # Rate limit é verificado antes do hash de senha, reduzindo também
+    # consumo de CPU em tentativas automatizadas.
+    if verificar_rate_limit_login(
+        db,
+        request,
+        usuario_informado
+    ):
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado=usuario_informado,
+            sucesso=False,
+            motivo="rate_limit"
+        )
+
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Muitas tentativas de login. "
+                "Aguarde alguns minutos e tente novamente."
+            ),
+            headers={
+                "Retry-After": str(LOGIN_RATE_WINDOW_SECONDS)
+            }
+        )
+
+    # Usuário é case-insensitive e não aceita espaços internos.
+    try:
+        usuario_normalizado = normalizar_usuario(
+            dados.usuario
+        )
+    except ValueError:
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado=usuario_informado,
+            sucesso=False,
+            motivo="usuario_invalido"
+        )
+
+        raise HTTPException(
+            status_code=401,
+            detail="Usuário ou senha inválidos."
+        )
+
+    usuario = (
+        db.query(models.Usuario)
+        .filter(
+            func.lower(
+                func.trim(
+                    models.Usuario.usuario
+                )
+            )
+            == usuario_normalizado
+        )
+        .first()
+    )
+
+    # Usuário inexistente ou senha errada.
+    if (
+        not usuario
+        or not verificar_senha(
+            dados.senha,
+            usuario.senha_hash
+        )
+    ):
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado=usuario_normalizado,
+            sucesso=False,
+            motivo="credenciais_invalidas",
+            usuario_id=(
+                usuario.id if usuario else None
+            )
+        )
+
+        raise HTTPException(
+            status_code=401,
+            detail="Usuário ou senha inválidos."
+        )
+
+    registrar_auditoria_login(
+        db=db,
+        request=request,
+        usuario_informado=usuario_normalizado,
+        sucesso=True,
+        motivo="sucesso",
+        usuario_id=usuario.id
+    )
+
+    token = criar_token(
+        usuario.id,
+        usuario.tipo,
+        usuario.session_version or 0
+    )
+
+    if usuario.tipo == "professor":
+        destino = "/home"
+    else:
+        destino = (
+            "/aluno/cadastrar-email"
+            if aluno_sem_email(usuario)
+            else "/aluno"
+        )
+
+    resposta = JSONResponse(
+        {
+            "mensagem": "Login realizado com sucesso!",
+            "tipo": usuario.tipo,
+            "usuario": usuario.usuario,
+            "redirect": destino
+        }
+    )
+
+    resposta.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+        max_age=60 * 60 * 24,
+        path="/"
+    )
+
+    # Rotaciona o CSRF depois que a autenticação muda de estado.
+    resposta.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=criar_token_csrf(),
+        httponly=False,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+        max_age=60 * 60 * 24,
+        path="/"
+    )
+
+    return resposta
+
+
+# ============================================================
+# LOGOUT
+# ============================================================
+
+@app.post("/api/logout")
+def logout():
+
+    resposta = JSONResponse(
+        {
+            "mensagem":
+                "Logout realizado."
+        }
+    )
+
+    # Apaga o cookie
+    resposta.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        secure=COOKIE_SECURE,
+        samesite="lax"
+    )
+
+    # Rotaciona o token CSRF após o logout.
+    resposta.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=criar_token_csrf(),
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        max_age=60 * 60 * 24,
+        path="/"
+    )
+
+    return resposta
+
+
+# ============================================================
+# INFORMAÇÕES DO USUÁRIO LOGADO
+# ============================================================
+
+@app.get("/api/me")
+def me(
+    usuario: models.Usuario =
+    Depends(get_current_user),
+
+    db: Session =
+    Depends(get_db)
+):
+
+    # Dados básicos
+    dados = {
+
+        "id":
+            usuario.id,
+
+        "usuario":
+            usuario.usuario,
+
+        "tipo":
+            usuario.tipo,
+
+        "email":
+            usuario.email,
+
+        "email_cadastrado":
+            not aluno_sem_email(usuario)
+    }
+
+    # Se for aluno,
+    # também buscamos os dados do aluno
+    if (
+        usuario.tipo == "aluno"
+        and usuario.aluno_id
+    ):
+
+        aluno_db = (
+            db.query(models.Aluno)
+            .filter(
+                models.Aluno.id
+                == usuario.aluno_id
+            )
+            .first()
+        )
+
+        if aluno_db:
+
+            dados["aluno"] = {
+
+                "id":
+                    aluno_db.id,
+
+                "nome":
+                    aluno_db.nome,
+
+                "nivel":
+                    aluno_db.nivel,
+
+                "modalidades":
+                    obter_modalidades_aluno(db, aluno_db.id),
+
+                # Mantido para compatibilidade com telas antigas.
+                "modalidade":
+                    " • ".join(
+                        obter_modalidades_aluno(db, aluno_db.id)
+                    )
+            }
+
+    return dados
+
+
+
+
+# ============================================================
+# CADASTRAR E-MAIL NO PRIMEIRO ACESSO
+# ============================================================
+
+
+# ============================================================
+# PWA / WEB PUSH
+# ============================================================
+
+@app.get("/api/push/config")
+def configuracao_push(
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    return {
+        "enabled": push_configurado(),
+        "public_key": chave_publica_vapid() if push_configurado() else None
+    }
+
+
+
+def _preferencias_push(db: Session, usuario_id: int):
+    preferencias = (
+        db.query(models.PreferenciaNotificacao)
+        .filter(models.PreferenciaNotificacao.usuario_id == usuario_id)
+        .first()
+    )
+
+    if preferencias:
+        return preferencias
+
+    preferencias = models.PreferenciaNotificacao(
+        usuario_id=usuario_id,
+        novo_treino=True,
+        lembrete_treino=True,
+        treino_pendente=True,
+        horario_lembrete="07:00",
+        horario_pendente="19:00",
+        timezone="America/Sao_Paulo",
+        atualizado_em=int(time.time())
+    )
+    db.add(preferencias)
+    db.commit()
+    db.refresh(preferencias)
+    return preferencias
+
+
+def _validar_horario_push(valor: str, campo: str) -> str:
+    texto = str(valor or "").strip()
+
+    if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", texto):
+        raise HTTPException(
+            status_code=422,
+            detail=f"{campo} deve estar no formato HH:MM."
+        )
+
+    return texto
+
+
+@app.get("/api/push/preferencias")
+def obter_preferencias_push(
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    preferencias = _preferencias_push(db, usuario.id)
+
+    return {
+        "novo_treino": bool(preferencias.novo_treino),
+        "lembrete_treino": bool(preferencias.lembrete_treino),
+        "treino_pendente": bool(preferencias.treino_pendente),
+        "horario_lembrete": preferencias.horario_lembrete,
+        "horario_pendente": preferencias.horario_pendente,
+        "timezone": preferencias.timezone
+    }
+
+
+@app.patch("/api/push/preferencias")
+def atualizar_preferencias_push(
+    dados: schemas.PushPreferenciasUpdate,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    horario_lembrete = _validar_horario_push(
+        dados.horario_lembrete,
+        "Horário do lembrete"
+    )
+    horario_pendente = _validar_horario_push(
+        dados.horario_pendente,
+        "Horário do aviso pendente"
+    )
+
+    timezone_nome = str(dados.timezone or "America/Sao_Paulo").strip()
+
+    try:
+        ZoneInfo(timezone_nome)
+    except (ZoneInfoNotFoundError, ValueError):
+        timezone_nome = "America/Sao_Paulo"
+
+    preferencias = _preferencias_push(db, usuario.id)
+    preferencias.novo_treino = bool(dados.novo_treino)
+    preferencias.lembrete_treino = bool(dados.lembrete_treino)
+    preferencias.treino_pendente = bool(dados.treino_pendente)
+    preferencias.horario_lembrete = horario_lembrete
+    preferencias.horario_pendente = horario_pendente
+    preferencias.timezone = timezone_nome
+    preferencias.atualizado_em = int(time.time())
+    db.commit()
+
+    return {
+        "mensagem": "Preferências de notificação salvas.",
+        "novo_treino": bool(preferencias.novo_treino),
+        "lembrete_treino": bool(preferencias.lembrete_treino),
+        "treino_pendente": bool(preferencias.treino_pendente),
+        "horario_lembrete": preferencias.horario_lembrete,
+        "horario_pendente": preferencias.horario_pendente,
+        "timezone": preferencias.timezone
+    }
+
+
+@app.post("/api/push/subscribe")
+def assinar_push(
+    request: Request,
+    dados: schemas.PushSubscriptionCreate,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    if not push_configurado():
+        raise HTTPException(
+            status_code=503,
+            detail="Web Push ainda não está configurado no servidor."
+        )
+
+    endpoint = dados.endpoint.strip()
+
+    if not endpoint.startswith("https://"):
+        raise HTTPException(
+            status_code=400,
+            detail="Endpoint de notificação inválido."
+        )
+
+    agora = int(time.time())
+
+    assinatura = (
+        db.query(models.PushSubscription)
+        .filter(models.PushSubscription.endpoint == endpoint)
+        .first()
+    )
+
+    if assinatura:
+        assinatura.usuario_id = usuario.id
+        assinatura.p256dh = dados.keys.p256dh
+        assinatura.auth = dados.keys.auth
+        assinatura.user_agent = request.headers.get("user-agent")
+        assinatura.ativo = True
+        assinatura.atualizado_em = agora
+    else:
+        assinatura = models.PushSubscription(
+            usuario_id=usuario.id,
+            endpoint=endpoint,
+            p256dh=dados.keys.p256dh,
+            auth=dados.keys.auth,
+            user_agent=request.headers.get("user-agent"),
+            ativo=True,
+            criado_em=agora,
+            atualizado_em=agora
+        )
+        db.add(assinatura)
+
+    db.commit()
+
+    # Garante que contas antigas recebam as preferências padrão assim que
+    # ativarem notificações pela primeira vez.
+    _preferencias_push(db, usuario.id)
+
+    return {
+        "mensagem": "Notificações ativadas neste dispositivo."
+    }
+
+
+@app.post("/api/push/unsubscribe")
+def desassinar_push(
+    dados: schemas.PushSubscriptionRemove,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    assinatura = (
+        db.query(models.PushSubscription)
+        .filter(
+            models.PushSubscription.endpoint == dados.endpoint.strip(),
+            models.PushSubscription.usuario_id == usuario.id
+        )
+        .first()
+    )
+
+    if assinatura:
+        assinatura.ativo = False
+        assinatura.atualizado_em = int(time.time())
+        db.commit()
+
+    return {
+        "mensagem": "Notificações desativadas neste dispositivo."
+    }
+
+
+@app.post("/api/push/teste")
+def testar_push(
+    usuario: models.Usuario = Depends(require_aluno_com_email)
+):
+    if not push_configurado():
+        raise HTTPException(
+            status_code=503,
+            detail="Web Push ainda não está configurado no servidor."
+        )
+
+    enviados = enviar_push_para_usuario_id(
+        usuario_id=usuario.id,
+        titulo="SPY TEAM 🔔",
+        corpo="Notificações ativadas com sucesso neste dispositivo.",
+        url="/aluno",
+        tag=f"teste-push-{usuario.id}"
+    )
+
+    if enviados <= 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Nenhuma assinatura ativa foi encontrada para esta conta."
+        )
+
+    return {
+        "mensagem": "Notificação de teste enviada.",
+        "enviados": enviados
+    }
+
+
+@app.patch("/api/me/email")
+def cadastrar_email_aluno(
+    dados: schemas.CadastroEmailAluno,
+    db: Session = Depends(get_db),
+    aluno_logado: models.Usuario =
+    Depends(require_aluno)
+):
+
+    if not aluno_sem_email(aluno_logado):
+        raise HTTPException(
+            status_code=400,
+            detail="O e-mail já foi cadastrado."
+        )
+
+    try:
+        email = normalizar_email(
+            dados.email
+        )
+        confirmar = normalizar_email(
+            dados.confirmar_email
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
+    if email != confirmar:
+        raise HTTPException(
+            status_code=400,
+            detail="Os e-mails não conferem."
+        )
+
+    existente = (
+        db.query(models.Usuario)
+        .filter(
+            func.lower(models.Usuario.email)
+            == email,
+            models.Usuario.id
+            != aluno_logado.id
+        )
+        .first()
+    )
+
+    if existente:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Este e-mail já está vinculado "
+                "a outra conta."
+            )
+        )
+
+    aluno_logado.email = email
+    db.commit()
+
+    return {
+        "mensagem": "E-mail cadastrado com sucesso.",
+        "redirect": "/aluno"
+    }
+
+
+# ============================================================
+# ESQUECI MINHA SENHA
+# ============================================================
+
+MENSAGEM_RECUPERACAO = (
+    "Se existir uma conta associada a este e-mail, "
+    "enviaremos as instruções de recuperação."
+)
+
+
+@app.post("/api/senha/esqueci")
+def solicitar_recuperacao_senha(
+    request: Request,
+    dados: schemas.SolicitarRecuperacaoSenha,
+    db: Session = Depends(get_db)
+):
+    # O rate limit é aplicado antes de descobrir se o e-mail existe.
+    # Assim, endereços inexistentes também consomem a cota e a resposta
+    # não revela quais contas estão cadastradas.
+    identificador_rate = str(
+        dados.email or ""
+    ).strip().casefold()
+
+    if registrar_e_verificar_rate_limit_recuperacao(
+        db,
+        request,
+        identificador_rate
+    ):
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Muitas solicitações de recuperação. "
+                "Aguarde alguns minutos e tente novamente."
+            ),
+            headers={
+                "Retry-After": str(
+                    RECOVERY_RATE_WINDOW_SECONDS
+                )
+            }
+        )
+
+    try:
+        email = normalizar_email(dados.email)
+    except ValueError:
+        return {
+            "mensagem": MENSAGEM_RECUPERACAO
+        }
+
+    usuario = (
+        db.query(models.Usuario)
+        .filter(
+            func.lower(models.Usuario.email)
+            == email,
+            models.Usuario.tipo == "aluno"
+        )
+        .first()
+    )
+
+    if not usuario:
+        return {
+            "mensagem": MENSAGEM_RECUPERACAO
+        }
+
+    agora = int(time.time())
+
+    ultimo = (
+        db.query(models.RecuperacaoSenha)
+        .filter(
+            models.RecuperacaoSenha.usuario_id
+            == usuario.id
+        )
+        .order_by(
+            models.RecuperacaoSenha.criado_em.desc()
+        )
+        .first()
+    )
+
+    # Proteção adicional por conta para não disparar vários e-mails
+    # consecutivos mesmo dentro dos limites globais.
+    if (
+        ultimo
+        and agora - ultimo.criado_em < 60
+    ):
+        return {
+            "mensagem": MENSAGEM_RECUPERACAO
+        }
+
+    # Tokens antigos deixam de valer assim que um novo é gerado.
+    (
+        db.query(models.RecuperacaoSenha)
+        .filter(
+            models.RecuperacaoSenha.usuario_id
+            == usuario.id,
+            models.RecuperacaoSenha.usado
+            == False
+        )
+        .update({
+            models.RecuperacaoSenha.usado: True
+        })
+    )
+
+    token = criar_token_recuperacao()
+
+    recuperacao = models.RecuperacaoSenha(
+        usuario_id=usuario.id,
+        token_hash=hash_token_recuperacao(token),
+        criado_em=agora,
+        expira_em=agora + 15 * 60,
+        usado=False
+    )
+
+    db.add(recuperacao)
+    db.commit()
+    db.refresh(recuperacao)
+
+    try:
+        enviar_email_recuperacao(
+            usuario.email,
+            token
+        )
+    except Exception as erro:
+        recuperacao.usado = True
+        db.commit()
+        print(
+            "[SpyTeam] Falha no envio do e-mail "
+            "de recuperação:",
+            erro
+        )
+
+    return {
+        "mensagem": MENSAGEM_RECUPERACAO
+    }
+
+
+@app.post("/api/senha/redefinir")
+def redefinir_senha_por_token(
+    dados: schemas.RedefinirSenha,
+    db: Session = Depends(get_db)
+):
+
+    if dados.nova_senha != dados.confirmar_senha:
+        raise HTTPException(
+            status_code=400,
+            detail="A confirmação da nova senha não confere."
+        )
+
+    agora = int(time.time())
+    token_hash = hash_token_recuperacao(
+        dados.token.strip()
+    )
+
+    recuperacao = (
+        db.query(models.RecuperacaoSenha)
+        .filter(
+            models.RecuperacaoSenha.token_hash
+            == token_hash,
+            models.RecuperacaoSenha.usado
+            == False
+        )
+        .first()
+    )
+
+    if (
+        not recuperacao
+        or recuperacao.expira_em < agora
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Este link é inválido ou expirou. "
+                "Solicite uma nova recuperação."
+            )
+        )
+
+    usuario = (
+        db.query(models.Usuario)
+        .filter(
+            models.Usuario.id
+            == recuperacao.usuario_id
+        )
+        .first()
+    )
+
+    if not usuario:
+        raise HTTPException(
+            status_code=400,
+            detail="Link de recuperação inválido."
+        )
+
+    usuario.senha_hash = hash_senha(
+        dados.nova_senha
+    )
+
+    # Invalida imediatamente todas as sessões existentes.
+    usuario.session_version = int(
+        usuario.session_version or 0
+    ) + 1
+
+    (
+        db.query(models.RecuperacaoSenha)
+        .filter(
+            models.RecuperacaoSenha.usuario_id
+            == usuario.id,
+            models.RecuperacaoSenha.usado
+            == False
+        )
+        .update({
+            models.RecuperacaoSenha.usado: True
+        })
+    )
+
+    db.commit()
+
+    resposta = JSONResponse({
+        "mensagem": "Senha redefinida com sucesso.",
+        "redirect": "/login"
+    })
+
+    # Mesmo que o usuário tenha aberto o link em um navegador onde
+    # estava logado, a sessão local também é removida.
+    resposta.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        secure=COOKIE_SECURE,
+        samesite="lax"
+    )
+
+    resposta.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=criar_token_csrf(),
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        max_age=60 * 60 * 24,
+        path="/"
+    )
+
+    return resposta
+
+
+# ============================================================
+# ALTERAR SENHA DO ALUNO LOGADO
+# ============================================================
+
+@app.patch("/api/me/senha")
+def alterar_senha_aluno(
+    dados: schemas.AlterarSenhaAluno,
+
+    db: Session =
+    Depends(get_db),
+
+    aluno_logado: models.Usuario =
+    Depends(require_aluno_com_email)
+):
+
+    usuario_db = (
+        db.query(models.Usuario)
+        .filter(
+            models.Usuario.id
+            == aluno_logado.id
+        )
+        .first()
+    )
+
+    if not usuario_db:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuário não encontrado."
+        )
+
+    if not verificar_senha(
+        dados.senha_atual,
+        usuario_db.senha_hash
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Senha atual incorreta."
+        )
+
+    if (
+        dados.nova_senha
+        != dados.confirmar_senha
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "A confirmação da nova senha "
+                "não confere."
+            )
+        )
+
+    if verificar_senha(
+        dados.nova_senha,
+        usuario_db.senha_hash
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "A nova senha precisa ser "
+                "diferente da senha atual."
+            )
+        )
+
+    usuario_db.senha_hash = hash_senha(
+        dados.nova_senha
+    )
+
+    # Invalida esta sessão e qualquer outra sessão aberta da conta.
+    usuario_db.session_version = int(
+        usuario_db.session_version or 0
+    ) + 1
+
+    db.commit()
+
+    resposta = JSONResponse({
+        "mensagem": (
+            "Senha alterada com sucesso. "
+            "Entre novamente para continuar."
+        ),
+        "redirect": "/login"
+    })
+
+    resposta.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        secure=COOKIE_SECURE,
+        samesite="lax"
+    )
+
+    resposta.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=criar_token_csrf(),
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        max_age=60 * 60 * 24,
+        path="/"
+    )
+
+    return resposta
+
+
+# ============================================================
+# CRIAR ALUNO
+# ============================================================
+
+@app.post("/api/alunos")
+def criar_aluno(
+
+    request: Request,
+
+    aluno: schemas.AlunoCreate,
+
+    db: Session =
+    Depends(get_db),
+
+    professor: models.Usuario =
+    Depends(require_professor)
+):
+
+    # Usuário não diferencia maiúsculas/minúsculas e não aceita espaços.
+    try:
+        usuario_normalizado = normalizar_usuario(
+            aluno.usuario
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
+    usuario_existente = (
+        db.query(models.Usuario)
+        .filter(
+            func.lower(
+                func.trim(
+                    models.Usuario.usuario
+                )
+            )
+            == usuario_normalizado
+        )
+        .first()
+    )
+
+    if usuario_existente:
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Esse usuário já está cadastrado."
+            )
+        )
+
+    # Valida as modalidades antes de criar qualquer registro.
+    try:
+        modalidades_validas = validar_modalidades(
+            aluno.modalidades
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
+    # Cria aluno. A coluna modalidade guarda somente a primeira
+    # opção por compatibilidade; a tabela aluno_modalidades é a fonte
+    # oficial para múltiplas modalidades.
+    novo_aluno = models.Aluno(
+
+        nome=aluno.nome,
+
+        nivel=aluno.nivel,
+
+        modalidade=modalidades_validas[0]
+    )
+
+    db.add(
+        novo_aluno
+    )
+
+    # O flush gera o ID
+    # antes do commit
+    db.flush()
+
+    # Cria conta de login
+    novo_usuario = models.Usuario(
+
+        usuario=usuario_normalizado,
+
+        senha_hash=
+            hash_senha(aluno.senha),
+
+        tipo="aluno",
+
+        aluno_id=
+            novo_aluno.id
+    )
+
+    db.add(
+        novo_usuario
+    )
+
+    definir_modalidades_aluno(
+        db,
+        novo_aluno,
+        modalidades_validas
+    )
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="criar_aluno",
+        entidade="aluno",
+        entidade_id=novo_aluno.id,
+        descricao=f"Aluno {novo_aluno.nome} cadastrado.",
+        detalhes={
+            "nome": novo_aluno.nome,
+            "nivel": novo_aluno.nivel,
+            "modalidades": modalidades_validas,
+            "usuario": usuario_normalizado
+        }
+    )
+
+    # Salva aluno, conta e histórico na mesma transação.
+    db.commit()
+
+    # Atualiza objeto
+    db.refresh(
+        novo_aluno
+    )
+
+    return {
+
+        "id":
+            novo_aluno.id,
+
+        "nome":
+            novo_aluno.nome,
+
+        "nivel":
+            novo_aluno.nivel,
+
+        "modalidades":
+            modalidades_validas,
+
+        "usuario":
+            usuario_normalizado
+    }
+
+
+# ============================================================
+# LISTAR ALUNOS
+# ============================================================
+
+@app.get("/api/alunos")
+def listar_alunos(
+
+    db: Session =
+    Depends(get_db),
+
+    professor: models.Usuario =
+    Depends(require_professor)
+):
+
+    alunos = (
+        db.query(models.Aluno)
+        .all()
+    )
+
+    resultado = []
+
+    for aluno in alunos:
+
+        # Procura o login desse aluno
+        usuario = (
+            db.query(models.Usuario)
+            .filter(
+                models.Usuario.aluno_id
+                == aluno.id
+            )
+            .first()
+        )
+
+        modalidades = obter_modalidades_aluno(
+            db,
+            aluno.id
+        )
+
+        resultado.append({
+
+            "id":
+                aluno.id,
+
+            "nome":
+                aluno.nome,
+
+            "nivel":
+                aluno.nivel,
+
+            "modalidades":
+                modalidades,
+
+            "modalidade":
+                " • ".join(modalidades),
+
+            "usuario":
+                usuario.usuario
+                if usuario
+                else None
+        })
+
+    return resultado
+
+
+# ============================================================
+# ATUALIZAR MODALIDADES DO ALUNO
+# SOMENTE PROFESSOR
+# ============================================================
+
+@app.patch("/api/alunos/{aluno_id}/modalidades")
+def atualizar_modalidades_aluno(
+    aluno_id: int,
+    dados: schemas.AlunoModalidadesUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    aluno_db = (
+        db.query(models.Aluno)
+        .filter(models.Aluno.id == aluno_id)
+        .first()
+    )
+
+    if not aluno_db:
+        raise HTTPException(
+            status_code=404,
+            detail="Aluno não encontrado."
+        )
+
+    antes = obter_modalidades_aluno(db, aluno_id)
+
+    try:
+        depois = definir_modalidades_aluno(
+            db,
+            aluno_db,
+            dados.modalidades
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="atualizar_modalidades_aluno",
+        entidade="aluno",
+        entidade_id=aluno_id,
+        descricao=f"Modalidades de {aluno_db.nome} atualizadas.",
+        detalhes={
+            "antes": antes,
+            "depois": depois
+        }
+    )
+
+    db.commit()
+
+    return {
+        "mensagem": "Modalidades atualizadas com sucesso.",
+        "id": aluno_id,
+        "modalidades": depois,
+        "modalidade": " • ".join(depois)
+    }
+
+
+# ============================================================
+# EXCLUIR ALUNO
+# SOMENTE PROFESSOR
+# ============================================================
+
+@app.delete("/api/alunos/{aluno_id}")
+def excluir_aluno(
+    aluno_id: int,
+
+    request: Request,
+
+    db: Session =
+    Depends(get_db),
+
+    professor: models.Usuario =
+    Depends(require_professor)
+):
+
+    # --------------------------------------------------------
+    # BUSCAR O ALUNO
+    # --------------------------------------------------------
+
+    aluno = (
+        db.query(models.Aluno)
+        .filter(
+            models.Aluno.id == aluno_id
+        )
+        .first()
+    )
+
+    if not aluno:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Aluno não encontrado."
+        )
+
+    usuario_aluno = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.aluno_id == aluno_id)
+        .first()
+    )
+
+    dados_auditoria_aluno = {
+        "nome": aluno.nome,
+        "nivel": aluno.nivel,
+        "modalidades": obter_modalidades_aluno(db, aluno.id),
+        "usuario": (
+            usuario_aluno.usuario
+            if usuario_aluno else None
+        )
+    }
+
+    # --------------------------------------------------------
+    # REMOVER OS TREINOS AGENDADOS DO ALUNO
+    #
+    # Os treinos possuem uma chave estrangeira para alunos.
+    # Por isso removemos primeiro os registros relacionados.
+    # Os feedbacks estão dentro de TreinoAgendado e também
+    # serão removidos junto com o treino.
+    # --------------------------------------------------------
+
+    db.query(models.TreinoAgendado).filter(
+        models.TreinoAgendado.aluno_id == aluno_id
+    ).delete(
+        synchronize_session=False
+    )
+
+    # --------------------------------------------------------
+    # REMOVER A CONTA DE LOGIN DO ALUNO
+    # --------------------------------------------------------
+
+    db.query(models.Usuario).filter(
+        models.Usuario.aluno_id == aluno_id
+    ).delete(
+        synchronize_session=False
+    )
+
+    # --------------------------------------------------------
+    # REMOVER VÍNCULOS DE MODALIDADE
+    # --------------------------------------------------------
+
+    db.query(models.AlunoModalidade).filter(
+        models.AlunoModalidade.aluno_id == aluno_id
+    ).delete(synchronize_session=False)
+
+    # --------------------------------------------------------
+    # REMOVER O ALUNO
+    # --------------------------------------------------------
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="excluir_aluno",
+        entidade="aluno",
+        entidade_id=aluno_id,
+        descricao=f"Aluno {aluno.nome} excluído.",
+        detalhes=dados_auditoria_aluno
+    )
+
+    db.delete(aluno)
+
+    db.commit()
+
+    return {
+        "mensagem": "Aluno excluído com sucesso.",
+        "id": aluno_id
+    }
+
+
+# ============================================================
+# AGENDAR TREINO
+# ============================================================
+
+@app.post("/api/treinos")
+def agendar_treino(
+
+    request: Request,
+
+    background_tasks: BackgroundTasks,
+
+    treino: schemas.TreinoAgendadoCreate,
+
+    db: Session =
+    Depends(get_db),
+
+    professor: models.Usuario =
+    Depends(require_professor)
+):
+
+    # Verifica aluno
+    aluno = (
+        db.query(models.Aluno)
+        .filter(
+            models.Aluno.id
+            == treino.aluno_id
+        )
+        .first()
+    )
+
+    if not aluno:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Aluno não encontrado."
+        )
+
+    # Verifica treino base
+    treino_base = (
+        db.query(models.TreinoBase)
+        .filter(
+            models.TreinoBase.id
+            == treino.treino_base_id
+        )
+        .first()
+    )
+
+    if not treino_base:
+
+        raise HTTPException(
+            status_code=404,
+            detail=
+                "Treino base não encontrado."
+        )
+
+    # Cria agendamento
+    novo_treino = models.TreinoAgendado(
+
+    aluno_id=
+        treino.aluno_id,
+
+    treino_base_id=
+        treino.treino_base_id,
+
+    titulo=
+        treino_base.titulo,
+
+    modalidade=
+        treino_base.modalidade,
+
+    descricao=
+        treino_base.descricao,
+
+    ritmo_alvo=
+        treino_base.ritmo_alvo,
+
+    data_planejada=
+        treino.data_planejada
+)
+
+    db.add(
+        novo_treino
+    )
+    db.flush()
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="agendar_treino",
+        entidade="treino_agendado",
+        entidade_id=novo_treino.id,
+        descricao=(
+            f"Treino {treino_base.titulo} agendado "
+            f"para {aluno.nome}."
+        ),
+        detalhes={
+            "aluno_id": aluno.id,
+            "aluno": aluno.nome,
+            "treino_base_id": treino_base.id,
+            "treino": treino_base.titulo,
+            "modalidade": treino_base.modalidade,
+            "data_planejada": treino.data_planejada
+        }
+    )
+
+    db.commit()
+
+    db.refresh(
+        novo_treino
+    )
+
+    background_tasks.add_task(
+        enviar_push_para_aluno_id,
+        aluno.id,
+        "Novo treino no SPY TEAM 🏃",
+        f"{treino_base.modalidade} • {treino_base.titulo} • {treino.data_planejada}",
+        f"/aluno?treino={novo_treino.id}",
+        f"treino-{novo_treino.id}",
+        "novo_treino"
+    )
+
+    return novo_treino
+
+
+# ============================================================
+# LISTAR TODOS OS TREINOS
+# USADO PELO PROFESSOR
+# ============================================================
+
+@app.get("/api/treinos")
+def listar_treinos_agendados(
+
+    db: Session =
+    Depends(get_db),
+
+    professor: models.Usuario =
+    Depends(require_professor)
+):
+
+    # --------------------------------------------------------
+    # BUSCAR TODOS OS TREINOS AGENDADOS
+    # --------------------------------------------------------
+
+    treinos = (
+
+        db.query(
+            models.TreinoAgendado
+        )
+
+        .order_by(
+            models.TreinoAgendado
+            .data_planejada
+            .asc()
+        )
+
+        .all()
+    )
+
+
+    # --------------------------------------------------------
+    # MONTAR RESPOSTA
+    # --------------------------------------------------------
+
+    return [
+
+        {
+
+            # ID do agendamento
+            "id":
+                t.id,
+
+            # ID do aluno
+            "aluno_id":
+                t.aluno_id,
+
+            # Nome do aluno
+            "aluno":
+                t.aluno.nome,
+
+            # ID do treino base
+            "treino_base_id":
+                t.treino_base_id,
+
+            # Nome do treino
+            "treino":
+                t.titulo,
+
+            "modalidade":
+                t.modalidade,
+
+            "descricao":
+                t.descricao,
+
+            "ritmo_alvo":
+                t.ritmo_alvo,
+
+            # Data planejada
+            "data_planejada":
+                t.data_planejada,
+
+            # Status
+            "concluido":
+                t.concluido,
+
+
+            # =================================================
+            # FEEDBACK DO ALUNO
+            # =================================================
+
+            "feedback_nota":
+                t.feedback_nota,
+
+            "feedback_dificuldade":
+                t.feedback_dificuldade,
+
+            "feedback_comentario":
+                t.feedback_comentario
+
+        }
+
+        for t in treinos
+    ]
+
+# ============================================================
+# LISTAR TREINOS BASE
+# USADO PELO PROFESSOR
+# ============================================================
+
+@app.get("/api/treinos-base")
+def listar_treinos_base(
+
+    db: Session =
+        Depends(get_db),
+
+    professor: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    # Busca todos os treinos base
+    treinos = (
+
+        db.query(
+            models.TreinoBase
+        )
+
+        .filter(
+            models.TreinoBase.modalidade.in_(MODALIDADES_PERMITIDAS)
+        )
+
+        .order_by(
+            models.TreinoBase.id.asc()
+        )
+
+        .all()
+    )
+
+
+    # Retorna os treinos
+    return [
+
+        {
+
+            "id":
+                treino.id,
+
+            "titulo":
+                treino.titulo,
+
+            "modalidade":
+                treino.modalidade,
+
+            "descricao":
+                treino.descricao,
+
+            "ritmo_alvo":
+                treino.ritmo_alvo
+
+        }
+
+        for treino in treinos
+    ]
+# ============================================================
+# CRIAR TREINO BASE
+# ============================================================
+
+@app.post("/api/treinos-base")
+def criar_treino_base(
+
+    request: Request,
+
+    treino: schemas.TreinoBaseCreate,
+
+    db: Session =
+    Depends(get_db),
+
+    professor: models.Usuario =
+    Depends(require_professor)
+):
+
+    try:
+        modalidade_valida = canonicalizar_modalidade(
+            treino.modalidade
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
+    novo_treino = models.TreinoBase(
+
+        titulo=
+            treino.titulo,
+
+        modalidade=
+            modalidade_valida,
+
+        descricao=
+            treino.descricao,
+
+        ritmo_alvo=
+            treino.ritmo_alvo
+    )
+
+    db.add(
+        novo_treino
+    )
+    db.flush()
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="criar_treino_base",
+        entidade="treino_base",
+        entidade_id=novo_treino.id,
+        descricao=f"Treino base {novo_treino.titulo} criado.",
+        detalhes={
+            "titulo": novo_treino.titulo,
+            "modalidade": novo_treino.modalidade,
+            "descricao": novo_treino.descricao,
+            "ritmo_alvo": novo_treino.ritmo_alvo
+        }
+    )
+
+    db.commit()
+
+    db.refresh(
+        novo_treino
+    )
+
+    return novo_treino
+
+# ============================================================
+# COPIAR TREINO BASE
+# ============================================================
+
+@app.post("/api/treinos-base/{treino_base_id}/copiar")
+def copiar_treino_base(
+    treino_base_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    original = (
+        db.query(models.TreinoBase)
+        .filter(models.TreinoBase.id == treino_base_id)
+        .first()
+    )
+
+    if not original:
+        raise HTTPException(status_code=404, detail="Treino base não encontrado.")
+
+    titulo_copia = f"{original.titulo} - cópia"
+    if len(titulo_copia) > 150:
+        titulo_copia = f"{original.titulo[:140].rstrip()} - cópia"
+
+    copia = models.TreinoBase(
+        titulo=titulo_copia,
+        modalidade=original.modalidade,
+        descricao=original.descricao,
+        ritmo_alvo=original.ritmo_alvo
+    )
+    db.add(copia)
+    db.flush()
+
+    registrar_acao_admin(
+        db=db, request=request, professor=professor,
+        acao="copiar_treino_base", entidade="treino_base",
+        entidade_id=copia.id,
+        descricao=f"Treino base {original.titulo} copiado para {copia.titulo}.",
+        detalhes={"origem_id": original.id, "copia_id": copia.id}
+    )
+
+    db.commit()
+    db.refresh(copia)
+
+    return {
+        "mensagem": "Treino copiado com sucesso.",
+        "id": copia.id,
+        "titulo": copia.titulo
+    }
+
+
+# ============================================================
+# EDITAR TREINO BASE
+# ============================================================
+
+@app.patch("/api/treinos-base/{treino_base_id}")
+def editar_treino_base(
+
+    treino_base_id: int,
+
+    request: Request,
+
+    dados: schemas.TreinoBaseCreate,
+
+    db: Session =
+        Depends(get_db),
+
+    professor: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    # Busca o treino base
+    treino_base = (
+        db.query(
+            models.TreinoBase
+        )
+        .filter(
+            models.TreinoBase.id
+            == treino_base_id
+        )
+        .first()
+    )
+
+    # Treino não encontrado
+    if not treino_base:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Treino base não encontrado."
+        )
+
+    antes = {
+        "titulo": treino_base.titulo,
+        "modalidade": treino_base.modalidade,
+        "descricao": treino_base.descricao,
+        "ritmo_alvo": treino_base.ritmo_alvo
+    }
+
+    try:
+        modalidade_valida = canonicalizar_modalidade(
+            dados.modalidade
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
+
+    # Atualiza os dados do treino base
+    treino_base.titulo = dados.titulo
+
+    treino_base.modalidade = modalidade_valida
+
+    treino_base.descricao = dados.descricao
+
+    treino_base.ritmo_alvo = dados.ritmo_alvo
+
+    depois = {
+        "titulo": treino_base.titulo,
+        "modalidade": treino_base.modalidade,
+        "descricao": treino_base.descricao,
+        "ritmo_alvo": treino_base.ritmo_alvo
+    }
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="editar_treino_base",
+        entidade="treino_base",
+        entidade_id=treino_base.id,
+        descricao=f"Treino base {treino_base.titulo} editado.",
+        detalhes={
+            "antes": antes,
+            "depois": depois
+        }
+    )
+
+    # Salva alteração e histórico juntos.
+    db.commit()
+
+    # Atualiza o objeto
+    db.refresh(
+        treino_base
+    )
+
+    return treino_base
+
+# ============================================================
+# EXCLUIR TREINO BASE
+# ============================================================
+
+@app.delete("/api/treinos-base/{treino_base_id}")
+def excluir_treino_base(
+
+    treino_base_id: int,
+
+    request: Request,
+
+    db: Session =
+        Depends(get_db),
+
+    professor: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    # Busca o treino base
+    treino_base = (
+        db.query(
+            models.TreinoBase
+        )
+        .filter(
+            models.TreinoBase.id
+            == treino_base_id
+        )
+        .first()
+    )
+
+    # Treino não encontrado
+    if not treino_base:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Treino base não encontrado."
+        )
+
+    # Verifica se o treino já foi utilizado
+    agendamento = (
+        db.query(
+            models.TreinoAgendado
+        )
+        .filter(
+            models.TreinoAgendado.treino_base_id
+            == treino_base_id
+        )
+        .first()
+    )
+
+    # Não permite excluir um treino já utilizado
+    if agendamento:
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Este treino base já foi utilizado "
+                "em um ou mais agendamentos e não "
+                "pode ser excluído."
+            )
+        )
+
+    dados_excluidos = {
+        "titulo": treino_base.titulo,
+        "modalidade": treino_base.modalidade,
+        "descricao": treino_base.descricao,
+        "ritmo_alvo": treino_base.ritmo_alvo
+    }
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="excluir_treino_base",
+        entidade="treino_base",
+        entidade_id=treino_base.id,
+        descricao=f"Treino base {treino_base.titulo} excluído.",
+        detalhes=dados_excluidos
+    )
+
+    # Exclui o treino base
+    db.delete(
+        treino_base
+    )
+
+    db.commit()
+
+    return {
+        "mensagem":
+            "Treino base excluído com sucesso."
+    }
+
+# ============================================================
+# REAGENDAR TREINO INDIVIDUAL
+# ============================================================
+
+@app.patch("/api/treinos/{treino_id}/reagendar")
+def reagendar_treino_individual(
+    treino_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    dados: schemas.ReagendarTreinoCreate,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    treino = (
+        db.query(models.TreinoAgendado)
+        .filter(models.TreinoAgendado.id == treino_id)
+        .first()
+    )
+
+    if not treino:
+        raise HTTPException(status_code=404, detail="Treino agendado não encontrado.")
+    if treino.concluido:
+        raise HTTPException(status_code=400, detail="Treino concluído não pode ser reagendado.")
+
+    try:
+        nova_data = date.fromisoformat(dados.data_planejada)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Data inválida.")
+
+    duplicado = (
+        db.query(models.TreinoAgendado)
+        .filter(
+            models.TreinoAgendado.id != treino.id,
+            models.TreinoAgendado.aluno_id == treino.aluno_id,
+            models.TreinoAgendado.treino_base_id == treino.treino_base_id,
+            models.TreinoAgendado.data_planejada == nova_data.isoformat()
+        )
+        .first()
+    )
+    if duplicado:
+        raise HTTPException(
+            status_code=400,
+            detail="Esse aluno já possui este mesmo treino nessa data."
+        )
+
+    data_anterior = treino.data_planejada
+    treino.data_planejada = nova_data.isoformat()
+
+    registrar_acao_admin(
+        db=db, request=request, professor=professor,
+        acao="reagendar_treino", entidade="treino_agendado",
+        entidade_id=treino.id,
+        descricao=f"Treino {treino.titulo} reagendado de {data_anterior} para {treino.data_planejada}.",
+        detalhes={
+            "aluno_id": treino.aluno_id,
+            "data_anterior": data_anterior,
+            "nova_data": treino.data_planejada
+        }
+    )
+
+    db.commit()
+
+    background_tasks.add_task(
+        enviar_push_para_aluno_id,
+        treino.aluno_id,
+        "Treino reagendado 📅",
+        f"{treino.modalidade} • {treino.titulo} • {treino.data_planejada}",
+        f"/aluno?treino={treino.id}",
+        f"reagendado-{treino.id}-{treino.data_planejada}",
+        "novo_treino"
+    )
+
+    return {
+        "mensagem": "Treino reagendado com sucesso.",
+        "id": treino.id,
+        "data_planejada": treino.data_planejada
+    }
+
+
+# ============================================================
+# EXCLUIR AGENDAMENTO INDIVIDUAL
+# ============================================================
+
+@app.delete("/api/treinos/{treino_id}")
+def excluir_treino_agendado(
+    treino_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    treino = (
+        db.query(models.TreinoAgendado)
+        .filter(models.TreinoAgendado.id == treino_id)
+        .first()
+    )
+
+    if not treino:
+        raise HTTPException(status_code=404, detail="Treino agendado não encontrado.")
+    if treino.concluido:
+        raise HTTPException(
+            status_code=400,
+            detail="Treinos concluídos são mantidos no histórico e não podem ser excluídos."
+        )
+
+    detalhes = {
+        "aluno_id": treino.aluno_id,
+        "treino_base_id": treino.treino_base_id,
+        "titulo": treino.titulo,
+        "modalidade": treino.modalidade,
+        "data_planejada": treino.data_planejada
+    }
+
+    registrar_acao_admin(
+        db=db, request=request, professor=professor,
+        acao="excluir_agendamento", entidade="treino_agendado",
+        entidade_id=treino.id,
+        descricao=f"Agendamento {treino.titulo} de {treino.data_planejada} excluído.",
+        detalhes=detalhes
+    )
+
+    db.delete(treino)
+    db.commit()
+
+    return {"mensagem": "Agendamento excluído com sucesso."}
+
+
+# ============================================================
+# TREINO EM MASSA
+# ============================================================
+
+@app.post("/api/treinos/em-massa")
+def enviar_treino_em_massa(
+
+    request: Request,
+
+    background_tasks: BackgroundTasks,
+
+    dados:
+        schemas.TreinoEmMassaCreate,
+
+    db: Session =
+    Depends(get_db),
+
+    professor: models.Usuario =
+    Depends(require_professor)
+):
+
+    # Procura treino base
+    treino_base = (
+        db.query(models.TreinoBase)
+        .filter(
+            models.TreinoBase.id
+            == dados.treino_base_id
+        )
+        .first()
+    )
+
+    if not treino_base:
+
+        raise HTTPException(
+            status_code=404,
+            detail=
+                "Treino base não encontrado."
+        )
+
+    # Busca alunos
+    alunos = (
+        db.query(models.Aluno)
+        .all()
+    )
+
+    if not alunos:
+
+        return {
+
+            "mensagem":
+                "Nenhum aluno cadastrado "
+                "para receber o treino.",
+
+            "total_enviados":
+                0
+        }
+
+    # Cria treino para cada aluno
+    for aluno in alunos:
+
+        db.add(
+            models.TreinoAgendado(
+
+                aluno_id=
+                    aluno.id,
+
+                treino_base_id=
+                    treino_base.id,
+
+                titulo=
+                    treino_base.titulo,
+
+                modalidade=
+                    treino_base.modalidade,
+
+                descricao=
+                    treino_base.descricao,
+
+                ritmo_alvo=
+                    treino_base.ritmo_alvo,
+
+                data_planejada=
+                    dados.data_planejada
+            )
+        )
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="enviar_treino_em_massa",
+        entidade="treino_agendado",
+        descricao=(
+            f"Treino {treino_base.titulo} enviado "
+            f"para {len(alunos)} alunos."
+        ),
+        detalhes={
+            "treino_base_id": treino_base.id,
+            "treino": treino_base.titulo,
+            "modalidade": treino_base.modalidade,
+            "data_planejada": dados.data_planejada,
+            "total_enviados": len(alunos)
+        }
+    )
+
+    db.commit()
+
+    for aluno in alunos:
+        background_tasks.add_task(
+            enviar_push_para_aluno_id,
+            aluno.id,
+            "Novo treino disponível 🏋️",
+            f"{treino_base.modalidade} • {treino_base.titulo} • {dados.data_planejada}",
+            "/aluno#agenda-semana",
+            f"treino-massa-{treino_base.id}-{dados.data_planejada}",
+            "novo_treino"
+        )
+
+    return {
+
+        "mensagem":
+            f"Treino enviado com sucesso "
+            f"para {len(alunos)} alunos!",
+
+        "total_enviados":
+            len(alunos)
+    }
+
+# ============================================================
+# PLANEJAMENTO SEMANAL
+# ============================================================
+#
+# O professor informa os treinos de segunda a sexta.
+#
+# O sistema identifica a modalidade do treino base.
+#
+# Depois procura todos os alunos daquela modalidade
+# e cria um TreinoAgendado para cada um.
+#
+# ============================================================
+
+@app.post("/api/treinos/semana")
+def enviar_planejamento_semanal(
+
+    request: Request,
+
+    background_tasks: BackgroundTasks,
+
+    dados: list[schemas.TreinoDiaSemana],
+
+    data_segunda: str,
+
+    db: Session =
+        Depends(get_db),
+
+    professor: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    # --------------------------------------------------------
+    # IMPORTAR DATE
+    # --------------------------------------------------------
+
+    from datetime import datetime, timedelta
+
+
+    # --------------------------------------------------------
+    # CONVERTER A SEGUNDA-FEIRA
+    # --------------------------------------------------------
+
+    try:
+
+        segunda = datetime.strptime(
+            data_segunda,
+            "%Y-%m-%d"
+        ).date()
+
+    except ValueError:
+
+        raise HTTPException(
+
+            status_code=400,
+
+            detail=
+                "Data da segunda-feira inválida."
+        )
+
+
+    # --------------------------------------------------------
+    # VERIFICAR SE É SEGUNDA
+    # --------------------------------------------------------
+
+    if segunda.weekday() != 0:
+
+        raise HTTPException(
+
+            status_code=400,
+
+            detail=
+                "A data escolhida deve ser uma segunda-feira."
+        )
+
+
+    total_enviados = 0
+    notificacoes_por_aluno = {}
+
+
+    # --------------------------------------------------------
+    # PROCESSAR CADA DIA
+    # --------------------------------------------------------
+
+    for item in dados:
+
+        # Verifica dia
+        if item.dia < 0 or item.dia > 4:
+
+            raise HTTPException(
+
+                status_code=400,
+
+                detail=
+                    "O dia deve estar entre 0 e 4 (segunda a sexta)."
+            )
+
+
+        # ----------------------------------------------------
+        # BUSCAR TREINO BASE
+        # ----------------------------------------------------
+
+        treino_base = (
+
+            db.query(
+                models.TreinoBase
+            )
+
+            .filter(
+
+                models.TreinoBase.id
+                == item.treino_base_id
+
+            )
+
+            .first()
+        )
+
+
+        if not treino_base:
+
+            raise HTTPException(
+
+                status_code=404,
+
+                detail=
+                    f"Treino base {item.treino_base_id} "
+                    f"não encontrado."
+            )
+
+
+        # ----------------------------------------------------
+        # DATA DO TREINO
+        # ----------------------------------------------------
+
+        data_treino = (
+            segunda
+            + timedelta(
+                days=item.dia
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # BUSCAR ALUNOS DA MODALIDADE
+        # ----------------------------------------------------
+
+        try:
+            modalidade_treino = canonicalizar_modalidade(
+                treino_base.modalidade
+            )
+        except ValueError as erro:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"O treino base '{treino_base.titulo}' possui "
+                    f"uma modalidade que não é mais aceita: {erro}"
+                )
+            )
+
+        # Um aluno pode estar em mais de uma modalidade.
+        # Basta existir um vínculo na tabela aluno_modalidades para
+        # receber o treino daquela modalidade.
+        alunos = (
+            db.query(models.Aluno)
+            .join(
+                models.AlunoModalidade,
+                models.AlunoModalidade.aluno_id == models.Aluno.id
+            )
+            .filter(
+                models.AlunoModalidade.modalidade == modalidade_treino
+            )
+            .all()
+        )
+
+
+        # ----------------------------------------------------
+        # ENVIAR PARA CADA ALUNO
+        # ----------------------------------------------------
+
+        for aluno in alunos:
+
+            # Evita duplicar exatamente o mesmo treino
+            # para o mesmo aluno no mesmo dia.
+
+            existente = (
+
+                db.query(
+                    models.TreinoAgendado
+                )
+
+                .filter(
+
+                    models.TreinoAgendado.aluno_id
+                    == aluno.id,
+
+                    models.TreinoAgendado
+                    .treino_base_id
+                    == treino_base.id,
+
+                    models.TreinoAgendado
+                    .data_planejada
+                    == data_treino.isoformat()
+
+                )
+
+                .first()
+            )
+
+
+            # Se já existir, não cria novamente
+            if existente:
+
+                continue
+
+
+            # Cria treino
+            novo_treino = (
+            models.TreinoAgendado(
+
+                aluno_id=
+                    aluno.id,
+
+                treino_base_id=
+                    treino_base.id,
+
+                titulo=
+                    treino_base.titulo,
+
+                modalidade=
+                    treino_base.modalidade,
+
+                descricao=
+                    treino_base.descricao,
+
+                ritmo_alvo=
+                    treino_base.ritmo_alvo,
+
+                data_planejada=
+                    data_treino.isoformat()
+            )
+        )
+
+
+            db.add(
+                novo_treino
+            )
+
+
+            total_enviados += 1
+
+            notificacoes_por_aluno[aluno.id] = (
+                notificacoes_por_aluno.get(aluno.id, 0) + 1
+            )
+
+
+    # --------------------------------------------------------
+    # SALVAR + AUDITAR
+    # --------------------------------------------------------
+
+    registrar_acao_admin(
+        db=db,
+        request=request,
+        professor=professor,
+        acao="enviar_planejamento_semanal",
+        entidade="planejamento_semanal",
+        descricao=(
+            f"Planejamento da semana {data_segunda} enviado "
+            f"com {total_enviados} agendamentos."
+        ),
+        detalhes={
+            "data_segunda": data_segunda,
+            "total_enviados": total_enviados,
+            "itens": [
+                {
+                    "dia": item.dia,
+                    "treino_base_id": item.treino_base_id
+                }
+                for item in dados
+            ]
+        }
+    )
+
+    db.commit()
+
+    for aluno_id, quantidade in notificacoes_por_aluno.items():
+        texto_quantidade = (
+            "1 novo treino foi adicionado à sua semana."
+            if quantidade == 1
+            else f"{quantidade} novos treinos foram adicionados à sua semana."
+        )
+
+        background_tasks.add_task(
+            enviar_push_para_aluno_id,
+            aluno_id,
+            "Sua semana de treinos está pronta 📅",
+            texto_quantidade,
+            "/aluno#agenda-semana",
+            f"planejamento-{data_segunda}-{aluno_id}",
+            "novo_treino"
+        )
+
+
+    return {
+
+        "mensagem":
+            "Planejamento semanal enviado com sucesso!",
+
+        "total_enviados":
+            total_enviados
+    }
+
+
+# ============================================================
+# DUPLICAR SEMANA
+# ============================================================
+
+@app.post("/api/treinos/semana/duplicar")
+def duplicar_semana(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    dados: schemas.DuplicarSemanaCreate,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    try:
+        origem = date.fromisoformat(dados.origem_segunda)
+        destino = date.fromisoformat(dados.destino_segunda)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Datas inválidas.")
+
+    if origem.weekday() != 0 or destino.weekday() != 0:
+        raise HTTPException(
+            status_code=400,
+            detail="A origem e o destino precisam ser segundas-feiras."
+        )
+    if origem == destino:
+        raise HTTPException(status_code=400, detail="Escolha semanas diferentes.")
+
+    fim_origem = origem + timedelta(days=4)
+    agendamentos_origem = (
+        db.query(models.TreinoAgendado)
+        .filter(
+            models.TreinoAgendado.data_planejada >= origem.isoformat(),
+            models.TreinoAgendado.data_planejada <= fim_origem.isoformat()
+        )
+        .all()
+    )
+
+    if not agendamentos_origem:
+        raise HTTPException(
+            status_code=404,
+            detail="A semana de origem não possui treinos para duplicar."
+        )
+
+    # Reconstrói o planejamento por dia + treino base, evitando repetir
+    # o mesmo item para cada aluno que o recebeu na semana original.
+    itens_planejamento = {}
+    for agendamento in agendamentos_origem:
+        try:
+            data_agendada = date.fromisoformat(agendamento.data_planejada)
+        except ValueError:
+            continue
+        deslocamento = (data_agendada - origem).days
+        if 0 <= deslocamento <= 4:
+            itens_planejamento[(deslocamento, agendamento.treino_base_id)] = True
+
+    total_enviados = 0
+    notificacoes_por_aluno = {}
+
+    for deslocamento, treino_base_id in itens_planejamento.keys():
+        treino_base = (
+            db.query(models.TreinoBase)
+            .filter(models.TreinoBase.id == treino_base_id)
+            .first()
+        )
+        if not treino_base:
+            continue
+
+        modalidade = canonicalizar_modalidade(treino_base.modalidade)
+        alunos = (
+            db.query(models.Aluno)
+            .join(
+                models.AlunoModalidade,
+                models.AlunoModalidade.aluno_id == models.Aluno.id
+            )
+            .filter(models.AlunoModalidade.modalidade == modalidade)
+            .all()
+        )
+        data_destino = (destino + timedelta(days=deslocamento)).isoformat()
+
+        for aluno in alunos:
+            existente = (
+                db.query(models.TreinoAgendado)
+                .filter(
+                    models.TreinoAgendado.aluno_id == aluno.id,
+                    models.TreinoAgendado.treino_base_id == treino_base.id,
+                    models.TreinoAgendado.data_planejada == data_destino
+                )
+                .first()
+            )
+            if existente:
+                continue
+
+            db.add(models.TreinoAgendado(
+                aluno_id=aluno.id,
+                treino_base_id=treino_base.id,
+                titulo=treino_base.titulo,
+                modalidade=treino_base.modalidade,
+                descricao=treino_base.descricao,
+                ritmo_alvo=treino_base.ritmo_alvo,
+                data_planejada=data_destino
+            ))
+            total_enviados += 1
+            notificacoes_por_aluno[aluno.id] = notificacoes_por_aluno.get(aluno.id, 0) + 1
+
+    registrar_acao_admin(
+        db=db, request=request, professor=professor,
+        acao="duplicar_semana", entidade="planejamento_semanal",
+        descricao=(
+            f"Semana {dados.origem_segunda} duplicada para {dados.destino_segunda} "
+            f"com {total_enviados} agendamentos."
+        ),
+        detalhes={
+            "origem_segunda": dados.origem_segunda,
+            "destino_segunda": dados.destino_segunda,
+            "total_enviados": total_enviados
+        }
+    )
+    db.commit()
+
+    for aluno_id, quantidade in notificacoes_por_aluno.items():
+        texto = (
+            "1 treino foi adicionado à sua nova semana."
+            if quantidade == 1
+            else f"{quantidade} treinos foram adicionados à sua nova semana."
+        )
+        background_tasks.add_task(
+            enviar_push_para_aluno_id,
+            aluno_id,
+            "Sua próxima semana está pronta 📅",
+            texto,
+            "/aluno#agenda-semana",
+            f"semana-duplicada-{dados.destino_segunda}-{aluno_id}",
+            "novo_treino"
+        )
+
+    return {
+        "mensagem": "Semana duplicada com sucesso.",
+        "total_enviados": total_enviados
+    }
+
+
+# ============================================================
+# CALENDÁRIO MENSAL DO PROFESSOR
+# ============================================================
+
+@app.get("/api/calendario")
+def calendario_mensal(
+    ano: int,
+    mes: int,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    if mes < 1 or mes > 12 or ano < 2000 or ano > 2100:
+        raise HTTPException(status_code=400, detail="Mês ou ano inválido.")
+
+    prefixo = f"{ano:04d}-{mes:02d}-"
+    treinos = (
+        db.query(models.TreinoAgendado)
+        .filter(models.TreinoAgendado.data_planejada.like(f"{prefixo}%"))
+        .order_by(
+            models.TreinoAgendado.data_planejada.asc(),
+            models.TreinoAgendado.id.asc()
+        )
+        .all()
+    )
+
+    return {
+        "ano": ano,
+        "mes": mes,
+        "treinos": [
+            {
+                "id": treino.id,
+                "data_planejada": treino.data_planejada,
+                "titulo": treino.titulo,
+                "modalidade": treino.modalidade,
+                "aluno_id": treino.aluno_id,
+                "aluno": treino.aluno.nome if treino.aluno else "Aluno",
+                "concluido": treino.concluido
+            }
+            for treino in treinos
+        ]
+    }
+
+
+# ============================================================
+# MEUS TREINOS
+# ============================================================
+#
+# Essa rota é muito importante.
+#
+# O aluno NÃO envia seu aluno_id.
+#
+# O sistema pega:
+#
+# usuario.aluno_id
+#
+# diretamente da sessão.
+#
+# ============================================================
+
+@app.get("/api/me/treinos")
+def meus_treinos(
+
+    db: Session =
+    Depends(get_db),
+
+    usuario: models.Usuario =
+    Depends(require_aluno_com_email)
+):
+
+    # Busca somente os treinos
+    # pertencentes ao aluno logado
+    treinos = (
+
+        db.query(
+            models.TreinoAgendado
+        )
+
+        .filter(
+
+            models.TreinoAgendado.aluno_id
+            == usuario.aluno_id
+
+        )
+
+        .order_by(
+            models.TreinoAgendado
+            .data_planejada
+            .asc()
+        )
+
+        .all()
+    )
+
+    return [
+
+    {
+
+        "id":
+            t.id,
+
+        "data_planejada":
+            t.data_planejada,
+
+        "concluido":
+            t.concluido,
+
+        "concluido_em":
+            t.concluido_em,
+
+        "feedback_nota":
+            t.feedback_nota,
+
+        "feedback_dificuldade":
+            t.feedback_dificuldade,
+
+        "feedback_comentario":
+            t.feedback_comentario,
+
+        "treino": {
+
+            "id":
+                t.treino_base_id,
+
+            "titulo":
+                t.titulo,
+
+            "modalidade":
+                t.modalidade,
+
+            "descricao":
+                t.descricao,
+
+            "ritmo_alvo":
+                t.ritmo_alvo
+            }
+        }
+
+    for t in treinos
+
+]
+
+
+# ============================================================
+# LISTAR TREINOS DE UM ALUNO
+# SOMENTE PROFESSOR
+# ============================================================
+
+@app.get("/api/alunos/{aluno_id}/treinos")
+def listar_treinos_do_aluno(
+
+    aluno_id: int,
+
+    db: Session =
+        Depends(get_db),
+
+    professor: models.Usuario =
+        Depends(require_professor)
+
+):
+
+    # --------------------------------------------------------
+    # VERIFICAR SE O ALUNO EXISTE
+    # --------------------------------------------------------
+
+    aluno = (
+
+        db.query(
+            models.Aluno
+        )
+
+        .filter(
+            models.Aluno.id == aluno_id
+        )
+
+        .first()
+    )
+
+
+    # Se o aluno não existir
+    if not aluno:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail="Aluno não encontrado."
+        )
+
+
+    # --------------------------------------------------------
+    # BUSCAR TREINOS DO ALUNO
+    # --------------------------------------------------------
+
+    treinos = (
+
+        db.query(
+            models.TreinoAgendado
+        )
+
+        .filter(
+
+            models.TreinoAgendado.aluno_id
+            == aluno_id
+
+        )
+
+        .order_by(
+
+            models.TreinoAgendado
+            .data_planejada
+            .asc()
+
+        )
+
+        .all()
+    )
+
+
+    # --------------------------------------------------------
+    # MONTAR RESPOSTA
+    # --------------------------------------------------------
+
+    resultado = []
+
+
+    # Percorre cada treino
+    for t in treinos:
+
+        # ----------------------------------------------------
+        # VERIFICAR SE O TREINO BASE EXISTE
+        # ----------------------------------------------------
+
+        if t.treino_base is None:
+
+            resultado.append({
+
+                "id":
+                    t.id,
+
+                "aluno_id":
+                    t.aluno_id,
+
+                "treino_base_id":
+                    t.treino_base_id,
+
+                "treino":
+                    t.titulo,
+
+                "modalidade":
+                    t.modalidade,
+
+                "descricao":
+                    t.descricao,
+
+                "ritmo_alvo":
+                    t.ritmo_alvo,
+
+                "data_planejada":
+                    t.data_planejada,
+
+                "concluido":
+                    t.concluido,
+
+                "feedback_nota":
+                    t.feedback_nota,
+
+                "feedback_dificuldade":
+                    t.feedback_dificuldade,
+
+                "feedback_comentario":
+                    t.feedback_comentario
+            })
+
+            continue
+
+
+        # ----------------------------------------------------
+        # TREINO BASE EXISTE
+        # ----------------------------------------------------
+
+        resultado.append({
+
+            "id":
+                t.id,
+
+            "aluno_id":
+                t.aluno_id,
+
+            "treino_base_id":
+                t.treino_base_id,
+
+            "treino":
+                t.titulo,
+
+            "modalidade":
+                t.modalidade,
+
+            "descricao":
+                t.descricao,
+
+            "ritmo_alvo":
+                t.ritmo_alvo,
+
+            "data_planejada":
+                t.data_planejada,
+
+            "concluido":
+                t.concluido,
+
+            # ------------------------------------------------
+            # FEEDBACK DO ALUNO
+            # ------------------------------------------------
+
+            "feedback_nota":
+                t.feedback_nota,
+
+            "feedback_dificuldade":
+                t.feedback_dificuldade,
+
+            "feedback_comentario":
+                t.feedback_comentario
+        })
+
+
+    # --------------------------------------------------------
+    # RETORNAR RESULTADO
+    # --------------------------------------------------------
+
+    return resultado
+# ============================================================
+# CONCLUIR TREINO
+# ============================================================
+
+@app.patch("/api/treinos/{treino_id}/concluir")
+def concluir_treino(
+
+    treino_id: int,
+
+    feedback:
+        schemas.FeedbackTreinoCreate,
+
+    db: Session =
+        Depends(get_db),
+
+    usuario: models.Usuario =
+        Depends(require_aluno_com_email)
+
+):
+
+    treino = db.query(
+        models.TreinoAgendado
+    ).filter(
+        models.TreinoAgendado.id == treino_id
+    ).first()
+
+    if not treino:
+        raise HTTPException(
+            status_code=404,
+            detail="Treino não encontrado."
+        )
+# ============================================================
+# SEGURANÇA
+# ============================================================
+#
+# O aluno só pode concluir um treino
+# que realmente pertence a ele.
+#
+
+    if treino.aluno_id != usuario.aluno_id:
+
+        raise HTTPException(
+
+        status_code=403,
+
+        detail=
+            "Você não pode concluir este treino."
+    )
+
+    if treino.concluido:
+        raise HTTPException(
+            status_code=400,
+            detail="Este treino já foi concluído."
+        )
+
+    # Validação da nota
+    if feedback.nota < 1 or feedback.nota > 5:
+        raise HTTPException(
+            status_code=400,
+            detail="A nota deve estar entre 1 e 5."
+        )
+
+    # Salva feedback
+    treino.feedback_nota = feedback.nota
+    treino.feedback_dificuldade = feedback.dificuldade
+    treino.feedback_comentario = feedback.comentario
+
+    # Marca treino como concluído e registra o momento real da conclusão.
+    treino.concluido = True
+    treino.concluido_em = int(time.time())
+
+    db.commit()
+    db.refresh(treino)
+
+    return {
+        "mensagem": "Treino concluído e feedback salvo!",
+        "treino": treino
+    }
 

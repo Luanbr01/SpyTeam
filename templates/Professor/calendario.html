@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.webmanifest?v=20260923-pwa1">
+    <meta name="theme-color" content="#3161CA">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SPY TEAM">
+    <link rel="apple-touch-icon" href="/static/img/pwa-192.png?v=20260923-pwa1">
+    <title>Calendário - SPY TEAM</title>
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260925-treinos3">
+    <script src="/static/js/security.js?v=20260922-security1"></script>
+</head>
+<body class="app-body">
+<div class="app-shell">
+    <aside class="app-sidebar professor-sidebar">
+        <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
+            <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
+        </a>
+        {% include "componentes/sidebar.html" %}
+        <div class="sidebar-profile">
+            <span class="sidebar-avatar">P</span>
+            <span><strong>Professor</strong><small>SPY TEAM</small></span>
+        </div>
+    </aside>
+
+    <div class="app-workspace">
+        <header class="app-topbar">
+            <div class="app-topbar-copy">
+                <strong>Calendário</strong>
+                <span>Visão mensal dos treinos agendados</span>
+            </div>
+            <div class="app-topbar-actions">
+                <span class="top-status-dot" title="Online"></span>
+                <span class="top-avatar">P</span>
+                <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-content">
+            <section class="dashboard-heading calendar-heading">
+                <div>
+                    <span class="eyebrow">PLANEJAMENTO</span>
+                    <h1>Calendário mensal</h1>
+                    <p>Veja os treinos de todos os alunos organizados por dia.</p>
+                </div>
+                <div class="calendar-toolbar">
+                    <button class="btn btn-secondary" type="button" onclick="mudarMes(-1)">←</button>
+                    <input type="month" id="mesCalendario" class="calendar-month-input">
+                    <button class="btn btn-secondary" type="button" onclick="mudarMes(1)">→</button>
+                    <a class="btn btn-primary" href="/planejamento-semanal">Planejar semana</a>
+                </div>
+            </section>
+
+            <section class="dashboard-card calendar-card">
+                <div class="calendar-weekdays" aria-hidden="true">
+                    <span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span>
+                </div>
+                <div id="calendarioGrid" class="calendar-month-grid"></div>
+                <div id="calendarioMensagem" class="message"></div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<div id="modalDia" class="modal-overlay" style="display:none;">
+    <div class="modal calendar-day-modal">
+        <button class="modal-fechar" onclick="fecharDia()" aria-label="Fechar">×</button>
+        <span class="eyebrow">AGENDA</span>
+        <h2 id="tituloDia">Treinos do dia</h2>
+        <div id="listaDia" class="calendar-day-list"></div>
+    </div>
+</div>
+
+<script>
+async function sair(event){
+    if(event) event.preventDefault();
+    await fetch('/api/logout',{method:'POST'});
+    window.location.href='/login';
+}
+
+let treinosMes = [];
+
+function hojeMes() {
+    const hoje = new Date();
+    return `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+}
+
+function escapeHtml(valor) {
+    return String(valor ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+}
+
+function formatarDataBr(valor) {
+    if (!valor) return '-';
+    const [a,m,d] = valor.split('-');
+    return `${d}/${m}/${a}`;
+}
+
+function iconeModalidade(modalidade) {
+    if (modalidade === 'Corrida') return '🏃';
+    if (modalidade === 'Natação') return '🏊';
+    return '🏋️';
+}
+
+async function carregarCalendario() {
+    const valor = document.getElementById('mesCalendario').value;
+    if (!valor) return;
+    const [ano, mes] = valor.split('-').map(Number);
+    const mensagem = document.getElementById('calendarioMensagem');
+    mensagem.textContent = '';
+    mensagem.className = 'message';
+
+    try {
+        const resposta = await fetch(`/api/calendario?ano=${ano}&mes=${mes}`);
+        if (resposta.status === 401 || resposta.status === 403) {
+            window.location.href = '/login';
+            return;
+        }
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível carregar o calendário.');
+        treinosMes = dados.treinos || [];
+        montarCalendario(ano, mes);
+    } catch (erro) {
+        mensagem.className = 'message error';
+        mensagem.textContent = erro.message;
+    }
+}
+
+function montarCalendario(ano, mes) {
+    const grid = document.getElementById('calendarioGrid');
+    grid.innerHTML = '';
+
+    const primeiro = new Date(ano, mes - 1, 1);
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    const inicioSemana = (primeiro.getDay() + 6) % 7; // segunda = 0
+
+    for (let i = 0; i < inicioSemana; i++) {
+        const vazio = document.createElement('div');
+        vazio.className = 'calendar-day calendar-day-empty';
+        grid.appendChild(vazio);
+    }
+
+    const hoje = new Date();
+    const hojeIso = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+
+    for (let dia = 1; dia <= ultimoDia; dia++) {
+        const data = `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+        const treinos = treinosMes.filter(t => t.data_planejada === data);
+        const celula = document.createElement('button');
+        celula.type = 'button';
+        celula.className = `calendar-day${data === hojeIso ? ' calendar-day-today' : ''}`;
+        celula.onclick = () => abrirDia(data, treinos);
+
+        const concluidos = treinos.filter(t => t.concluido).length;
+        const pendentes = treinos.length - concluidos;
+
+        celula.innerHTML = `
+            <span class="calendar-day-number">${dia}</span>
+            <div class="calendar-day-content">
+                ${treinos.slice(0,3).map(t => `
+                    <span class="calendar-event ${t.concluido ? 'done' : 'pending'}" title="${escapeHtml(t.aluno)} - ${escapeHtml(t.titulo)}">
+                        ${iconeModalidade(t.modalidade)} ${escapeHtml(t.titulo)}
+                    </span>
+                `).join('')}
+                ${treinos.length > 3 ? `<span class="calendar-more">+${treinos.length - 3} treinos</span>` : ''}
+            </div>
+            ${treinos.length ? `<span class="calendar-day-summary">${pendentes} pend. · ${concluidos} concl.</span>` : ''}
+        `;
+        grid.appendChild(celula);
+    }
+}
+
+function abrirDia(data, treinos) {
+    document.getElementById('tituloDia').textContent = `Treinos de ${formatarDataBr(data)}`;
+    const lista = document.getElementById('listaDia');
+    if (!treinos.length) {
+        lista.innerHTML = '<p class="subtitle">Nenhum treino agendado para este dia.</p>';
+    } else {
+        lista.innerHTML = treinos.map(t => `
+            <div class="calendar-day-item">
+                <div>
+                    <strong>${iconeModalidade(t.modalidade)} ${escapeHtml(t.titulo)}</strong>
+                    <span>${escapeHtml(t.aluno)} · ${escapeHtml(t.modalidade)}</span>
+                </div>
+                <span class="status ${t.concluido ? 'concluido' : 'pendente'}">${t.concluido ? 'CONCLUÍDO' : 'PENDENTE'}</span>
+            </div>
+        `).join('');
+    }
+    document.getElementById('modalDia').style.display = 'flex';
+}
+
+function fecharDia() {
+    document.getElementById('modalDia').style.display = 'none';
+}
+
+function mudarMes(delta) {
+    const input = document.getElementById('mesCalendario');
+    const [ano, mes] = input.value.split('-').map(Number);
+    const data = new Date(ano, mes - 1 + delta, 1);
+    input.value = `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,'0')}`;
+    carregarCalendario();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('mesCalendario');
+    input.value = hojeMes();
+    input.addEventListener('change', carregarCalendario);
+    carregarCalendario();
+});
+</script>
+<script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
+</body>
+</html>

@@ -282,6 +282,13 @@ async function carregarTreinos() {
 
                             <button
                                 class="btn btn-secondary"
+                                onclick="copiarTreino(${treino.id})"
+                            >
+                                Copiar
+                            </button>
+
+                            <button
+                                class="btn btn-secondary"
                                 onclick="excluirTreino(${treino.id})"
                             >
                                 Excluir
@@ -333,6 +340,23 @@ async function carregarTreinos() {
     }
 }
 
+
+async function copiarTreino(id) {
+    try {
+        const resposta = await fetch(`/api/treinos-base/${id}/copiar`, {method: 'POST'});
+        const retorno = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(retorno.detail || 'Não foi possível copiar o treino.');
+
+        const mensagem = document.getElementById('mensagem');
+        mensagem.className = 'message success';
+        mensagem.textContent = retorno.mensagem || 'Treino copiado com sucesso.';
+        await carregarTreinos();
+    } catch (erro) {
+        const mensagem = document.getElementById('mensagem');
+        mensagem.className = 'message error';
+        mensagem.textContent = erro.message;
+    }
+}
 
 async function excluirTreino(id) {
 

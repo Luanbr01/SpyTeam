@@ -157,6 +157,15 @@ class TreinoAgendadoCreate(BaseModel):
     data_planejada: str
 
 
+class ReagendarTreinoCreate(BaseModel):
+    data_planejada: str = Field(min_length=10, max_length=10)
+
+
+class DuplicarSemanaCreate(BaseModel):
+    origem_segunda: str = Field(min_length=10, max_length=10)
+    destino_segunda: str = Field(min_length=10, max_length=10)
+
+
 # ============================================================
 # TREINO BASE
 # ============================================================

@@ -31,7 +31,7 @@
             <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/></svg></button>
         </div>
     </header><main class="app-content"><section class="form-page-heading"><a href="/home" class="back-link">← Voltar</a><span class="eyebrow">PLANEJAMENTO</span><h1>Planejamento semanal</h1><p>Escolha um treino para cada dia. O sistema envia automaticamente aos alunos da mesma modalidade.</p></section>
-<section class="dashboard-card planning-header-card"><div class="planning-date"><label for="dataSegunda">Segunda-feira da semana</label><input type="date" id="dataSegunda"></div><div class="hint"><strong>Segunda a sexta</strong><span>Corrida vai para alunos de Corrida; Natação para Natação e assim por diante.</span></div></section>
+<section class="dashboard-card planning-header-card"><div class="planning-date"><label for="dataSegunda">Segunda-feira da semana</label><input type="date" id="dataSegunda"></div><div class="hint"><strong>Segunda a sexta</strong><span>Corrida vai para alunos de Corrida; Natação para Natação e assim por diante.</span></div><button id="btnDuplicar" class="btn btn-secondary" type="button" onclick="duplicarSemanaAnterior()">Duplicar semana anterior</button></section>
 <section class="dashboard-card"><div class="week-table-wrap"><table class="week-table"><thead><tr><th>Modalidade</th><th>SEG<br><small id="data-0">-</small></th><th>TER<br><small id="data-1">-</small></th><th>QUA<br><small id="data-2">-</small></th><th>QUI<br><small id="data-3">-</small></th><th>SEX<br><small id="data-4">-</small></th></tr></thead><tbody id="corpoTabela"></tbody></table></div><div class="form-actions planning-actions"><a class="btn btn-secondary" href="/home">Cancelar</a><button id="btnEnviar" class="btn btn-primary" onclick="enviarPlanejamento()">Enviar planejamento semanal →</button></div><div id="mensagem" class="message"></div></section></main></div></div><script>async function sair(event){if(event)event.preventDefault();await fetch('/api/logout',{method:'POST'});window.location.href='/login';}</script><script>
 const modalidades = ["Corrida", "Natação", "Musculação"];
 const dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
@@ -147,6 +147,41 @@ document.getElementById("dataSegunda").addEventListener("change", () => {
     }
     formatarDatas();
 });
+
+async function duplicarSemanaAnterior() {
+    const dataSegunda = document.getElementById("dataSegunda").value;
+    if (!dataSegunda) {
+        mostrarMensagem("Selecione primeiro a semana de destino.", true);
+        return;
+    }
+
+    const [ano, mes, dia] = dataSegunda.split("-").map(Number);
+    const destino = new Date(ano, mes - 1, dia);
+    const origem = new Date(destino);
+    origem.setDate(origem.getDate() - 7);
+    const origemTexto = `${origem.getFullYear()}-${String(origem.getMonth()+1).padStart(2,"0")}-${String(origem.getDate()).padStart(2,"0")}`;
+
+    if (!confirm(`Duplicar os treinos da semana ${origemTexto} para ${dataSegunda}?`)) return;
+
+    const botao = document.getElementById("btnDuplicar");
+    try {
+        botao.disabled = true;
+        botao.textContent = "Duplicando...";
+        const resposta = await fetch("/api/treinos/semana/duplicar", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({origem_segunda: origemTexto, destino_segunda: dataSegunda})
+        });
+        const resultado = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(resultado.detail || "Não foi possível duplicar a semana.");
+        mostrarMensagem(`${resultado.mensagem} ${resultado.total_enviados} treinos enviados.`, false);
+    } catch (erro) {
+        mostrarMensagem(erro.message || "Erro ao duplicar semana.", true);
+    } finally {
+        botao.disabled = false;
+        botao.textContent = "Duplicar semana anterior";
+    }
+}
 
 async function enviarPlanejamento() {
     const mensagem = document.getElementById("mensagem");

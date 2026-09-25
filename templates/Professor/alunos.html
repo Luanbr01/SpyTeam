@@ -31,6 +31,19 @@
             <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/></svg></button>
         </div>
     </header><main class="app-content"><section class="dashboard-heading"><div><span class="eyebrow">GESTÃO</span><h1>Meus alunos</h1><p>Consulte alunos, treinos enviados e feedbacks.</p></div><a href="/novo-aluno" class="btn btn-primary btn-with-icon"><span>＋</span> Novo aluno</a></section><div id="listaAlunos" class="alunos-grid"><p class="subtitle">Carregando alunos...</p></div><section id="detalhes" class="dashboard-card student-detail"><div class="section-heading-row"><div><span class="eyebrow">DETALHES</span><h2 id="nomeAluno"></h2><p id="nivelAluno" class="subtitle"></p></div></div><h3>Treinos enviados</h3><div id="listaTreinos"></div></section></main></div></div>
+
+<div id="modalReagendar" class="modal-overlay" style="display:none;">
+    <div class="modal">
+        <button class="modal-fechar" onclick="fecharReagendar()" aria-label="Fechar">×</button>
+        <span class="eyebrow">TREINO</span>
+        <h2>Reagendar treino</h2>
+        <p id="reagendarTitulo" class="subtitle"></p>
+        <label for="novaDataTreino"><strong>Nova data</strong></label>
+        <input type="date" id="novaDataTreino" class="form-control" style="width:100%; margin-top:8px;">
+        <div id="reagendarMensagem" class="message"></div>
+        <button class="btn btn-primary" style="width:100%; margin-top:16px;" onclick="salvarReagendamento()">Salvar nova data</button>
+    </div>
+</div>
 <div id="modalModalidades" class="modal-overlay" style="display:none;">
     <div class="modal">
         <button class="modal-fechar" onclick="fecharModalidades()" aria-label="Fechar">×</button>
@@ -509,9 +522,13 @@ function escapeJs(
 // VER ALUNO
 // ==========================================================
 
+let alunoSelecionado = null;
+
 async function verAluno(
     alunoId
 ) {
+
+    alunoSelecionado = alunoId;
 
     const aluno =
         alunos.find(
@@ -792,6 +809,11 @@ function mostrarTreinos(
                                 PENDENTE
                             </span>
 
+                            <div class="treino-card-actions">
+                                <button class="btn btn-secondary" onclick="abrirReagendar(${treino.id}, '${escapeJs(treino.treino)}', '${escapeJs(treino.data_planejada)}')">Reagendar</button>
+                                <button class="btn btn-secondary btn-danger-soft" onclick="excluirAgendamento(${treino.id}, '${escapeJs(treino.treino)}')">Excluir agendamento</button>
+                            </div>
+
                         `
                     }
 
@@ -802,6 +824,59 @@ function mostrarTreinos(
         ).join('');
 }
 
+
+let treinoReagendarId = null;
+
+function abrirReagendar(id, titulo, dataAtual) {
+    treinoReagendarId = id;
+    document.getElementById('reagendarTitulo').textContent = titulo;
+    document.getElementById('novaDataTreino').value = dataAtual || '';
+    document.getElementById('reagendarMensagem').textContent = '';
+    document.getElementById('modalReagendar').style.display = 'flex';
+}
+
+function fecharReagendar() {
+    document.getElementById('modalReagendar').style.display = 'none';
+    treinoReagendarId = null;
+}
+
+async function salvarReagendamento() {
+    if (!treinoReagendarId) return;
+    const novaData = document.getElementById('novaDataTreino').value;
+    const mensagem = document.getElementById('reagendarMensagem');
+    if (!novaData) {
+        mensagem.className = 'message error';
+        mensagem.textContent = 'Escolha a nova data.';
+        return;
+    }
+
+    try {
+        const resposta = await fetch(`/api/treinos/${treinoReagendarId}/reagendar`, {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({data_planejada: novaData})
+        });
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível reagendar.');
+        fecharReagendar();
+        if (alunoSelecionado) await verAluno(alunoSelecionado);
+    } catch (erro) {
+        mensagem.className = 'message error';
+        mensagem.textContent = erro.message;
+    }
+}
+
+async function excluirAgendamento(id, titulo) {
+    if (!confirm(`Excluir o agendamento de "${titulo}"? O treino base não será apagado.`)) return;
+    try {
+        const resposta = await fetch(`/api/treinos/${id}`, {method:'DELETE'});
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível excluir o agendamento.');
+        if (alunoSelecionado) await verAluno(alunoSelecionado);
+    } catch (erro) {
+        alert(erro.message);
+    }
+}
 
 // ==========================================================
 // PROTEGER TEXTO

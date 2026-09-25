@@ -1096,6 +1096,17 @@ def pagina_planejamento_semanal(
     )
 
 
+@app.get("/calendario")
+def pagina_calendario(
+    request: Request,
+    usuario: models.Usuario = Depends(require_professor)
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="Professor/calendario.html"
+    )
+
+
 # ============================================================
 # SEGURANÇA E AUDITORIA - PROFESSOR
 # ============================================================
@@ -3268,6 +3279,57 @@ def criar_treino_base(
     return novo_treino
 
 # ============================================================
+# COPIAR TREINO BASE
+# ============================================================
+
+@app.post("/api/treinos-base/{treino_base_id}/copiar")
+def copiar_treino_base(
+    treino_base_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    original = (
+        db.query(models.TreinoBase)
+        .filter(models.TreinoBase.id == treino_base_id)
+        .first()
+    )
+
+    if not original:
+        raise HTTPException(status_code=404, detail="Treino base não encontrado.")
+
+    titulo_copia = f"{original.titulo} - cópia"
+    if len(titulo_copia) > 150:
+        titulo_copia = f"{original.titulo[:140].rstrip()} - cópia"
+
+    copia = models.TreinoBase(
+        titulo=titulo_copia,
+        modalidade=original.modalidade,
+        descricao=original.descricao,
+        ritmo_alvo=original.ritmo_alvo
+    )
+    db.add(copia)
+    db.flush()
+
+    registrar_acao_admin(
+        db=db, request=request, professor=professor,
+        acao="copiar_treino_base", entidade="treino_base",
+        entidade_id=copia.id,
+        descricao=f"Treino base {original.titulo} copiado para {copia.titulo}.",
+        detalhes={"origem_id": original.id, "copia_id": copia.id}
+    )
+
+    db.commit()
+    db.refresh(copia)
+
+    return {
+        "mensagem": "Treino copiado com sucesso.",
+        "id": copia.id,
+        "titulo": copia.titulo
+    }
+
+
+# ============================================================
 # EDITAR TREINO BASE
 # ============================================================
 
@@ -3457,6 +3519,132 @@ def excluir_treino_base(
         "mensagem":
             "Treino base excluído com sucesso."
     }
+
+# ============================================================
+# REAGENDAR TREINO INDIVIDUAL
+# ============================================================
+
+@app.patch("/api/treinos/{treino_id}/reagendar")
+def reagendar_treino_individual(
+    treino_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    dados: schemas.ReagendarTreinoCreate,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    treino = (
+        db.query(models.TreinoAgendado)
+        .filter(models.TreinoAgendado.id == treino_id)
+        .first()
+    )
+
+    if not treino:
+        raise HTTPException(status_code=404, detail="Treino agendado não encontrado.")
+    if treino.concluido:
+        raise HTTPException(status_code=400, detail="Treino concluído não pode ser reagendado.")
+
+    try:
+        nova_data = date.fromisoformat(dados.data_planejada)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Data inválida.")
+
+    duplicado = (
+        db.query(models.TreinoAgendado)
+        .filter(
+            models.TreinoAgendado.id != treino.id,
+            models.TreinoAgendado.aluno_id == treino.aluno_id,
+            models.TreinoAgendado.treino_base_id == treino.treino_base_id,
+            models.TreinoAgendado.data_planejada == nova_data.isoformat()
+        )
+        .first()
+    )
+    if duplicado:
+        raise HTTPException(
+            status_code=400,
+            detail="Esse aluno já possui este mesmo treino nessa data."
+        )
+
+    data_anterior = treino.data_planejada
+    treino.data_planejada = nova_data.isoformat()
+
+    registrar_acao_admin(
+        db=db, request=request, professor=professor,
+        acao="reagendar_treino", entidade="treino_agendado",
+        entidade_id=treino.id,
+        descricao=f"Treino {treino.titulo} reagendado de {data_anterior} para {treino.data_planejada}.",
+        detalhes={
+            "aluno_id": treino.aluno_id,
+            "data_anterior": data_anterior,
+            "nova_data": treino.data_planejada
+        }
+    )
+
+    db.commit()
+
+    background_tasks.add_task(
+        enviar_push_para_aluno_id,
+        treino.aluno_id,
+        "Treino reagendado 📅",
+        f"{treino.modalidade} • {treino.titulo} • {treino.data_planejada}",
+        f"/aluno?treino={treino.id}",
+        f"reagendado-{treino.id}-{treino.data_planejada}",
+        "novo_treino"
+    )
+
+    return {
+        "mensagem": "Treino reagendado com sucesso.",
+        "id": treino.id,
+        "data_planejada": treino.data_planejada
+    }
+
+
+# ============================================================
+# EXCLUIR AGENDAMENTO INDIVIDUAL
+# ============================================================
+
+@app.delete("/api/treinos/{treino_id}")
+def excluir_treino_agendado(
+    treino_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    treino = (
+        db.query(models.TreinoAgendado)
+        .filter(models.TreinoAgendado.id == treino_id)
+        .first()
+    )
+
+    if not treino:
+        raise HTTPException(status_code=404, detail="Treino agendado não encontrado.")
+    if treino.concluido:
+        raise HTTPException(
+            status_code=400,
+            detail="Treinos concluídos são mantidos no histórico e não podem ser excluídos."
+        )
+
+    detalhes = {
+        "aluno_id": treino.aluno_id,
+        "treino_base_id": treino.treino_base_id,
+        "titulo": treino.titulo,
+        "modalidade": treino.modalidade,
+        "data_planejada": treino.data_planejada
+    }
+
+    registrar_acao_admin(
+        db=db, request=request, professor=professor,
+        acao="excluir_agendamento", entidade="treino_agendado",
+        entidade_id=treino.id,
+        descricao=f"Agendamento {treino.titulo} de {treino.data_planejada} excluído.",
+        detalhes=detalhes
+    )
+
+    db.delete(treino)
+    db.commit()
+
+    return {"mensagem": "Agendamento excluído com sucesso."}
+
 
 # ============================================================
 # TREINO EM MASSA
@@ -3896,6 +4084,189 @@ def enviar_planejamento_semanal(
 
         "total_enviados":
             total_enviados
+    }
+
+
+# ============================================================
+# DUPLICAR SEMANA
+# ============================================================
+
+@app.post("/api/treinos/semana/duplicar")
+def duplicar_semana(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    dados: schemas.DuplicarSemanaCreate,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    try:
+        origem = date.fromisoformat(dados.origem_segunda)
+        destino = date.fromisoformat(dados.destino_segunda)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Datas inválidas.")
+
+    if origem.weekday() != 0 or destino.weekday() != 0:
+        raise HTTPException(
+            status_code=400,
+            detail="A origem e o destino precisam ser segundas-feiras."
+        )
+    if origem == destino:
+        raise HTTPException(status_code=400, detail="Escolha semanas diferentes.")
+
+    fim_origem = origem + timedelta(days=4)
+    agendamentos_origem = (
+        db.query(models.TreinoAgendado)
+        .filter(
+            models.TreinoAgendado.data_planejada >= origem.isoformat(),
+            models.TreinoAgendado.data_planejada <= fim_origem.isoformat()
+        )
+        .all()
+    )
+
+    if not agendamentos_origem:
+        raise HTTPException(
+            status_code=404,
+            detail="A semana de origem não possui treinos para duplicar."
+        )
+
+    # Reconstrói o planejamento por dia + treino base, evitando repetir
+    # o mesmo item para cada aluno que o recebeu na semana original.
+    itens_planejamento = {}
+    for agendamento in agendamentos_origem:
+        try:
+            data_agendada = date.fromisoformat(agendamento.data_planejada)
+        except ValueError:
+            continue
+        deslocamento = (data_agendada - origem).days
+        if 0 <= deslocamento <= 4:
+            itens_planejamento[(deslocamento, agendamento.treino_base_id)] = True
+
+    total_enviados = 0
+    notificacoes_por_aluno = {}
+
+    for deslocamento, treino_base_id in itens_planejamento.keys():
+        treino_base = (
+            db.query(models.TreinoBase)
+            .filter(models.TreinoBase.id == treino_base_id)
+            .first()
+        )
+        if not treino_base:
+            continue
+
+        modalidade = canonicalizar_modalidade(treino_base.modalidade)
+        alunos = (
+            db.query(models.Aluno)
+            .join(
+                models.AlunoModalidade,
+                models.AlunoModalidade.aluno_id == models.Aluno.id
+            )
+            .filter(models.AlunoModalidade.modalidade == modalidade)
+            .all()
+        )
+        data_destino = (destino + timedelta(days=deslocamento)).isoformat()
+
+        for aluno in alunos:
+            existente = (
+                db.query(models.TreinoAgendado)
+                .filter(
+                    models.TreinoAgendado.aluno_id == aluno.id,
+                    models.TreinoAgendado.treino_base_id == treino_base.id,
+                    models.TreinoAgendado.data_planejada == data_destino
+                )
+                .first()
+            )
+            if existente:
+                continue
+
+            db.add(models.TreinoAgendado(
+                aluno_id=aluno.id,
+                treino_base_id=treino_base.id,
+                titulo=treino_base.titulo,
+                modalidade=treino_base.modalidade,
+                descricao=treino_base.descricao,
+                ritmo_alvo=treino_base.ritmo_alvo,
+                data_planejada=data_destino
+            ))
+            total_enviados += 1
+            notificacoes_por_aluno[aluno.id] = notificacoes_por_aluno.get(aluno.id, 0) + 1
+
+    registrar_acao_admin(
+        db=db, request=request, professor=professor,
+        acao="duplicar_semana", entidade="planejamento_semanal",
+        descricao=(
+            f"Semana {dados.origem_segunda} duplicada para {dados.destino_segunda} "
+            f"com {total_enviados} agendamentos."
+        ),
+        detalhes={
+            "origem_segunda": dados.origem_segunda,
+            "destino_segunda": dados.destino_segunda,
+            "total_enviados": total_enviados
+        }
+    )
+    db.commit()
+
+    for aluno_id, quantidade in notificacoes_por_aluno.items():
+        texto = (
+            "1 treino foi adicionado à sua nova semana."
+            if quantidade == 1
+            else f"{quantidade} treinos foram adicionados à sua nova semana."
+        )
+        background_tasks.add_task(
+            enviar_push_para_aluno_id,
+            aluno_id,
+            "Sua próxima semana está pronta 📅",
+            texto,
+            "/aluno#agenda-semana",
+            f"semana-duplicada-{dados.destino_segunda}-{aluno_id}",
+            "novo_treino"
+        )
+
+    return {
+        "mensagem": "Semana duplicada com sucesso.",
+        "total_enviados": total_enviados
+    }
+
+
+# ============================================================
+# CALENDÁRIO MENSAL DO PROFESSOR
+# ============================================================
+
+@app.get("/api/calendario")
+def calendario_mensal(
+    ano: int,
+    mes: int,
+    db: Session = Depends(get_db),
+    professor: models.Usuario = Depends(require_professor)
+):
+    if mes < 1 or mes > 12 or ano < 2000 or ano > 2100:
+        raise HTTPException(status_code=400, detail="Mês ou ano inválido.")
+
+    prefixo = f"{ano:04d}-{mes:02d}-"
+    treinos = (
+        db.query(models.TreinoAgendado)
+        .filter(models.TreinoAgendado.data_planejada.like(f"{prefixo}%"))
+        .order_by(
+            models.TreinoAgendado.data_planejada.asc(),
+            models.TreinoAgendado.id.asc()
+        )
+        .all()
+    )
+
+    return {
+        "ano": ano,
+        "mes": mes,
+        "treinos": [
+            {
+                "id": treino.id,
+                "data_planejada": treino.data_planejada,
+                "titulo": treino.titulo,
+                "modalidade": treino.modalidade,
+                "aluno_id": treino.aluno_id,
+                "aluno": treino.aluno.nome if treino.aluno else "Aluno",
+                "concluido": treino.concluido
+            }
+            for treino in treinos
+        ]
     }
 
 
