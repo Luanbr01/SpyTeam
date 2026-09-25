@@ -1,6 +1,7 @@
 fastapi==0.141.1
 uvicorn[standard]==0.52.4
 SQLAlchemy==2.0.52
+psycopg[binary]>=3.2,<4
 pydantic==2.13.5
 Jinja2==3.1.6
 resend==2.47.0

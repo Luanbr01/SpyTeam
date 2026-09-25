@@ -22,13 +22,14 @@ from fastapi.responses import (
 
 from fastapi.staticfiles import StaticFiles
 
-from sqlalchemy import func
+from sqlalchemy import func, inspect, text
 from sqlalchemy.orm import Session
 
 from .database import (
     engine,
     SessionLocal,
-    CAMINHO_BANCO
+    PASTA_DADOS_PERSISTENTES,
+    BANCO_TIPO
 )
 
 from . import models
@@ -117,19 +118,31 @@ models.Base.metadata.create_all(
 
 
 # ============================================================
-# MIGRAÇÃO LEVE DO SQLITE
+# MIGRAÇÃO LEVE E PORTÁVEL DO BANCO
+# ============================================================
+#
+# Compatível com SQLite e PostgreSQL. O create_all() cria tabelas
+# novas, enquanto esta rotina adiciona colunas/índices introduzidos
+# em versões posteriores sem apagar dados existentes.
 # ============================================================
 
+
+def _colunas_da_tabela(conexao, nome_tabela: str) -> set[str]:
+    inspetor = inspect(conexao)
+    if nome_tabela not in inspetor.get_table_names():
+        return set()
+    return {
+        coluna["name"]
+        for coluna in inspetor.get_columns(nome_tabela)
+    }
+
+
 def migrar_banco():
-    """Adiciona colunas novas sem apagar os dados existentes."""
+    """Aplica pequenas migrações compatíveis com SQLite/PostgreSQL."""
 
     with engine.begin() as conexao:
-        colunas = {
-            linha[1]
-            for linha in conexao.exec_driver_sql(
-                "PRAGMA table_info(usuarios)"
-            ).fetchall()
-        }
+        dialeto = conexao.dialect.name
+        colunas = _colunas_da_tabela(conexao, "usuarios")
 
         if "email" not in colunas:
             conexao.exec_driver_sql(
@@ -142,15 +155,17 @@ def migrar_banco():
             )
 
         if "email_verificado" not in colunas:
+            padrao_false = "FALSE" if dialeto == "postgresql" else "0"
             conexao.exec_driver_sql(
                 "ALTER TABLE usuarios "
-                "ADD COLUMN email_verificado BOOLEAN NOT NULL DEFAULT 0"
+                f"ADD COLUMN email_verificado BOOLEAN NOT NULL DEFAULT {padrao_false}"
             )
 
             # Compatibilidade: e-mails cadastrados antes desta funcionalidade
             # passam a ser tratados como já verificados.
+            valor_true = "TRUE" if dialeto == "postgresql" else "1"
             conexao.exec_driver_sql(
-                "UPDATE usuarios SET email_verificado = 1 "
+                f"UPDATE usuarios SET email_verificado = {valor_true} "
                 "WHERE email IS NOT NULL AND TRIM(email) <> ''"
             )
 
@@ -165,12 +180,10 @@ def migrar_banco():
                 "ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0"
             )
 
-        colunas_treinos = {
-            linha[1]
-            for linha in conexao.exec_driver_sql(
-                "PRAGMA table_info(treinos_agendados)"
-            ).fetchall()
-        }
+        colunas_treinos = _colunas_da_tabela(
+            conexao,
+            "treinos_agendados"
+        )
 
         if "concluido_em" not in colunas_treinos:
             conexao.exec_driver_sql(
@@ -184,14 +197,26 @@ def migrar_banco():
             "ON treinos_agendados(concluido_em)"
         )
 
-        conexao.exec_driver_sql(
-            """
-            CREATE UNIQUE INDEX IF NOT EXISTS
-            ux_usuarios_email_nocase
-            ON usuarios(email COLLATE NOCASE)
-            WHERE email IS NOT NULL AND email <> ''
-            """
-        )
+        # Unicidade de e-mail sem diferenciar maiúsculas/minúsculas.
+        # SQLite usa COLLATE NOCASE; PostgreSQL usa índice funcional lower().
+        if dialeto == "postgresql":
+            conexao.exec_driver_sql(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                ux_usuarios_email_nocase
+                ON usuarios (lower(email))
+                WHERE email IS NOT NULL AND btrim(email) <> ''
+                """
+            )
+        else:
+            conexao.exec_driver_sql(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                ux_usuarios_email_nocase
+                ON usuarios(email COLLATE NOCASE)
+                WHERE email IS NOT NULL AND email <> ''
+                """
+            )
 
         conexao.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS "
@@ -199,30 +224,49 @@ def migrar_banco():
             "ON verificacoes_email(usuario_id, usado, criado_em)"
         )
 
-        # Migração de modalidade única -> múltiplas modalidades.
-        # A tabela aluno_modalidades é criada pelo SQLAlchemy antes daqui.
-        alunos_legados = conexao.exec_driver_sql(
-            "SELECT id, modalidade FROM alunos "
-            "WHERE modalidade IS NOT NULL AND TRIM(modalidade) <> ''"
-        ).fetchall()
+    # Migração de modalidade única -> múltiplas modalidades feita via ORM,
+    # evitando SQL específico de SQLite como INSERT OR IGNORE.
+    db = SessionLocal()
+    try:
+        alunos_legados = (
+            db.query(models.Aluno)
+            .filter(
+                models.Aluno.modalidade.isnot(None),
+                func.trim(models.Aluno.modalidade) != ""
+            )
+            .all()
+        )
 
-        for aluno_id, modalidade_legada in alunos_legados:
-            chave = _normalizar_modalidade_texto(modalidade_legada)
+        for aluno in alunos_legados:
+            chave = _normalizar_modalidade_texto(aluno.modalidade)
             modalidade_oficial = MODALIDADES_POR_CHAVE.get(chave)
 
-            # Ciclismo/Triathlon e outros valores antigos não são migrados,
-            # pois deixaram de fazer parte das modalidades oficiais.
             if not modalidade_oficial:
                 continue
 
-            conexao.exec_driver_sql(
-                """
-                INSERT OR IGNORE INTO aluno_modalidades
-                    (aluno_id, modalidade)
-                VALUES (?, ?)
-                """,
-                (aluno_id, modalidade_oficial)
+            existente = (
+                db.query(models.AlunoModalidade)
+                .filter(
+                    models.AlunoModalidade.aluno_id == aluno.id,
+                    models.AlunoModalidade.modalidade == modalidade_oficial
+                )
+                .first()
             )
+
+            if not existente:
+                db.add(
+                    models.AlunoModalidade(
+                        aluno_id=aluno.id,
+                        modalidade=modalidade_oficial
+                    )
+                )
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 
 migrar_banco()
@@ -569,9 +613,9 @@ def nome_exibicao_usuario(usuario: models.Usuario) -> str:
     return nome or ("Professor" if usuario.tipo == "professor" else usuario.usuario)
 
 
-# Fotos ficam na mesma área persistente do banco em produção.
+# Fotos continuam no Volume persistente, mesmo com PostgreSQL.
 PASTA_FOTOS_PERFIL = os.path.join(
-    os.path.dirname(CAMINHO_BANCO),
+    PASTA_DADOS_PERSISTENTES,
     "uploads",
     "perfis"
 )
@@ -862,9 +906,14 @@ seed_professor()
 
 @app.get("/health", include_in_schema=False)
 def health():
+    # O healthcheck confirma também que o banco responde.
+    with engine.connect() as conexao:
+        conexao.execute(text("SELECT 1"))
+
     return {
         "status": "ok",
-        "app": "SpyTeam"
+        "app": "SpyTeam",
+        "database": BANCO_TIPO
     }
 
 
