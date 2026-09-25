@@ -8,9 +8,12 @@ WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
 
-RUN python -m pip install --no-cache-dir --upgrade pip \
+RUN echo "=== requirements.txt ===" \
+    && cat /app/requirements.txt \
+    && echo "=== instalando dependencias ===" \
     && python -m pip install --no-cache-dir -r /app/requirements.txt \
-    && python -c "import uvicorn; print('uvicorn instalado:', uvicorn.__version__)"
+    && python -m pip check \
+    && python -c "import fastapi, uvicorn, sqlalchemy, jinja2, resend, pywebpush, multipart; print('DEPENDENCIAS OK'); print('uvicorn', uvicorn.__version__)"
 
 COPY . /app
 
