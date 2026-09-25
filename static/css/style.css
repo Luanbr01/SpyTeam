@@ -608,11 +608,32 @@ a.app-nav-item.active .app-nav-icon svg {
 .sidebar-avatar, .top-avatar {
     width: 34px;
     height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    max-width: 34px;
+    max-height: 34px;
     display: grid;
     place-items: center;
     border-radius: 50%;
-    flex: 0 0 auto;
+    flex: 0 0 34px;
     font-weight: 800;
+    overflow: hidden;
+    position: relative;
+    contain: paint;
+}
+.sidebar-avatar img,
+.top-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    display: block !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: inherit !important;
+    position: static !important;
 }
 .sidebar-avatar { background: linear-gradient(135deg, #5CC8FF, #2D82EE); color:#fff; }
 .sidebar-profile strong { display:block; font-size:.78rem; }
@@ -1028,15 +1049,35 @@ a.app-nav-item.active .app-nav-icon svg {
 .student-profile-avatar {
     width: 76px;
     height: 76px;
+    min-width: 76px;
+    min-height: 76px;
+    max-width: 76px;
+    max-height: 76px;
     display: grid;
     place-items: center;
-    flex: 0 0 auto;
+    flex: 0 0 76px;
     border-radius: 50%;
     color: #fff;
     background: linear-gradient(135deg, #1D64DB, #38BDF8);
     box-shadow: 0 10px 25px rgba(29, 100, 219, .22);
     font-size: 1.65rem;
     font-weight: 800;
+    overflow: hidden;
+    position: relative;
+    contain: paint;
+}
+.student-profile-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    display: block !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: inherit !important;
+    position: static !important;
 }
 
 .profile-role {
@@ -3456,4 +3497,44 @@ body.modal-aberto {
         justify-content: center;
         text-align: center;
     }
+}
+
+
+/* ==========================================================
+   SPY TEAM — CORREÇÃO DE FOTO DE PERFIL / AVATAR
+   Impede que imagens enviadas ultrapassem os limites do avatar.
+   ========================================================== */
+
+.sidebar-profile {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.sidebar-profile > span:last-child {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.sidebar-profile strong,
+.sidebar-profile small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-avatar.has-photo,
+.top-avatar.has-photo,
+.student-profile-avatar.has-photo {
+    overflow: hidden !important;
+}
+
+.sidebar-avatar.has-photo img,
+.top-avatar.has-photo img,
+.student-profile-avatar.has-photo img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spyteam-pwa-v3';
+const CACHE_NAME = 'spyteam-pwa-v4-avatar';
 
 const STATIC_ASSETS = [
     '/static/offline.html',
@@ -54,9 +54,12 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // JavaScript: rede primeiro. Isso evita que uma atualização do
-    // aplicativo continue executando código antigo depois de um deploy.
-    if (url.origin === self.location.origin && url.pathname.startsWith('/static/js/')) {
+    // CSS e JavaScript: rede primeiro. Isso evita que uma atualização do
+    // aplicativo continue usando estilos ou scripts antigos depois de um deploy.
+    if (url.origin === self.location.origin && (
+        url.pathname.startsWith('/static/js/') ||
+        url.pathname.startsWith('/static/css/')
+    )) {
         event.respondWith((async () => {
             const cache = await caches.open(CACHE_NAME);
 

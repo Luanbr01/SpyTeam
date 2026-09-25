@@ -11,11 +11,39 @@
             const inicial = String(nome).trim().charAt(0).toUpperCase() || 'S';
 
             document.querySelectorAll('.sidebar-avatar, .top-avatar').forEach(el => {
+                el.style.overflow = 'hidden';
+                el.style.padding = '0';
+                el.style.width = '34px';
+                el.style.height = '34px';
+                el.style.minWidth = '34px';
+                el.style.minHeight = '34px';
+                el.style.maxWidth = '34px';
+                el.style.maxHeight = '34px';
+                el.style.flexBasis = '34px';
+                el.style.flexShrink = '0';
+
                 if (dados.foto_perfil_url) {
-                    el.innerHTML = '';
+                    el.replaceChildren();
+
                     const img = document.createElement('img');
                     img.src = dados.foto_perfil_url;
                     img.alt = 'Foto de perfil';
+                    img.decoding = 'async';
+
+                    Object.assign(img.style, {
+                        width: '100%',
+                        height: '100%',
+                        minWidth: '0',
+                        minHeight: '0',
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        display: 'block',
+                        objectFit: 'cover',
+                        objectPosition: 'center',
+                        borderRadius: 'inherit',
+                        position: 'static'
+                    });
+
                     el.appendChild(img);
                     el.classList.add('has-photo');
                 } else {

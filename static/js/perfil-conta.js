@@ -26,12 +26,58 @@
 
         const nome = conta.aluno?.nome || conta.nome || conta.usuario || 'SPY TEAM';
         const inicial = primeiraLetra(nome);
+        const url = conta.foto_perfil_url || '';
 
-        if (conta.foto_perfil_url) {
-            elemento.innerHTML = '';
+        const ehPequeno =
+            elemento.classList.contains('sidebar-avatar') ||
+            elemento.classList.contains('top-avatar');
+
+        const ehPerfil = elemento.classList.contains('student-profile-avatar');
+
+        elemento.style.overflow = 'hidden';
+        elemento.style.padding = '0';
+        elemento.style.flexShrink = '0';
+
+        if (ehPequeno) {
+            elemento.style.width = '34px';
+            elemento.style.height = '34px';
+            elemento.style.minWidth = '34px';
+            elemento.style.minHeight = '34px';
+            elemento.style.maxWidth = '34px';
+            elemento.style.maxHeight = '34px';
+            elemento.style.flexBasis = '34px';
+        } else if (ehPerfil) {
+            elemento.style.width = '76px';
+            elemento.style.height = '76px';
+            elemento.style.minWidth = '76px';
+            elemento.style.minHeight = '76px';
+            elemento.style.maxWidth = '76px';
+            elemento.style.maxHeight = '76px';
+            elemento.style.flexBasis = '76px';
+        }
+
+        if (url) {
+            elemento.replaceChildren();
+
             const img = document.createElement('img');
-            img.src = conta.foto_perfil_url;
+            img.src = url;
             img.alt = 'Foto de perfil';
+            img.decoding = 'async';
+
+            Object.assign(img.style, {
+                width: '100%',
+                height: '100%',
+                minWidth: '0',
+                minHeight: '0',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                display: 'block',
+                objectFit: 'cover',
+                objectPosition: 'center',
+                borderRadius: 'inherit',
+                position: 'static'
+            });
+
             elemento.appendChild(img);
             elemento.classList.add('has-photo');
         } else {
