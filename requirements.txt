@@ -8,5 +8,6 @@ resend==2.47.0
 pywebpush==2.5.0
 tzdata==2026.4
 python-multipart==0.0.32
+alembic>=1.13,<2
 
 google-auth[requests]>=2.35,<3
