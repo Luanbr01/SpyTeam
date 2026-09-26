@@ -22,7 +22,7 @@ from fastapi.responses import (
 
 from fastapi.staticfiles import StaticFiles
 
-from sqlalchemy import func, inspect, text
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from .database import (
@@ -102,174 +102,17 @@ MODALIDADES_POR_CHAVE = {
 }
 
 # ============================================================
-# CRIA AS TABELAS
+# MIGRAÇÕES DE BANCO
 # ============================================================
 #
-# Se a tabela ainda não existir, ela será criada.
+# O schema agora é controlado pelo Alembic.
+# Em produção, o Dockerfile executa ``scripts/aplicar_migracoes.py``
+# antes de iniciar o Uvicorn.
 #
-# IMPORTANTE:
-# Isso NÃO apaga seu banco.
-#
+# Não usamos mais ``Base.metadata.create_all()`` nem ALTER TABLE durante
+# o import da aplicação. Isso evita mudanças silenciosas no PostgreSQL e
+# mantém toda alteração estrutural versionada em ``alembic/versions``.
 # ============================================================
-
-models.Base.metadata.create_all(
-    bind=engine
-)
-
-
-# ============================================================
-# MIGRAÇÃO LEVE E PORTÁVEL DO BANCO
-# ============================================================
-#
-# Compatível com SQLite e PostgreSQL. O create_all() cria tabelas
-# novas, enquanto esta rotina adiciona colunas/índices introduzidos
-# em versões posteriores sem apagar dados existentes.
-# ============================================================
-
-
-def _colunas_da_tabela(conexao, nome_tabela: str) -> set[str]:
-    inspetor = inspect(conexao)
-    if nome_tabela not in inspetor.get_table_names():
-        return set()
-    return {
-        coluna["name"]
-        for coluna in inspetor.get_columns(nome_tabela)
-    }
-
-
-def migrar_banco():
-    """Aplica pequenas migrações compatíveis com SQLite/PostgreSQL."""
-
-    with engine.begin() as conexao:
-        dialeto = conexao.dialect.name
-        colunas = _colunas_da_tabela(conexao, "usuarios")
-
-        if "email" not in colunas:
-            conexao.exec_driver_sql(
-                "ALTER TABLE usuarios ADD COLUMN email VARCHAR"
-            )
-
-        if "nome" not in colunas:
-            conexao.exec_driver_sql(
-                "ALTER TABLE usuarios ADD COLUMN nome VARCHAR"
-            )
-
-        if "email_verificado" not in colunas:
-            padrao_false = "FALSE" if dialeto == "postgresql" else "0"
-            conexao.exec_driver_sql(
-                "ALTER TABLE usuarios "
-                f"ADD COLUMN email_verificado BOOLEAN NOT NULL DEFAULT {padrao_false}"
-            )
-
-            # Compatibilidade: e-mails cadastrados antes desta funcionalidade
-            # passam a ser tratados como já verificados.
-            valor_true = "TRUE" if dialeto == "postgresql" else "1"
-            conexao.exec_driver_sql(
-                f"UPDATE usuarios SET email_verificado = {valor_true} "
-                "WHERE email IS NOT NULL AND TRIM(email) <> ''"
-            )
-
-        if "foto_perfil" not in colunas:
-            conexao.exec_driver_sql(
-                "ALTER TABLE usuarios ADD COLUMN foto_perfil VARCHAR"
-            )
-
-        if "session_version" not in colunas:
-            conexao.exec_driver_sql(
-                "ALTER TABLE usuarios "
-                "ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0"
-            )
-
-        colunas_treinos = _colunas_da_tabela(
-            conexao,
-            "treinos_agendados"
-        )
-
-        if "concluido_em" not in colunas_treinos:
-            conexao.exec_driver_sql(
-                "ALTER TABLE treinos_agendados "
-                "ADD COLUMN concluido_em INTEGER"
-            )
-
-        conexao.exec_driver_sql(
-            "CREATE INDEX IF NOT EXISTS "
-            "ix_treinos_agendados_concluido_em "
-            "ON treinos_agendados(concluido_em)"
-        )
-
-        # Unicidade de e-mail sem diferenciar maiúsculas/minúsculas.
-        # SQLite usa COLLATE NOCASE; PostgreSQL usa índice funcional lower().
-        if dialeto == "postgresql":
-            conexao.exec_driver_sql(
-                """
-                CREATE UNIQUE INDEX IF NOT EXISTS
-                ux_usuarios_email_nocase
-                ON usuarios (lower(email))
-                WHERE email IS NOT NULL AND btrim(email) <> ''
-                """
-            )
-        else:
-            conexao.exec_driver_sql(
-                """
-                CREATE UNIQUE INDEX IF NOT EXISTS
-                ux_usuarios_email_nocase
-                ON usuarios(email COLLATE NOCASE)
-                WHERE email IS NOT NULL AND email <> ''
-                """
-            )
-
-        conexao.exec_driver_sql(
-            "CREATE INDEX IF NOT EXISTS "
-            "ix_verificacoes_email_usuario_ativo "
-            "ON verificacoes_email(usuario_id, usado, criado_em)"
-        )
-
-    # Migração de modalidade única -> múltiplas modalidades feita via ORM,
-    # evitando SQL específico de SQLite como INSERT OR IGNORE.
-    db = SessionLocal()
-    try:
-        alunos_legados = (
-            db.query(models.Aluno)
-            .filter(
-                models.Aluno.modalidade.isnot(None),
-                func.trim(models.Aluno.modalidade) != ""
-            )
-            .all()
-        )
-
-        for aluno in alunos_legados:
-            chave = _normalizar_modalidade_texto(aluno.modalidade)
-            modalidade_oficial = MODALIDADES_POR_CHAVE.get(chave)
-
-            if not modalidade_oficial:
-                continue
-
-            existente = (
-                db.query(models.AlunoModalidade)
-                .filter(
-                    models.AlunoModalidade.aluno_id == aluno.id,
-                    models.AlunoModalidade.modalidade == modalidade_oficial
-                )
-                .first()
-            )
-
-            if not existente:
-                db.add(
-                    models.AlunoModalidade(
-                        aluno_id=aluno.id,
-                        modalidade=modalidade_oficial
-                    )
-                )
-
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
-
-migrar_banco()
 
 
 # ============================================================
@@ -277,6 +120,7 @@ migrar_banco()
 # ============================================================
 
 from fastapi.templating import Jinja2Templates
+from alembic.runtime.migration import MigrationContext
 
 app = FastAPI(
     title="SpyTeam"
@@ -906,14 +750,16 @@ seed_professor()
 
 @app.get("/health", include_in_schema=False)
 def health():
-    # O healthcheck confirma também que o banco responde.
+    # O healthcheck confirma o banco e informa a revisão Alembic aplicada.
     with engine.connect() as conexao:
         conexao.execute(text("SELECT 1"))
+        revisao = MigrationContext.configure(conexao).get_current_revision()
 
     return {
         "status": "ok",
         "app": "SpyTeam",
-        "database": BANCO_TIPO
+        "database": BANCO_TIPO,
+        "migration": revisao
     }
 
 

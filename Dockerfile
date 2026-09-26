@@ -13,8 +13,8 @@ RUN echo "=== requirements.txt ===" \
     && echo "=== instalando dependencias ===" \
     && python -m pip install --no-cache-dir -r /app/requirements.txt \
     && python -m pip check \
-    && python -c "import fastapi, uvicorn, sqlalchemy, psycopg, jinja2, resend, pywebpush, multipart; print('DEPENDENCIAS OK'); print('uvicorn', uvicorn.__version__); print('psycopg', psycopg.__version__)"
+    && python -c "import fastapi, uvicorn, sqlalchemy, alembic, psycopg, jinja2, resend, pywebpush, multipart; print('DEPENDENCIAS OK'); print('uvicorn', uvicorn.__version__); print('psycopg', psycopg.__version__)"
 
 COPY . /app
 
-CMD ["sh", "-c", "exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "python scripts/aplicar_migracoes.py && exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --proxy-headers --forwarded-allow-ips='*'"]

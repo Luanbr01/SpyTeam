@@ -793,21 +793,91 @@ Se o professor editar o `TreinoBase` depois, os treinos que já foram enviados c
 
 ---
 
-## 8.8 Migração leve automática
+## 8.8 Migrações versionadas com Alembic
 
-Ao iniciar, o sistema executa uma migração leve compatível com **SQLite e PostgreSQL**.
+O SPY TEAM utiliza **Alembic** para controlar formalmente as mudanças de estrutura do banco de dados.
 
-Ela usa inspeção do SQLAlchemy para verificar a estrutura existente e pode adicionar campos/índices necessários sem apagar os dados. Entre os itens tratados estão:
+Arquivos principais:
 
-- campos de conta e verificação de e-mail;
-- `session_version`;
-- `concluido_em` em treinos agendados;
-- índice case-insensitive de e-mail;
-- migração da modalidade única antiga para `aluno_modalidades`.
+```text
+alembic.ini
+alembic/env.py
+alembic/versions/
+scripts/aplicar_migracoes.py
+```
 
-No PostgreSQL, a unicidade de e-mail sem diferenciar maiúsculas/minúsculas usa um índice funcional com `lower(email)`.
+A revisão baseline do projeto é:
 
-O projeto ainda **não utiliza Alembic**; essa continua sendo uma evolução futura recomendada para migrações maiores.
+```text
+20260925_01
+```
+
+A revisão atual inicial do Alembic é:
+
+```text
+20260925_02
+```
+
+Ela representa o schema existente no momento da adoção do Alembic.
+
+### Banco de produção já existente
+
+No primeiro deploy com Alembic, `scripts/aplicar_migracoes.py` detecta que o PostgreSQL já possui as tabelas do SPY TEAM, mas ainda não possui `alembic_version`.
+
+Antes de marcar a baseline, o script valida todas as tabelas e colunas esperadas. Se a estrutura estiver compatível, executa apenas um **stamp** da revisão atual, sem recriar tabelas e sem copiar ou apagar dados.
+
+Se encontrar divergências, o deploy é interrompido antes do Uvicorn iniciar. Isso evita esconder problemas de schema.
+
+### Banco novo
+
+Se o banco estiver vazio, o mesmo script executa:
+
+```bash
+alembic upgrade head
+```
+
+e cria o schema pela revisão baseline.
+
+### Deploys seguintes
+
+Depois que a tabela `alembic_version` existe, cada deploy executa somente as revisões ainda pendentes.
+
+O Docker inicia nesta ordem:
+
+```text
+python scripts/aplicar_migracoes.py
+        ↓
+alembic upgrade head
+        ↓
+uvicorn app.main:app
+```
+
+A aplicação não executa mais `Base.metadata.create_all()` nem `ALTER TABLE` automaticamente durante o import do FastAPI.
+
+### Criar uma nova migração
+
+Depois de alterar os modelos SQLAlchemy:
+
+```bash
+alembic revision --autogenerate -m "descricao da alteracao"
+```
+
+Revise o arquivo criado em `alembic/versions/` e aplique localmente:
+
+```bash
+alembic upgrade head
+```
+
+Comandos úteis:
+
+```bash
+alembic current
+alembic history
+alembic upgrade head
+alembic downgrade -1
+```
+
+O `downgrade` só deve ser usado quando a própria migração tiver uma reversão segura e após avaliar risco de perda de dados.
 
 ---
 
@@ -2850,25 +2920,34 @@ O estado atual é funcional, mas há espaço para evolução.
 - [x] compatibilidade com SQLite em desenvolvimento;
 - [x] script de migração SQLite -> PostgreSQL;
 - [x] pool de conexões com `pool_pre_ping`;
-- [x] healthcheck valida também a conexão com o banco.
+- [x] healthcheck valida também a conexão com o banco e informa a revisão Alembic;
+- [x] Alembic para versionamento formal das migrações;
+- [x] aplicação automática de migrações antes do Uvicorn;
+- [x] bootstrap seguro da baseline em bancos já existentes.
 
 Evoluções futuras possíveis:
 
 - métricas específicas do PostgreSQL;
 - backups automatizados adicionais;
-- Alembic para versionamento formal das migrações.
+- rotina automatizada de backup antes de migrações destrutivas.
 
 ---
 
 ## Migrações
 
-Atualmente há migrações leves manuais.
-
-Melhoria recomendada:
+As alterações estruturais do banco passam a ser versionadas em:
 
 ```text
-Alembic
+alembic/versions/
 ```
+
+O deploy executa automaticamente:
+
+```text
+python scripts/aplicar_migracoes.py
+```
+
+A versão atual também aparece no `/health` no campo `migration`.
 
 ---
 

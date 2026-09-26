@@ -97,3 +97,25 @@ MIGRACAO_POSTGRESQL.md
 ```
 
 O processo usa `POSTGRES_MIGRATION_URL` temporariamente para copiar `/data/assessoria.db` para PostgreSQL antes do cutover.
+
+---
+
+## Migrações Alembic
+
+O container executa automaticamente antes do FastAPI:
+
+```text
+python scripts/aplicar_migracoes.py
+```
+
+No primeiro deploy após a adoção do Alembic, o script valida o schema existente e registra a baseline `20260925_01` sem recriar os dados e aplica as revisões posteriores até o `head`. Nos deploys seguintes, executa apenas migrações pendentes.
+
+O processo só inicia o Uvicorn se `alembic upgrade head` terminar com sucesso.
+
+Após o deploy, `/health` deve mostrar também:
+
+```json
+{
+  "migration": "20260925_02"
+}
+```
