@@ -96,7 +96,6 @@ Natação
 Musculação
 ```
 
-Ciclismo e Triathlon foram removidos das opções de cadastro e planejamento.
 
 Um aluno pode possuir **uma, duas ou as três modalidades ao mesmo tempo**. No planejamento semanal, ele recebe automaticamente todos os treinos correspondentes às modalidades vinculadas ao seu cadastro.
 
@@ -2349,7 +2348,7 @@ Se não estiver no Railway e não houver professor no banco:
 
 ```text
 Usuário: professor
-Senha: 1234
+Senha: ****
 ```
 
 Isso é apenas fallback de desenvolvimento.
