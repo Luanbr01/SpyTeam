@@ -3538,3 +3538,49 @@ body.modal-aberto {
     object-fit: cover !important;
     object-position: center !important;
 }
+
+
+/* ==========================================================
+   SPY TEAM — LOGIN COM GOOGLE
+   ========================================================== */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0 18px;
+    color: #8A99AD;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: var(--border);
+}
+
+.google-login-area {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+}
+
+.google-signin-button {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.google-login-hint {
+    margin: 0;
+    max-width: 330px;
+    color: #7A8AA2;
+    font-size: .7rem;
+    line-height: 1.45;
+}

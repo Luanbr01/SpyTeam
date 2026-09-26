@@ -17,6 +17,9 @@
 <link rel="stylesheet" href="/static/css/style.css?v=20260925-avatarfix1">
     <!-- SPYTEAM_DEPLOY_FIX_20260919-design1 -->
     <script src="/static/js/security.js?v=20260922-security1"></script>
+    {% if google_client_id %}
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    {% endif %}
 </head>
 <body>
 <div class="auth-page">
@@ -59,6 +62,16 @@
             <button class="btn btn-primary" type="submit">Entrar</button>
             <a class="forgot-password-link" href="/esqueci-senha">Esqueceu sua senha?</a>
         </form>
+
+        {% if google_client_id %}
+        <div class="auth-divider" aria-hidden="true"><span>ou</span></div>
+        <div class="google-login-area">
+            <div id="googleSignInButton" class="google-signin-button"></div>
+            <p class="google-login-hint">
+                Use a conta Google com o mesmo e-mail cadastrado no SPY TEAM.
+            </p>
+        </div>
+        {% endif %}
 
         <div id="mensagem" class="message error"></div>
         <div class="auth-info">Se você não tiver uma conta, peça para o professor criar um acesso para você.</div>
@@ -132,6 +145,67 @@ form.addEventListener('submit', async (e) => {
     }
 });
 </script>
+
+{% if google_client_id %}
+<script>
+async function loginComGoogle(respostaGoogle) {
+    if (!respostaGoogle || !respostaGoogle.credential) {
+        mensagem.textContent = 'Não foi possível receber a credencial do Google.';
+        return;
+    }
+
+    mensagem.textContent = 'Validando sua conta Google...';
+
+    try {
+        const resposta = await fetch('/api/login/google', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                credential: respostaGoogle.credential
+            })
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            mensagem.textContent = dados.detail || 'Não foi possível entrar com Google.';
+            return;
+        }
+
+        window.location.href = dados.redirect;
+    } catch (_) {
+        mensagem.textContent = 'Não foi possível conectar ao servidor.';
+    }
+}
+
+window.addEventListener('load', () => {
+    if (!window.google || !google.accounts || !google.accounts.id) {
+        mensagem.textContent = 'O login com Google não pôde ser carregado.';
+        return;
+    }
+
+    google.accounts.id.initialize({
+        client_id: {{ google_client_id | tojson }},
+        callback: loginComGoogle,
+        auto_select: false,
+        cancel_on_tap_outside: true
+    });
+
+    google.accounts.id.renderButton(
+        document.getElementById('googleSignInButton'),
+        {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: 300
+        }
+    );
+});
+</script>
+{% endif %}
 
 <script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
 </body>

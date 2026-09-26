@@ -26,6 +26,15 @@ class Login(BaseModel):
 
 
 
+class LoginGoogle(BaseModel):
+
+    # JWT ID token devolvido pelo Google Identity Services.
+    credential: str = Field(
+        min_length=100,
+        max_length=5000
+    )
+
+
 
 # ============================================================
 # E-MAIL DO ALUNO

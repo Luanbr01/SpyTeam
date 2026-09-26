@@ -96,6 +96,7 @@ Natação
 Musculação
 ```
 
+Ciclismo e Triathlon foram removidos das opções de cadastro e planejamento.
 
 Um aluno pode possuir **uma, duas ou as três modalidades ao mesmo tempo**. No planejamento semanal, ele recebe automaticamente todos os treinos correspondentes às modalidades vinculadas ao seu cadastro.
 
@@ -131,6 +132,7 @@ Atualmente o projeto possui as seguintes áreas implementadas.
 - [x] Invalidação de sessões após troca/redefinição de senha
 - [x] Auditoria de logins
 - [x] Histórico de alterações administrativas
+- [x] Login com Google baseado no e-mail cadastrado
 
 ## Professor
 
@@ -792,91 +794,21 @@ Se o professor editar o `TreinoBase` depois, os treinos que já foram enviados c
 
 ---
 
-## 8.8 Migrações versionadas com Alembic
+## 8.8 Migração leve automática
 
-O SPY TEAM utiliza **Alembic** para controlar formalmente as mudanças de estrutura do banco de dados.
+Ao iniciar, o sistema executa uma migração leve compatível com **SQLite e PostgreSQL**.
 
-Arquivos principais:
+Ela usa inspeção do SQLAlchemy para verificar a estrutura existente e pode adicionar campos/índices necessários sem apagar os dados. Entre os itens tratados estão:
 
-```text
-alembic.ini
-alembic/env.py
-alembic/versions/
-scripts/aplicar_migracoes.py
-```
+- campos de conta e verificação de e-mail;
+- `session_version`;
+- `concluido_em` em treinos agendados;
+- índice case-insensitive de e-mail;
+- migração da modalidade única antiga para `aluno_modalidades`.
 
-A revisão baseline do projeto é:
+No PostgreSQL, a unicidade de e-mail sem diferenciar maiúsculas/minúsculas usa um índice funcional com `lower(email)`.
 
-```text
-20260925_01
-```
-
-A revisão atual inicial do Alembic é:
-
-```text
-20260925_02
-```
-
-Ela representa o schema existente no momento da adoção do Alembic.
-
-### Banco de produção já existente
-
-No primeiro deploy com Alembic, `scripts/aplicar_migracoes.py` detecta que o PostgreSQL já possui as tabelas do SPY TEAM, mas ainda não possui `alembic_version`.
-
-Antes de marcar a baseline, o script valida todas as tabelas e colunas esperadas. Se a estrutura estiver compatível, executa apenas um **stamp** da revisão atual, sem recriar tabelas e sem copiar ou apagar dados.
-
-Se encontrar divergências, o deploy é interrompido antes do Uvicorn iniciar. Isso evita esconder problemas de schema.
-
-### Banco novo
-
-Se o banco estiver vazio, o mesmo script executa:
-
-```bash
-alembic upgrade head
-```
-
-e cria o schema pela revisão baseline.
-
-### Deploys seguintes
-
-Depois que a tabela `alembic_version` existe, cada deploy executa somente as revisões ainda pendentes.
-
-O Docker inicia nesta ordem:
-
-```text
-python scripts/aplicar_migracoes.py
-        ↓
-alembic upgrade head
-        ↓
-uvicorn app.main:app
-```
-
-A aplicação não executa mais `Base.metadata.create_all()` nem `ALTER TABLE` automaticamente durante o import do FastAPI.
-
-### Criar uma nova migração
-
-Depois de alterar os modelos SQLAlchemy:
-
-```bash
-alembic revision --autogenerate -m "descricao da alteracao"
-```
-
-Revise o arquivo criado em `alembic/versions/` e aplique localmente:
-
-```bash
-alembic upgrade head
-```
-
-Comandos úteis:
-
-```bash
-alembic current
-alembic history
-alembic upgrade head
-alembic downgrade -1
-```
-
-O `downgrade` só deve ser usado quando a própria migração tiver uma reversão segura e após avaliar risco de perda de dados.
+O projeto ainda **não utiliza Alembic**; essa continua sendo uma evolução futura recomendada para migrações maiores.
 
 ---
 
@@ -1135,7 +1067,7 @@ O middleware do FastAPI compara os dois valores com comparação segura. Uma cha
 
 ## 9.8 Rate limit no login
 
-O login possui proteção contra força bruta baseada no histórico de falhas armazenado no SQLite. Por padrão, a janela é de **15 minutos** e são observados três limites:
+O login possui proteção contra força bruta baseada no histórico de falhas armazenado no banco de dados. Por padrão, a janela é de **15 minutos** e são observados três limites:
 
 ```text
 30 falhas por IP
@@ -1249,6 +1181,61 @@ enviar_planejamento_semanal
 ```
 
 Senhas e tokens não são colocados no histórico. O registro de auditoria é adicionado à mesma transação da alteração administrativa, evitando registrar como concluída uma mudança que não foi salva no banco.
+
+---
+
+
+## 9.12 Login com Google
+
+O SPY TEAM oferece login com **Google Identity Services** sem criar contas automaticamente.
+
+Fluxo:
+
+```text
+Conta Google
+    ↓
+Google devolve um ID token assinado
+    ↓
+SPY TEAM valida o token no backend
+    ↓
+compara o e-mail com usuarios.email
+    ↓
+se existir exatamente uma conta compatível → cria a sessão SPY TEAM
+```
+
+Regras:
+
+- a conta precisa existir previamente no SPY TEAM;
+- o e-mail retornado pelo Google precisa ser o mesmo e-mail cadastrado;
+- o backend valida o ID token usando `GOOGLE_CLIENT_ID`;
+- não existe cadastro automático pelo Google;
+- o fluxo aceita Gmail e Google Workspace, casos em que o Google é autoridade sobre a posse do endereço;
+- contas Google que usam e-mail externo sem domínio Workspace devem entrar com usuário e senha;
+- se duas contas do SPY TEAM possuírem o mesmo e-mail, o login Google é recusado por segurança;
+- a sessão final continua sendo o cookie `spyteam_session` do próprio SPY TEAM.
+
+Variável de ambiente:
+
+```text
+GOOGLE_CLIENT_ID=seu-client-id.apps.googleusercontent.com
+```
+
+Este fluxo **não usa `GOOGLE_CLIENT_SECRET`**. O Client ID identifica o aplicativo, mas não é uma senha.
+
+No Google Cloud, crie um cliente do tipo **Web application** e cadastre como origem JavaScript autorizada:
+
+```text
+https://www.spyteam.com.br
+```
+
+Para desenvolvimento local, podem ser cadastradas também:
+
+```text
+http://localhost:8000
+http://127.0.0.1:8000
+```
+
+A tela `/login` só mostra o botão Google quando `GOOGLE_CLIENT_ID` está configurado.
 
 ---
 
@@ -1956,6 +1943,7 @@ O sistema possui botão de olho para mostrar/ocultar senha em:
 | Método | Endpoint | Acesso | Função |
 |---|---|---|---|
 | POST | `/api/login` | Público | Login |
+| POST | `/api/login/google` | Público | Login com Google por e-mail já cadastrado |
 | POST | `/api/logout` | Logado | Logout |
 | GET | `/api/me` | Logado | Dados da sessão, perfil e status do e-mail |
 | PATCH | `/api/me/perfil` | Logado | Editar nome e usuário |
@@ -2176,6 +2164,18 @@ true
 
 ## 17.2 Banco
 
+### `GOOGLE_CLIENT_ID`
+
+Ativa o botão de login com Google. Use somente o Client ID público criado no Google Cloud:
+
+```text
+GOOGLE_CLIENT_ID=000000000000-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+```
+
+Não coloque `GOOGLE_CLIENT_SECRET` no README, no frontend ou no GitHub. Esta implementação não precisa dele.
+
+---
+
 ### `DATABASE_URL`
 
 Banco principal em produção. No Railway, configure como referência ao serviço PostgreSQL:
@@ -2342,18 +2342,16 @@ Resposta:
 
 ---
 
-## Professor local padrão
+## Professor local de desenvolvimento
 
-Se não estiver no Railway e não houver professor no banco:
+Em desenvolvimento, prefira definir explicitamente:
 
 ```text
-Usuário: professor
-Senha: ****
+PROFESSOR_USUARIO
+PROFESSOR_SENHA
 ```
 
-Isso é apenas fallback de desenvolvimento.
-
-Não utilize essa credencial padrão em produção.
+Não documente nem versione senhas reais. Em produção, o SPY TEAM exige credenciais configuradas por variáveis de ambiente e não cria uma senha padrão conhecida.
 
 ---
 
@@ -2919,34 +2917,25 @@ O estado atual é funcional, mas há espaço para evolução.
 - [x] compatibilidade com SQLite em desenvolvimento;
 - [x] script de migração SQLite -> PostgreSQL;
 - [x] pool de conexões com `pool_pre_ping`;
-- [x] healthcheck valida também a conexão com o banco e informa a revisão Alembic;
-- [x] Alembic para versionamento formal das migrações;
-- [x] aplicação automática de migrações antes do Uvicorn;
-- [x] bootstrap seguro da baseline em bancos já existentes.
+- [x] healthcheck valida também a conexão com o banco.
 
 Evoluções futuras possíveis:
 
 - métricas específicas do PostgreSQL;
 - backups automatizados adicionais;
-- rotina automatizada de backup antes de migrações destrutivas.
+- Alembic para versionamento formal das migrações.
 
 ---
 
 ## Migrações
 
-As alterações estruturais do banco passam a ser versionadas em:
+Atualmente há migrações leves manuais.
+
+Melhoria recomendada:
 
 ```text
-alembic/versions/
+Alembic
 ```
-
-O deploy executa automaticamente:
-
-```text
-python scripts/aplicar_migracoes.py
-```
-
-A versão atual também aparece no `/health` no campo `migration`.
 
 ---
 

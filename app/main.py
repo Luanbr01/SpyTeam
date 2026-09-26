@@ -12,6 +12,13 @@ import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+try:
+    from google.oauth2 import id_token as google_id_token
+    from google.auth.transport import requests as google_auth_requests
+except ImportError:  # Permite iniciar sem a dependência em desenvolvimento antigo.
+    google_id_token = None
+    google_auth_requests = None
+
 from fastapi import FastAPI, Depends, HTTPException, Request, status, BackgroundTasks, UploadFile, File
 
 from fastapi.responses import (
@@ -22,7 +29,7 @@ from fastapi.responses import (
 
 from fastapi.staticfiles import StaticFiles
 
-from sqlalchemy import func, text
+from sqlalchemy import func, inspect, text
 from sqlalchemy.orm import Session
 
 from .database import (
@@ -102,17 +109,174 @@ MODALIDADES_POR_CHAVE = {
 }
 
 # ============================================================
-# MIGRAÇÕES DE BANCO
+# CRIA AS TABELAS
 # ============================================================
 #
-# O schema agora é controlado pelo Alembic.
-# Em produção, o Dockerfile executa ``scripts/aplicar_migracoes.py``
-# antes de iniciar o Uvicorn.
+# Se a tabela ainda não existir, ela será criada.
 #
-# Não usamos mais ``Base.metadata.create_all()`` nem ALTER TABLE durante
-# o import da aplicação. Isso evita mudanças silenciosas no PostgreSQL e
-# mantém toda alteração estrutural versionada em ``alembic/versions``.
+# IMPORTANTE:
+# Isso NÃO apaga seu banco.
+#
 # ============================================================
+
+models.Base.metadata.create_all(
+    bind=engine
+)
+
+
+# ============================================================
+# MIGRAÇÃO LEVE E PORTÁVEL DO BANCO
+# ============================================================
+#
+# Compatível com SQLite e PostgreSQL. O create_all() cria tabelas
+# novas, enquanto esta rotina adiciona colunas/índices introduzidos
+# em versões posteriores sem apagar dados existentes.
+# ============================================================
+
+
+def _colunas_da_tabela(conexao, nome_tabela: str) -> set[str]:
+    inspetor = inspect(conexao)
+    if nome_tabela not in inspetor.get_table_names():
+        return set()
+    return {
+        coluna["name"]
+        for coluna in inspetor.get_columns(nome_tabela)
+    }
+
+
+def migrar_banco():
+    """Aplica pequenas migrações compatíveis com SQLite/PostgreSQL."""
+
+    with engine.begin() as conexao:
+        dialeto = conexao.dialect.name
+        colunas = _colunas_da_tabela(conexao, "usuarios")
+
+        if "email" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios ADD COLUMN email VARCHAR"
+            )
+
+        if "nome" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios ADD COLUMN nome VARCHAR"
+            )
+
+        if "email_verificado" not in colunas:
+            padrao_false = "FALSE" if dialeto == "postgresql" else "0"
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios "
+                f"ADD COLUMN email_verificado BOOLEAN NOT NULL DEFAULT {padrao_false}"
+            )
+
+            # Compatibilidade: e-mails cadastrados antes desta funcionalidade
+            # passam a ser tratados como já verificados.
+            valor_true = "TRUE" if dialeto == "postgresql" else "1"
+            conexao.exec_driver_sql(
+                f"UPDATE usuarios SET email_verificado = {valor_true} "
+                "WHERE email IS NOT NULL AND TRIM(email) <> ''"
+            )
+
+        if "foto_perfil" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios ADD COLUMN foto_perfil VARCHAR"
+            )
+
+        if "session_version" not in colunas:
+            conexao.exec_driver_sql(
+                "ALTER TABLE usuarios "
+                "ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0"
+            )
+
+        colunas_treinos = _colunas_da_tabela(
+            conexao,
+            "treinos_agendados"
+        )
+
+        if "concluido_em" not in colunas_treinos:
+            conexao.exec_driver_sql(
+                "ALTER TABLE treinos_agendados "
+                "ADD COLUMN concluido_em INTEGER"
+            )
+
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS "
+            "ix_treinos_agendados_concluido_em "
+            "ON treinos_agendados(concluido_em)"
+        )
+
+        # Unicidade de e-mail sem diferenciar maiúsculas/minúsculas.
+        # SQLite usa COLLATE NOCASE; PostgreSQL usa índice funcional lower().
+        if dialeto == "postgresql":
+            conexao.exec_driver_sql(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                ux_usuarios_email_nocase
+                ON usuarios (lower(email))
+                WHERE email IS NOT NULL AND btrim(email) <> ''
+                """
+            )
+        else:
+            conexao.exec_driver_sql(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                ux_usuarios_email_nocase
+                ON usuarios(email COLLATE NOCASE)
+                WHERE email IS NOT NULL AND email <> ''
+                """
+            )
+
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS "
+            "ix_verificacoes_email_usuario_ativo "
+            "ON verificacoes_email(usuario_id, usado, criado_em)"
+        )
+
+    # Migração de modalidade única -> múltiplas modalidades feita via ORM,
+    # evitando SQL específico de SQLite como INSERT OR IGNORE.
+    db = SessionLocal()
+    try:
+        alunos_legados = (
+            db.query(models.Aluno)
+            .filter(
+                models.Aluno.modalidade.isnot(None),
+                func.trim(models.Aluno.modalidade) != ""
+            )
+            .all()
+        )
+
+        for aluno in alunos_legados:
+            chave = _normalizar_modalidade_texto(aluno.modalidade)
+            modalidade_oficial = MODALIDADES_POR_CHAVE.get(chave)
+
+            if not modalidade_oficial:
+                continue
+
+            existente = (
+                db.query(models.AlunoModalidade)
+                .filter(
+                    models.AlunoModalidade.aluno_id == aluno.id,
+                    models.AlunoModalidade.modalidade == modalidade_oficial
+                )
+                .first()
+            )
+
+            if not existente:
+                db.add(
+                    models.AlunoModalidade(
+                        aluno_id=aluno.id,
+                        modalidade=modalidade_oficial
+                    )
+                )
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+migrar_banco()
 
 
 # ============================================================
@@ -120,7 +284,6 @@ MODALIDADES_POR_CHAVE = {
 # ============================================================
 
 from fastapi.templating import Jinja2Templates
-from alembic.runtime.migration import MigrationContext
 
 app = FastAPI(
     title="SpyTeam"
@@ -239,6 +402,12 @@ COOKIE_SECURE = _env_bool(
     "COOKIE_SECURE",
     padrao=EM_RAILWAY
 )
+
+
+GOOGLE_CLIENT_ID = os.getenv(
+    "GOOGLE_CLIENT_ID",
+    ""
+).strip()
 
 
 # ============================================================
@@ -750,16 +919,14 @@ seed_professor()
 
 @app.get("/health", include_in_schema=False)
 def health():
-    # O healthcheck confirma o banco e informa a revisão Alembic aplicada.
+    # O healthcheck confirma também que o banco responde.
     with engine.connect() as conexao:
         conexao.execute(text("SELECT 1"))
-        revisao = MigrationContext.configure(conexao).get_current_revision()
 
     return {
         "status": "ok",
         "app": "SpyTeam",
-        "database": BANCO_TIPO,
-        "migration": revisao
+        "database": BANCO_TIPO
     }
 
 
@@ -837,7 +1004,10 @@ def pagina_login(
 
     return templates.TemplateResponse(
         request=request,
-        name="login.html"
+        name="login.html",
+        context={
+            "google_client_id": GOOGLE_CLIENT_ID or None
+        }
     )
 
 
@@ -1874,6 +2044,205 @@ def login(
     )
 
     # Rotaciona o CSRF depois que a autenticação muda de estado.
+    resposta.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=criar_token_csrf(),
+        httponly=False,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+        max_age=60 * 60 * 24,
+        path="/"
+    )
+
+    return resposta
+
+
+# ============================================================
+# LOGIN COM GOOGLE
+# ============================================================
+
+@app.post("/api/login/google")
+def login_google(
+    request: Request,
+    dados: schemas.LoginGoogle,
+    db: Session = Depends(get_db)
+):
+    """
+    Autentica uma conta SPY TEAM já existente usando Google Identity Services.
+
+    Regras de segurança:
+    - nunca cria conta automaticamente;
+    - valida assinatura, audience e expiração do ID token no backend;
+    - exige e-mail verificado pelo Google;
+    - aceita somente Gmail ou Google Workspace, para os quais o Google é
+      autoridade sobre a posse do endereço;
+    - exige correspondência exata com o e-mail cadastrado no SPY TEAM;
+    - recusa e-mail duplicado no banco para não escolher conta ambígua.
+    """
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=503,
+            detail="Login com Google não está configurado."
+        )
+
+    if google_id_token is None or google_auth_requests is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Dependência do login com Google não está disponível."
+        )
+
+    # Usa apenas o limite por IP antes de confiar em qualquer claim do token.
+    if verificar_rate_limit_login(db, request, ""):
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado="google",
+            sucesso=False,
+            motivo="google_rate_limit"
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="Muitas tentativas de login. Aguarde alguns minutos e tente novamente.",
+            headers={"Retry-After": str(LOGIN_RATE_WINDOW_SECONDS)}
+        )
+
+    try:
+        info = google_id_token.verify_oauth2_token(
+            dados.credential,
+            google_auth_requests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+    except Exception:
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado="google",
+            sucesso=False,
+            motivo="google_token_invalido"
+        )
+        raise HTTPException(
+            status_code=401,
+            detail="Não foi possível validar o login com Google."
+        )
+
+    email_bruto = str(info.get("email") or "").strip()
+    email_verificado_google = bool(info.get("email_verified"))
+    dominio_workspace = str(info.get("hd") or "").strip().casefold()
+
+    try:
+        email = normalizar_email(email_bruto)
+    except ValueError:
+        email = ""
+
+    # A documentação do Google diferencia contas em que ele é autoridade
+    # sobre o e-mail. Para Gmail isso é direto; para Workspace, `hd` precisa
+    # existir e o e-mail precisa estar verificado.
+    google_autoridade_email = bool(
+        email
+        and email_verificado_google
+        and (
+            email.endswith("@gmail.com")
+            or bool(dominio_workspace)
+        )
+    )
+
+    if not google_autoridade_email:
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado=(email or "google")[:100],
+            sucesso=False,
+            motivo="google_email_nao_autoritativo"
+        )
+        raise HTTPException(
+            status_code=401,
+            detail=(
+                "Este endereço não pode ser validado com segurança pelo Google. "
+                "Entre com usuário e senha."
+            )
+        )
+
+    candidatos = (
+        db.query(models.Usuario)
+        .filter(
+            func.lower(func.trim(models.Usuario.email)) == email
+        )
+        .limit(2)
+        .all()
+    )
+
+    if len(candidatos) != 1:
+        registrar_auditoria_login(
+            db=db,
+            request=request,
+            usuario_informado=email[:100],
+            sucesso=False,
+            motivo=(
+                "google_email_sem_conta"
+                if len(candidatos) == 0
+                else "google_email_duplicado"
+            )
+        )
+        raise HTTPException(
+            status_code=401,
+            detail=(
+                "O e-mail desta conta Google não está vinculado a uma "
+                "conta SPY TEAM disponível para este login."
+            )
+        )
+
+    usuario = candidatos[0]
+
+    # O próprio login do Google confirma a posse do e-mail nos casos aceitos.
+    if not bool(usuario.email_verificado):
+        usuario.email_verificado = True
+        db.commit()
+        db.refresh(usuario)
+
+    registrar_auditoria_login(
+        db=db,
+        request=request,
+        usuario_informado=email[:100],
+        sucesso=True,
+        motivo="google_sucesso",
+        usuario_id=usuario.id
+    )
+
+    token = criar_token(
+        usuario.id,
+        usuario.tipo,
+        usuario.session_version or 0
+    )
+
+    destino = (
+        "/home"
+        if usuario.tipo == "professor"
+        else (
+            "/aluno/cadastrar-email"
+            if aluno_sem_email(usuario)
+            else "/aluno"
+        )
+    )
+
+    resposta = JSONResponse(
+        {
+            "mensagem": "Login com Google realizado com sucesso!",
+            "tipo": usuario.tipo,
+            "usuario": usuario.usuario,
+            "redirect": destino
+        }
+    )
+
+    resposta.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+        max_age=60 * 60 * 24,
+        path="/"
+    )
+
     resposta.set_cookie(
         key=CSRF_COOKIE_NAME,
         value=criar_token_csrf(),
