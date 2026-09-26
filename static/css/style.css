@@ -3547,7 +3547,8 @@ body.modal-aberto {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 22px 0 18px;
+    width: min(210px, 100%);
+    margin: 20px auto 16px;
     color: #8A99AD;
     font-size: .72rem;
     font-weight: 700;
@@ -3564,9 +3565,8 @@ body.modal-aberto {
 }
 
 .google-login-area {
-    display: grid;
-    justify-items: center;
-    gap: 9px;
+    width: min(210px, 100%);
+    margin: 0 auto;
 }
 
 .google-signin-button {
@@ -3577,10 +3577,3 @@ body.modal-aberto {
     align-items: center;
 }
 
-.google-login-hint {
-    margin: 0;
-    max-width: 330px;
-    color: #7A8AA2;
-    font-size: .7rem;
-    line-height: 1.45;
-}
