@@ -1,0 +1,49 @@
+/* Planejamento semanal: cartões legíveis no celular e revisão antes do envio. */
+.weekly-planner { min-width: 0; }
+.planner-heading h2 { font-size: 1.3rem; margin: 8px 0; }
+.planner-heading p, .review-hint { color: var(--text-2); line-height: 1.6; }
+.planner-modalities { display: flex; gap: 8px; margin: 24px 0; }
+.planner-modality { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; min-height: 48px; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: #F5F8FF; color: #31527A; font: inherit; font-weight: 700; cursor: pointer; }
+.planner-modality[aria-pressed="true"] { background: #3161CA; color: #fff; border-color: #3161CA; }
+.modality-count { font-size: .75rem; opacity: .85; }
+.planner-panel[hidden] { display: none; }
+.planner-days { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; align-items: start; }
+.planner-day { min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: #fff; }
+.planner-day.has-workout { border-color: #A8C6F8; }
+.day-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
+.day-heading h3 { font-size: 1rem; margin: 0; }
+.day-date { color: #3161CA; background: #EEF5FF; padding: 5px 10px; border-radius: 8px; font-size: .85rem; font-weight: 700; }
+.planner-day label { display: block; font-size: .8rem; color: var(--text-2); margin-bottom: 8px; }
+.planner-day select { width: 100%; min-width: 0; min-height: 48px; font-size: 16px; }
+.day-empty, .planner-empty { color: #687A92; font-size: .88rem; line-height: 1.6; margin: 16px 0 0; }
+.workout-preview { margin-top: 18px; overflow-wrap: anywhere; }
+.preview-label { color: #3161CA; font-size: .65rem; letter-spacing: .08em; font-weight: 800; }
+.workout-preview h4 { font-size: 1rem; margin: 8px 0 10px; line-height: 1.5; }
+.workout-description { white-space: pre-wrap; font-size: .94rem; line-height: 1.75; margin: 0; color: #273D58; }
+.workout-pace { background: #EEF5FF; color: #214E9C; border-radius: 10px; padding: 10px 12px; margin: 14px 0 0; font-size: .85rem; font-weight: 600; }
+.planner-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-top: 1px solid var(--border); padding-top: 22px; margin-top: 24px; }
+.planner-footer p { color: var(--text-2); font-size: .88rem; line-height: 1.5; }
+.planner-footer .btn { flex-shrink: 0; min-height: 48px; }
+.planner-review { width: min(680px,calc(100% - 24px)); max-height: 90dvh; margin: auto; padding: 24px; border: none; border-radius: 20px; color: var(--text); background: #fff; overflow-y: auto; overscroll-behavior: contain; }
+.planner-review::backdrop { background: rgba(15,32,58,.6); }
+.review-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.review-heading h2 { margin: 8px 0 16px; font-size: 1.3rem; }
+.review-close { flex-shrink: 0; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 50%; background: #F5F8FF; cursor: pointer; }
+.review-hint, #resumoRevisao { font-size: .88rem; }
+.review-group { margin-top: 24px; }
+.review-group > h3 { font-size: 1.05rem; color: #3161CA; }
+.review-workout { border: 1px solid var(--border); padding: 16px; border-radius: 12px; margin-top: 12px; }
+.review-day { font-size: .85rem; margin: 0; }
+.review-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.weekly-planner button:focus-visible, .planner-review button:focus-visible { outline: 3px solid #57C0FF; outline-offset: 3px; }
+@media (max-width: 600px) {
+    .planner-days { grid-template-columns: minmax(0,1fr); }
+    .planner-modality { flex-direction: column; gap: 3px; font-size: .8rem; padding: 10px 5px; }
+    .planner-modalities { gap: 6px; }
+    .planner-day { padding: 16px; }
+    .planner-footer, .review-actions { flex-direction: column; align-items: stretch; }
+    .planner-footer .btn, .review-actions .btn { width: 100%; }
+    .planner-review { padding: 18px; }
+    .planning-header-card > * { min-width: 0; }
+    .planning-header-card input { min-width: 0; max-width: 100%; }
+}

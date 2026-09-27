@@ -9,6 +9,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
 <link rel="stylesheet" href="/static/css/style.css?v=20260925-avatarfix1">    <script src="/static/js/security.js?v=20260922-security1"></script>
+<link rel="stylesheet" href="/static/css/planejamento-semanal.css?v=20260927-1">
 </head><body class="app-body"><div class="app-shell"><aside class="app-sidebar professor-sidebar">
         <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
             <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
@@ -30,222 +31,21 @@
             <span class="top-avatar">P</span>
             <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/></svg></button>
         </div>
-    </header><main class="app-content"><section class="form-page-heading"><a href="/home" class="back-link">← Voltar</a><span class="eyebrow">PLANEJAMENTO</span><h1>Planejamento semanal</h1><p>Escolha um treino para cada dia. O sistema envia automaticamente aos alunos da mesma modalidade.</p></section>
+    </header><main class="app-content"><section class="form-page-heading"><a href="/home" class="back-link">← Voltar</a><span class="eyebrow">PLANEJAMENTO</span><h1>Planejamento semanal</h1><p>Monte a semana, confira o conteúdo de cada treino e revise antes de enviar aos alunos.</p></section>
 <section class="dashboard-card planning-header-card"><div class="planning-date"><label for="dataSegunda">Segunda-feira da semana</label><input type="date" id="dataSegunda"></div><div class="hint"><strong>Segunda a sexta</strong><span>Corrida vai para alunos de Corrida; Natação para Natação e assim por diante.</span></div><button id="btnDuplicar" class="btn btn-secondary" type="button" onclick="duplicarSemanaAnterior()">Duplicar semana anterior</button></section>
-<section class="dashboard-card"><div class="week-table-wrap"><table class="week-table"><thead><tr><th>Modalidade</th><th>SEG<br><small id="data-0">-</small></th><th>TER<br><small id="data-1">-</small></th><th>QUA<br><small id="data-2">-</small></th><th>QUI<br><small id="data-3">-</small></th><th>SEX<br><small id="data-4">-</small></th></tr></thead><tbody id="corpoTabela"></tbody></table></div><div class="form-actions planning-actions"><a class="btn btn-secondary" href="/home">Cancelar</a><button id="btnEnviar" class="btn btn-primary" onclick="enviarPlanejamento()">Enviar planejamento semanal →</button></div><div id="mensagem" class="message"></div></section></main></div></div><script>async function sair(event){if(event)event.preventDefault();await fetch('/api/logout',{method:'POST'});window.location.href='/login';}</script><script>
-const modalidades = ["Corrida", "Natação", "Musculação"];
-const dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
-let treinosBase = [];
-
-function normalizarTexto(texto) {
-    return String(texto || "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim();
-}
-
-function idModalidade(modalidade) {
-    return normalizarTexto(modalidade).replace(/\s+/g, "-");
-}
-
-function montarTabela() {
-    const corpo = document.getElementById("corpoTabela");
-    corpo.innerHTML = "";
-
-    modalidades.forEach((modalidade) => {
-        const tr = document.createElement("tr");
-        const tdModalidade = document.createElement("td");
-        tdModalidade.className = "modalidade-cell";
-        tdModalidade.innerHTML = `<span class="modalidade-icon">${modalidade === "Corrida" ? "🏃" : modalidade === "Natação" ? "🏊" : "🏋️"}</span>${modalidade}`;
-        tr.appendChild(tdModalidade);
-
-        for (let dia = 0; dia < 5; dia++) {
-            const td = document.createElement("td");
-            const select = document.createElement("select");
-            select.className = "select-treino";
-            select.id = `${idModalidade(modalidade)}-${dia}`;
-
-            const vazio = document.createElement("option");
-            vazio.value = "";
-            vazio.textContent = "Nenhum treino";
-            select.appendChild(vazio);
-
-            treinosBase
-                .filter(t => normalizarTexto(t.modalidade) === normalizarTexto(modalidade))
-                .forEach(treino => {
-                    const option = document.createElement("option");
-                    option.value = treino.id;
-                    option.textContent = treino.titulo;
-                    select.appendChild(option);
-                });
-
-            td.appendChild(select);
-            tr.appendChild(td);
-        }
-        corpo.appendChild(tr);
-    });
-}
-
-async function carregarTreinos() {
-    try {
-        const resposta = await fetch("/api/treinos-base");
-        if (resposta.status === 401 || resposta.status === 403) {
-            window.location.href = "/login";
-            return;
-        }
-        if (!resposta.ok) throw new Error("Não foi possível carregar os treinos base.");
-        treinosBase = await resposta.json();
-        montarTabela();
-    } catch (erro) {
-        console.error(erro);
-        mostrarMensagem("Erro ao carregar os treinos base.", true);
-    }
-}
-
-function formatarDatas() {
-    const input = document.getElementById("dataSegunda");
-    if (!input.value) return;
-
-    const [ano, mes, dia] = input.value.split("-").map(Number);
-    const segunda = new Date(ano, mes - 1, dia);
-
-    for (let i = 0; i < 5; i++) {
-        const data = new Date(segunda);
-        data.setDate(segunda.getDate() + i);
-        document.getElementById(`data-${i}`).textContent =
-            `${String(data.getDate()).padStart(2,"0")}/${String(data.getMonth()+1).padStart(2,"0")}`;
-    }
-}
-
-function obterSegunda(valor) {
-    const [ano, mes, dia] = valor.split("-").map(Number);
-    const data = new Date(ano, mes - 1, dia);
-    const diaSemana = data.getDay();
-    const voltar = diaSemana === 0 ? 6 : diaSemana - 1;
-    data.setDate(data.getDate() - voltar);
-    return `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,"0")}-${String(data.getDate()).padStart(2,"0")}`;
-}
-
-function definirSegundaAtual() {
-    const input = document.getElementById("dataSegunda");
-    if (!input.value) {
-        const hoje = new Date();
-        input.value = obterSegunda(`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}-${String(hoje.getDate()).padStart(2,"0")}`);
-    }
-    formatarDatas();
-}
-
-document.getElementById("dataSegunda").addEventListener("change", () => {
-    const input = document.getElementById("dataSegunda");
-    if (input.value) {
-        const corrigida = obterSegunda(input.value);
-        if (input.value !== corrigida) {
-            input.value = corrigida;
-            mostrarMensagem("A data foi ajustada para a segunda-feira da semana selecionada.", false);
-        }
-    }
-    formatarDatas();
-});
-
-async function duplicarSemanaAnterior() {
-    const dataSegunda = document.getElementById("dataSegunda").value;
-    if (!dataSegunda) {
-        mostrarMensagem("Selecione primeiro a semana de destino.", true);
-        return;
-    }
-
-    const [ano, mes, dia] = dataSegunda.split("-").map(Number);
-    const destino = new Date(ano, mes - 1, dia);
-    const origem = new Date(destino);
-    origem.setDate(origem.getDate() - 7);
-    const origemTexto = `${origem.getFullYear()}-${String(origem.getMonth()+1).padStart(2,"0")}-${String(origem.getDate()).padStart(2,"0")}`;
-
-    if (!confirm(`Duplicar os treinos da semana ${origemTexto} para ${dataSegunda}?`)) return;
-
-    const botao = document.getElementById("btnDuplicar");
-    try {
-        botao.disabled = true;
-        botao.textContent = "Duplicando...";
-        const resposta = await fetch("/api/treinos/semana/duplicar", {
-            method: "POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({origem_segunda: origemTexto, destino_segunda: dataSegunda})
-        });
-        const resultado = await resposta.json().catch(() => ({}));
-        if (!resposta.ok) throw new Error(resultado.detail || "Não foi possível duplicar a semana.");
-        mostrarMensagem(`${resultado.mensagem} ${resultado.total_enviados} treinos enviados.`, false);
-    } catch (erro) {
-        mostrarMensagem(erro.message || "Erro ao duplicar semana.", true);
-    } finally {
-        botao.disabled = false;
-        botao.textContent = "Duplicar semana anterior";
-    }
-}
-
-async function enviarPlanejamento() {
-    const mensagem = document.getElementById("mensagem");
-    const botao = document.getElementById("btnEnviar");
-    const dataSegunda = document.getElementById("dataSegunda").value;
-
-    mensagem.textContent = "";
-    mensagem.className = "message";
-
-    if (!dataSegunda) {
-        mostrarMensagem("Selecione a segunda-feira da semana.", true);
-        return;
-    }
-
-    const dados = [];
-    for (let dia = 0; dia < 5; dia++) {
-        modalidades.forEach(modalidade => {
-            const select = document.getElementById(`${idModalidade(modalidade)}-${dia}`);
-            if (select && select.value) {
-                dados.push({ dia, treino_base_id: Number(select.value) });
-            }
-        });
-    }
-
-    if (!dados.length) {
-        mostrarMensagem("Selecione pelo menos um treino.", true);
-        return;
-    }
-
-    try {
-        botao.disabled = true;
-        botao.textContent = "Enviando...";
-
-        const resposta = await fetch(`/api/treinos/semana?data_segunda=${encodeURIComponent(dataSegunda)}`, {
-            method: "POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify(dados)
-        });
-
-        const resultado = await resposta.json().catch(() => ({}));
-        if (!resposta.ok) {
-            throw new Error(resultado.detail || "Erro ao enviar planejamento.");
-        }
-
-        mostrarMensagem(`${resultado.mensagem || "Planejamento enviado com sucesso!"} ${resultado.total_enviados || 0} treinos enviados.`, false);
-    } catch (erro) {
-        console.error(erro);
-        mostrarMensagem(erro.message || "Erro ao enviar planejamento.", true);
-    } finally {
-        botao.disabled = false;
-        botao.textContent = "Enviar planejamento semanal";
-    }
-}
-
-function mostrarMensagem(texto, erro = false) {
-    const elemento = document.getElementById("mensagem");
-    elemento.textContent = texto;
-    elemento.className = `message ${erro ? "error" : "success"}`;
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    carregarTreinos();
-    definirSegundaAtual();
-});
-</script>
+<section class="dashboard-card weekly-planner">
+    <div class="planner-heading"><div><span class="eyebrow">MONTE A SEMANA</span><h2>O que os alunos vão treinar?</h2></div><p>Escolha a modalidade e confira o treino de cada dia.</p></div>
+    <div id="modalidadesPlanner" class="planner-modalities" role="group" aria-label="Escolha a modalidade"></div>
+    <div id="corpoTabela"></div>
+    <div class="planner-footer"><p id="resumoSelecao" role="status">Carregando treinos...</p><button id="btnEnviar" class="btn btn-primary" type="button" onclick="revisarPlanejamento()" disabled>Revisar e enviar →</button></div>
+    <div id="mensagem" class="message" role="status"></div>
+</section>
+<dialog id="revisaoSemana" class="planner-review" aria-labelledby="tituloRevisao">
+    <div class="review-heading"><div><span class="eyebrow">CONFIRA ANTES DE ENVIAR</span><h2 id="tituloRevisao">Revisão da semana</h2></div><button class="review-close" type="button" onclick="document.getElementById('revisaoSemana').close()" aria-label="Fechar revisão">✕</button></div>
+    <p id="resumoRevisao"></p><p class="review-hint">Cada treino será enviado aos alunos da respectiva modalidade. Dias sem seleção não serão enviados.</p>
+    <div id="conteudoRevisao"></div>
+    <div class="review-actions"><button class="btn btn-secondary" type="button" onclick="document.getElementById('revisaoSemana').close()">Voltar e editar</button><button id="btnConfirmarEnvio" class="btn btn-primary" type="button" onclick="enviarPlanejamento()">Confirmar envio</button></div>
+</dialog>
+</main></div></div><script>async function sair(event){if(event)event.preventDefault();await fetch('/api/logout',{method:'POST'});window.location.href='/login';}</script><script src="/static/js/planejamento-semanal.js?v=20260927-1"></script>
 <script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
 </body></html>
