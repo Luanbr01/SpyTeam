@@ -1,0 +1,73 @@
+/* Navegação exclusiva do professor; mantém a barra lateral no desktop. */
+.professor-menu-toggle { display: none; }
+.professor-navigation { position: relative; z-index: 1; }
+@media (max-width: 780px) {
+    .professor-sidebar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0 12px;
+        min-height: auto;
+        padding: 12px 16px;
+    }
+    .professor-sidebar .sidebar-brand {
+        min-height: 44px;
+        padding: 0;
+        margin: 0;
+        border: 0;
+    }
+    .professor-sidebar .sidebar-logo { width: 120px; max-height: 48px; }
+    .professor-menu-toggle:not([hidden]) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+        margin: 0;
+        padding: 10px 14px;
+        width: auto;
+        border: 1px solid rgba(255,255,255,.45);
+        border-radius: 12px;
+        background: rgba(255,255,255,.12);
+        color: #fff;
+        font: inherit;
+        font-size: .875rem;
+        font-weight: 700;
+        cursor: pointer;
+        position: relative;
+        z-index: 1;
+    }
+    .professor-menu-toggle svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+    .professor-sidebar .professor-navigation { grid-column: 1 / -1; min-width: 0; }
+    .professor-sidebar.menu-ready .professor-navigation { display: none; }
+    .professor-sidebar.menu-ready.menu-open .professor-navigation { display: block; }
+    .professor-navigation .app-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255,255,255,.18);
+    }
+    .professor-navigation .app-nav-item {
+        justify-content: flex-start;
+        min-width: 0;
+        min-height: 48px;
+        padding: 10px;
+        font-size: .8rem;
+        line-height: 1.35;
+        gap: 8px;
+        background: rgba(255,255,255,.07);
+        overflow-wrap: anywhere;
+    }
+    .professor-navigation .app-nav-icon { display: grid; }
+    .professor-menu-toggle:focus-visible,
+    .professor-navigation a:focus-visible { outline: 3px solid #57C0FF; outline-offset: 2px; }
+}
