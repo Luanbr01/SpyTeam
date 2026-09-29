@@ -11,3 +11,7 @@ python-multipart==0.0.32
 alembic>=1.13,<2
 
 google-auth[requests]>=2.35,<3
+
+# Integração Strava: transporte HTTP e criptografia dos tokens
+requests>=2.32,<3
+cryptography>=43

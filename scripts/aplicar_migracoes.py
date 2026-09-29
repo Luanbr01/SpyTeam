@@ -44,7 +44,8 @@ def _validar_schema_existente() -> None:
     """Garante que é seguro marcar um banco pré-Alembic como baseline."""
     inspetor = inspect(engine)
     tabelas_existentes = set(inspetor.get_table_names())
-    tabelas_esperadas = set(Base.metadata.tables.keys())
+    # Tabelas posteriores à baseline são criadas pelas revisões seguintes.
+    tabelas_esperadas = set(Base.metadata.tables.keys()) - {"strava_conexoes"}
 
     faltando = sorted(tabelas_esperadas - tabelas_existentes)
     if faltando:
@@ -55,6 +56,8 @@ def _validar_schema_existente() -> None:
 
     problemas: list[str] = []
     for nome_tabela, tabela in Base.metadata.tables.items():
+        if nome_tabela not in tabelas_esperadas:
+            continue
         colunas_existentes = {
             col["name"] for col in inspetor.get_columns(nome_tabela)
         }

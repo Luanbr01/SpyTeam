@@ -430,7 +430,8 @@ async def proteger_csrf(request: Request, call_next):
         "POST", "PUT", "PATCH", "DELETE"
     }
 
-    if metodo_mutavel and request.url.path.startswith("/api/"):
+    if (metodo_mutavel and request.url.path.startswith("/api/")
+            and request.url.path != "/api/strava/webhook"):
         token_header = request.headers.get(CSRF_HEADER_NAME)
 
         if not validar_token_csrf(token_cookie, token_header):
@@ -3657,6 +3658,12 @@ def excluir_aluno(
     # REMOVER A CONTA DE LOGIN DO ALUNO
     # --------------------------------------------------------
 
+    # Remove credenciais privadas também em SQLite sem FK habilitada.
+    ids_usuarios = db.query(models.Usuario.id).filter(models.Usuario.aluno_id == aluno_id)
+    db.query(models.StravaConexao).filter(
+        models.StravaConexao.usuario_id.in_(ids_usuarios)
+    ).delete(synchronize_session=False)
+
     db.query(models.Usuario).filter(
         models.Usuario.aluno_id == aluno_id
     ).delete(
@@ -5408,3 +5415,8 @@ def concluir_treino(
         "treino": treino
     }
 
+
+
+# Integração Strava: usa as mesmas dependências de sessão/aluno.
+from .strava import build_router as build_strava_router
+app.include_router(build_strava_router(require_aluno, get_db))

@@ -3311,3 +3311,8 @@ PUSH_REMINDER_POLL_SECONDS=60
 
 Valores menores que 30 segundos são limitados automaticamente a 30 segundos.
 
+
+
+## Integração Strava
+
+O perfil do aluno permite conectar uma conta Strava, consultar manualmente as 30 atividades recentes autorizadas e desconectar. Os dados ficam disponíveis apenas ao próprio aluno e não são usados para concluir treinos automaticamente. A configuração OAuth, migração e webhook estão em [STRAVA.md](STRAVA.md).

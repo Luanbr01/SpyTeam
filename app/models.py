@@ -781,3 +781,18 @@ class NotificacaoTreinoEnviada(Base):
         index=True
     )
 
+
+
+class StravaConexao(Base):
+    """Credenciais privadas; nunca serializar este modelo para o navegador."""
+    __tablename__ = "strava_conexoes"
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), primary_key=True)
+    atleta_id = Column(String(32), unique=True, nullable=True)
+    access_token = Column(String, nullable=True)
+    refresh_token = Column(String, nullable=True)
+    expires_at = Column(Integer, nullable=False, default=0)
+    scopes = Column(String, nullable=False, default="")
+    state_hash = Column(String(64), nullable=True)
+    session_hash = Column(String(64), nullable=True)
+    state_expires = Column(Integer, nullable=False, default=0)
+    last_sync = Column(Integer, nullable=False, default=0)

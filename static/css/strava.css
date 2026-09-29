@@ -1,0 +1,12 @@
+.strava-card { grid-column: 1 / -1; min-width: 0; }
+.strava-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.strava-actions [hidden] { display: none !important; }
+.strava-connect { background: #FC4C02; border-color: #FC4C02; color: white; }
+.strava-connect:hover { background: #cf3e00; color: white; }
+.strava-hint, .strava-attribution { font-size: .8rem; color: #53657b; line-height: 1.6; }
+.strava-activities { display: grid; gap: 12px; margin-top: 16px; }
+.strava-activity { border: 1px solid #dce5f2; border-radius: 12px; padding: 16px; min-width: 0; }
+.strava-activity h3 { font-size: 1rem; margin: 0 0 8px; overflow-wrap: anywhere; }
+.strava-activity p { margin: 4px 0; font-size: .875rem; }
+.strava-activity a { display: inline-block; margin-top: 8px; color: #b63800; font-weight: 700; }
+@media (max-width: 600px) { .strava-actions .btn { width: 100%; min-height: 44px; } }
