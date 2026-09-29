@@ -1,0 +1,5 @@
+/* Cinco destinos no menu do aluno. O desktop mantém o layout atual. */
+@media (max-width: 780px) {
+    .student-sidebar .app-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .student-sidebar .app-nav-item { min-height: 44px; padding: 8px 4px; text-align: center; line-height: 1.3; }
+}

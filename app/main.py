@@ -1220,6 +1220,16 @@ def aluno_historico(
 # PERFIL DO ALUNO
 # ============================================================
 
+@app.get("/aluno/strava")
+def aluno_strava(request: Request, usuario: models.Usuario = Depends(require_aluno)):
+    if aluno_sem_email(usuario):
+        return RedirectResponse("/aluno/cadastrar-email", status_code=303)
+    return templates.TemplateResponse(
+        request=request, name="Aluno/strava.html",
+        headers={"Cache-Control": "no-store"}
+    )
+
+
 @app.get("/aluno/perfil")
 def aluno_perfil(
     request: Request,

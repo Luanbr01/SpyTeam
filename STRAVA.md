@@ -1,8 +1,8 @@
 # Strava no SpyTeam
 
-Esta versão adiciona a conexão OAuth à área do aluno. Cada aluno autoriza sua própria conta. No Meu perfil, o aluno pode conectar, atualizar suas 30 atividades mais recentes e desconectar. Não muda os treinos planejados, não conclui treinos automaticamente e não mostra dados do Strava ao professor.
+Esta versão adiciona a conexão OAuth à área do aluno. Cada aluno autoriza sua própria conta. Na opção Strava do menu do aluno (/aluno/strava), ele pode conectar, consultar suas 30 atividades mais recentes e desconectar. O perfil mantém um atalho para essa tela. Não muda os treinos planejados, não conclui treinos automaticamente e não mostra dados do Strava ao professor.
 
-A consulta é manual, pelo botão Atualizar atividades, com intervalo mínimo de 30 segundos. A lista traz nome, modalidade, data, distância, duração e link para o Strava. Não importa todo o histórico. Não guarda atividades no banco nem no armazenamento do navegador; consulta diretamente a API. Uma página já aberta mostra a última consulta até a próxima atualização.
+A tela consulta as atividades ao abrir e também pelo botão Atualizar atividades, respeitando o intervalo mínimo de 30 segundos. Se houve uma consulta há pouco, aguarda o intervalo automaticamente. A lista traz nome, modalidade, data, distância, pace e tempo em movimento. O botão Ver detalhes abre tempo total, ganho de elevação, velocidade e mapa do percurso quando disponível, sem sair do SpyTeam. Não importa todo o histórico. Não guarda atividades no banco nem no armazenamento do navegador; consulta diretamente a API. Uma página já aberta mostra a última consulta até a próxima atualização.
 
 ## Aplicar os arquivos
 
@@ -45,10 +45,10 @@ Apenas esse endpoint público é dispensado do CSRF; as ações do aluno continu
 ## Testar a integração real
 
 1. Entre no SpyTeam com uma conta de ALUNO destinada ao seu teste.
-2. Abra Meu perfil > Suas atividades do Strava > Conectar com Strava.
+2. Abra Strava no menu do aluno > Conectar com Strava.
 3. Autorize usando sua conta Strava de desenvolvedor enquanto sua aplicação estiver limitada ao próprio atleta. Seu perfil de professor não recebe acesso aos dados dos alunos.
 4. Mantenha a permissão de leitura de atividades marcada. Esta versão não solicita atividades “Somente você” nem permissão de escrita.
-5. Ao retornar ao perfil, toque em Atualizar atividades. A API pode retornar menos de 30 itens ou nenhum, conforme as permissões e atividades existentes.
+5. Ao retornar à página Strava, aguarde o carregamento das atividades. O botão Atualizar atividades permite consultar novamente depois do intervalo. A API pode retornar menos de 30 itens ou nenhum, conforme as permissões e atividades existentes.
 6. Teste a desconexão pelo SpyTeam e também a revogação pelo Strava > Configurações > Meus aplicativos.
 7. Antes de liberar outros alunos, confira a capacidade de atletas no painel do Strava e solicite a ampliação necessária.
 
@@ -73,7 +73,7 @@ A autorização pertence a cada conta individual. Não copie o token pessoal do 
 
 Testes automatizados com banco SQLite temporário e API Strava simulada: sessão/CSRF, bloqueio de professor, state inválido/expirado/repetido, permissão insuficiente, tokens criptografados, separação entre alunos, vínculo duplicado, limite de atualização, persistência de refresh rotacionado após falha, desconexão, verificação/revogação de webhook e renderização do perfil.
 
-Testes de migração: banco vazio, reaplicação e evolução de schema existente. A conexão real com o Strava, o Railway e a concorrência no PostgreSQL precisam ser validados no ambiente de implantação; não foram acessadas contas reais durante a preparação.
+Testes de migração: banco vazio, reaplicação e evolução de schema existente. A integração anterior já foi confirmada pelo usuário. Nesta atualização, não foram acessadas contas reais: as verificações locais usam dados simulados. A nova tela foi verificada em Chromium nos tamanhos 320, 390, 768 e 1440 px, incluindo filtros, detalhes, mapa, estados vazio/erro/desconectado e falha no mapa de fundo. Concorrência no PostgreSQL não foi simulada.
 
 Para repetir testes LOCALMENTE, instale as dependências do projeto e httpx; na raiz do projeto execute:
 
@@ -85,3 +85,28 @@ python -m unittest discover -s tests -p test_strava.py -v
 - https://developers.strava.com/docs/reference/
 - https://developers.strava.com/docs/webhooks/
 - https://www.strava.com/legal/api
+
+
+## Atualização da tela de atividades — 29/09/2026
+
+Esta atualização pressupõe a integração Strava já instalada e configurada. Não exige variáveis novas, cadastro de webhook novamente, nova permissão OAuth ou nova migração. Copie todos os arquivos do pacote por cima da versão integrada e publique normalmente.
+
+- Menu do aluno: opção Strava e cinco destinos ajustados ao celular. Menu do professor não é modificado.
+- Página /aluno/strava: cards, filtro por modalidade, consulta ao abrir, atualização e desconexão.
+- Detalhes: distância, pace, tempo em movimento, tempo total com pausas, ganho de elevação e velocidade quando disponíveis.
+- Corrida/caminhada: pace em min/km. Natação: min/100 m e distância em metros. Ciclismo: velocidade em km/h. Musculação sem distância: pace não aplicável.
+- Pace = tempo em movimento / distância. Não utiliza ritmo ajustado por inclinação nem estima valores ausentes. O horário local registrado na atividade é preservado.
+- Mapas: Leaflet 1.9.4 incluído localmente, com licença BSD-2-Clause. Os tiles são consultados diretamente do OpenStreetMap, com atribuição visível e somente quando os detalhes são abertos. Não há pré-download de mapas ou cache offline customizado. A infraestrutura de tiles públicos não oferece SLA; para uso em grande escala, avalie um provedor próprio de tiles.
+- O percurso disponibilizado pela API é desenhado localmente no navegador. Sem GPS, percurso ocultado ou polilinha inválida: aparece uma mensagem, sem inventar traçado. A polilinha resumida pode ser menos detalhada que a visualização original do Strava.
+- Em caso de falha da internet/tiles, a tela explica a indisponibilidade do fundo; o traçado já recebido continua visível.
+- Não armazena atividades, GPS ou tokens em localStorage/sessionStorage. Mantém os dados somente em memória durante a exibição. O professor continua sem acesso aos dados importados.
+
+Verificações desta atualização: 10 testes Python passaram e 14 verificações JavaScript de cálculos, unidades, datas e polilinhas passaram. Testes em navegador usaram dados fictícios e tiles indisponíveis de propósito para verificar o fallback.
+
+Para repetir os testes de apresentação com Node.js:
+
+node tests/test_strava_view.cjs
+
+Referências dos mapas:
+- https://leafletjs.com/examples/quick-start/
+- https://operations.osmfoundation.org/policies/tiles/

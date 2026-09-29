@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.webmanifest?v=20260923-pwa1">
+    <meta name="theme-color" content="#3161CA">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SPY TEAM">
+    <link rel="apple-touch-icon" href="/static/img/pwa-192.png?v=20260923-pwa1">
+
+    <title>Strava - SPY TEAM</title>
+    
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
+<link rel="stylesheet" href="/static/css/style.css?v=20260925-avatarfix1">
+    <script src="/static/js/security.js?v=20260922-security1"></script>
+    <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css?v=1.9.4">
+    <link rel="stylesheet" href="/static/css/strava.css?v=20260929-2">
+</head>
+
+<body class="app-body" data-aluno-page="strava">
+<div class="app-shell">
+
+    {% include "componentes/sidebar_aluno.html" %}
+
+    <div class="app-workspace">
+
+        <header class="app-topbar">
+            <div class="app-topbar-copy">
+                <strong>Strava</strong>
+                <span>Suas atividades</span>
+            </div>
+
+            <div class="app-topbar-actions">
+                <span class="top-status-dot" title="Online"></span>
+                <span class="top-avatar" id="topAvatar">A</span>
+                <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M10 17l5-5-5-5"/>
+                        <path d="M15 12H3"/>
+                        <path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-content strava-page">
+            <section class="strava-heading">
+                <div>
+                    <span class="eyebrow">SEU MOVIMENTO</span>
+                    <h1>Suas atividades</h1>
+                    <p>Distância, ritmo e percurso, juntos no SpyTeam.</p>
+                </div>
+                <span id="stravaConnection" class="strava-connection">Verificando conexão</span>
+            </section>
+
+            <section class="dashboard-card strava-connection-card" aria-label="Conexão com Strava">
+                <div class="strava-connection-copy">
+                    <strong>Strava no SpyTeam</strong>
+                    <p id="stravaStatus" role="status" aria-live="polite">Verificando conexão...</p>
+                </div>
+                <div class="strava-actions">
+                    <button id="stravaConnect" class="btn strava-connect" type="button" hidden>Conectar com Strava</button>
+                    <button id="stravaSync" class="btn btn-primary" type="button" hidden>Atualizar atividades</button>
+                    <button id="stravaDisconnect" class="btn btn-secondary" type="button" hidden>Desconectar</button>
+                </div>
+            </section>
+
+            <section class="strava-feed" aria-labelledby="stravaListTitle">
+                <div class="strava-feed-heading">
+                    <div><span class="eyebrow">SEU HISTÓRICO NO STRAVA</span><h2 id="stravaListTitle">Atividades recentes</h2></div>
+                    <div class="strava-filter">
+                        <label for="stravaFilter">Modalidade</label>
+                        <select id="stravaFilter">
+                            <option value="all">Todas</option>
+                            <option value="run">Corrida</option>
+                            <option value="swim">Natação</option>
+                            <option value="strength">Musculação</option>
+                            <option value="other">Outras</option>
+                        </select>
+                    </div>
+                </div>
+                <p id="stravaCount" class="strava-caption"></p>
+                <div id="stravaActivities" class="strava-activities" aria-busy="false">
+                    <div class="strava-empty"><strong>Suas atividades estarão aqui</strong><p>Conecte sua conta para ver os detalhes sem sair do SpyTeam.</p></div>
+                </div>
+                <p class="strava-footnote">Até 30 atividades recentes, visíveis somente para você. Atividades “Somente você” no Strava não são incluídas.</p>
+                <p class="strava-attribution">Powered by Strava</p>
+            </section>
+
+            <dialog id="stravaDetail" class="strava-detail" aria-labelledby="stravaDetailTitle">
+                <div class="strava-detail-head">
+                    <div><span id="stravaDetailSport" class="eyebrow"></span><h2 id="stravaDetailTitle">Atividade</h2><p id="stravaDetailDate"></p></div>
+                    <button id="stravaDetailClose" class="strava-close" type="button" aria-label="Fechar detalhes">×</button>
+                </div>
+                <div class="strava-detail-body">
+                    <div id="stravaDetailMetrics" class="strava-metrics strava-detail-metrics"></div>
+                    <p id="stravaPaceNote" class="strava-caption"></p>
+                    <section class="strava-map-section" aria-labelledby="stravaMapTitle">
+                        <div class="strava-map-heading"><h3 id="stravaMapTitle">Percurso do treino</h3><button id="stravaMapReset" class="strava-text-button" type="button" hidden>Ver percurso inteiro</button></div>
+                        <div id="stravaMap" class="strava-map" role="region" aria-label="Mapa interativo do percurso" hidden></div>
+                        <p id="stravaMapStatus" class="strava-map-status" role="status"></p>
+                    </section>
+                    <p class="strava-caption">O mapa mostra o percurso disponibilizado pelo Strava, respeitando as áreas ocultadas na atividade.</p>
+                    <a id="stravaOriginal" class="strava-original" target="_blank" rel="noopener noreferrer">Ver original no Strava ↗</a>
+                </div>
+            </dialog>
+        </main>
+    </div>
+</div>
+
+
+<script>
+async function sair(event) {
+    if (event) event.preventDefault();
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
+}
+</script>
+<script defer src="/static/js/avatar-global.js?v=20260925-avatarfix1"></script>
+<script defer src="/static/vendor/leaflet/leaflet.js?v=1.9.4"></script>
+<script defer src="/static/js/strava-view.js?v=20260929-2"></script>
+<script defer src="/static/js/strava.js?v=20260929-2"></script>
+
+<script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
+</body>
+</html>

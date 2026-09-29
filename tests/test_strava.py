@@ -159,11 +159,39 @@ class StravaTests(unittest.TestCase):
             with SessionLocal() as db:
                 self.assertIsNone(db.get(StravaConexao, 1))
 
+    def test_activity_metrics_and_map(self):
+        self.link()
+        activity = {'id': 12345678901234, 'name': 'Corrida', 'sport_type': 'Run',
+                    'distance': 5000, 'moving_time': 1500, 'elapsed_time': 1800,
+                    'average_speed': 3.333, 'total_elevation_gain': 35,
+                    'start_date_local': '2026-09-29T06:30:00Z',
+                    'map': {'summary_polyline': '_p~iF~ps|U_ulLnnqC_mqNvxq`@'},
+                    'athlete': {'id': 123}, 'description': 'Não retornar campos não solicitados'}
+        with patch('app.strava.api', return_value=[activity]):
+            r = self.post('sync')
+        self.assertEqual(r.status_code, 200)
+        data = r.json()['activities'][0]
+        self.assertEqual(data['id'], '12345678901234')
+        self.assertEqual(data['distance'], 5000)
+        self.assertEqual(data['elapsed_time'], 1800)
+        self.assertEqual(data['summary_polyline'], activity['map']['summary_polyline'])
+        self.assertNotIn('athlete', data)
+        missing = strava.activity_summary({'id': 1, 'map': None, 'distance': float('nan')})
+        self.assertIsNone(missing['summary_polyline'])
+        self.assertIsNone(missing['distance'])
+        self.assertIsNone(missing['moving_time'])
+
     def test_profile_renders(self):
         r = self.client.get('/aluno/perfil')
         self.assertEqual(r.status_code, 200)
+        self.assertIn('href="/aluno/strava"', r.text)
+        r = self.client.get('/aluno/strava')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.headers['cache-control'], 'no-store')
         self.assertEqual(r.text.count('id="stravaConnect"'), 1)
-        self.assertIn('/static/js/strava.js?', r.text)
+        self.assertIn('/static/js/strava-view.js?', r.text)
+        self.login(3)
+        self.assertEqual(self.client.get('/aluno/strava', follow_redirects=False).status_code, 403)
 
 
 if __name__ == '__main__':

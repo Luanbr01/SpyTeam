@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import os
+import math
 import secrets
 import time
 from urllib.parse import urlencode, urlparse
@@ -140,6 +141,34 @@ def verify_revocation(atleta_id):
             db.rollback()
 
 
+def activity_summary(activity):
+    """Whitelist de dados do próprio atleta; sem tokens, outros atletas ou streams."""
+    def number(key):
+        value = activity.get(key)
+        if value is None or isinstance(value, bool):
+            return None
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            return None
+        return value if math.isfinite(value) and value >= 0 else None
+
+    route = activity.get("map") or {}
+    polyline = route.get("summary_polyline") if isinstance(route, dict) else None
+    if not isinstance(polyline, str) or len(polyline) > 200000:
+        polyline = None
+    return {
+        "id": str(int(activity["id"])), "name": str(activity.get("name") or "Atividade"),
+        "sport_type": activity.get("sport_type") or activity.get("type") or "Workout",
+        "start_date": activity.get("start_date"),
+        "start_date_local": activity.get("start_date_local"),
+        "distance": number("distance"), "moving_time": number("moving_time"),
+        "elapsed_time": number("elapsed_time"), "average_speed": number("average_speed"),
+        "total_elevation_gain": number("total_elevation_gain"),
+        "summary_polyline": polyline,
+    }
+
+
 def build_router(require_aluno, get_db):
     router = APIRouter(prefix="/api/strava", tags=["Strava"])
 
@@ -147,7 +176,8 @@ def build_router(require_aluno, get_db):
     def status(usuario=Depends(require_aluno), db=Depends(get_db)):
         row = db.get(StravaConexao, usuario.id)
         return JSONResponse({"enabled": enabled(), "connected": bool(row and row.atleta_id),
-                             "last_sync": row.last_sync if row else 0},
+                             "last_sync": row.last_sync if row else 0,
+                             "next_sync_in": max(0, 30 - (int(time.time()) - row.last_sync)) if row else 0},
                             headers={"Cache-Control": "no-store"})
 
     @router.post("/connect")
@@ -177,7 +207,7 @@ def build_router(require_aluno, get_db):
     @router.get("/callback")
     def callback(request: Request, usuario=Depends(require_aluno), db=Depends(get_db)):
         def back(result):
-            return RedirectResponse("/aluno/perfil?strava=" + result, status_code=303,
+            return RedirectResponse("/aluno/strava?strava=" + result, status_code=303,
                                     headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
         state = request.query_params.get("state", "")
         # Consumo atômico: evita replay mesmo em múltiplos workers.
@@ -233,7 +263,8 @@ def build_router(require_aluno, get_db):
             raise HTTPException(409, "Conecte sua conta Strava primeiro.")
         now = int(time.time())
         if row.last_sync and now - row.last_sync < 30:
-            raise HTTPException(429, "Aguarde 30 segundos entre atualizações.")
+            raise HTTPException(429, "Aguarde alguns segundos entre atualizações.",
+                                headers={"Retry-After": str(30 - (now - row.last_sync))})
         try:
             token = access_token(row, db)
             try:
@@ -247,10 +278,7 @@ def build_router(require_aluno, get_db):
                            params={"page": 1, "per_page": 30})
             if not isinstance(data, list):
                 raise StravaError(502)
-            activities = [{"id": str(int(a["id"])), "name": str(a.get("name", "Atividade")),
-                           "sport_type": a.get("sport_type", a.get("type", "")),
-                           "start_date": a.get("start_date"), "distance": a.get("distance", 0),
-                           "moving_time": a.get("moving_time", 0)} for a in data]
+            activities = [activity_summary(a) for a in data]
             row.last_sync = now
             db.commit()
             return JSONResponse({"activities": activities, "synced_at": now},

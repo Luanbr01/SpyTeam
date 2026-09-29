@@ -1,0 +1,17 @@
+const assert = require('node:assert/strict');
+const V = require('../static/js/strava-view.js');
+assert.equal(V.rhythm({sport_type:'Run', distance:5000, moving_time:1500}).value,'5:00 min/km');
+assert.equal(V.rhythm({sport_type:'Swim', distance:1500, moving_time:1800}).value,'2:00 min/100 m');
+assert.equal(V.rhythm({sport_type:'Run', distance:1000, moving_time:299.8}).value,'5:00 min/km');
+assert.equal(V.rhythm({sport_type:'Run', distance:0, moving_time:600}).value,'—');
+assert.equal(V.rhythm({sport_type:'WeightTraining', distance:0, moving_time:3600}).value,'—');
+assert.equal(V.rhythm({sport_type:'Ride', distance:20000, moving_time:3600}).value,'20 km/h');
+assert.equal(V.duration(3661),'1h 01min 01s');
+assert.equal(V.duration(null),'—');
+assert.equal(V.distance({sport_type:'Swim',distance:500}),'500 m');
+assert.equal(V.date({start_date_local:'2026-09-29T06:30:00Z'}),'29/09/2026 às 06:30');
+assert.deepEqual(V.decodePolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@'),[[38.5,-120.2],[40.7,-120.95],[43.252,-126.453]]);
+assert.deepEqual(V.decodePolyline('_p~iF~'),[]);
+assert.deepEqual(V.decodePolyline(null),[]);
+assert.deepEqual(V.decodePolyline('<script>'),[]);
+console.log('14 verificações de pace, unidades, horários e percurso passaram.');

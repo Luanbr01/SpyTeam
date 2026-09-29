@@ -3315,4 +3315,4 @@ Valores menores que 30 segundos são limitados automaticamente a 30 segundos.
 
 ## Integração Strava
 
-O perfil do aluno permite conectar uma conta Strava, consultar manualmente as 30 atividades recentes autorizadas e desconectar. Os dados ficam disponíveis apenas ao próprio aluno e não são usados para concluir treinos automaticamente. A configuração OAuth, migração e webhook estão em [STRAVA.md](STRAVA.md).
+A opção Strava no menu do aluno abre uma tela própria com até 30 atividades recentes, filtros, distância, pace, tempo e mapa do percurso quando disponível. O aluno pode conectar, atualizar e desconectar sua conta; o perfil mantém um atalho. A tela consulta as atividades ao abrir e permite atualizar novamente após o intervalo de 30 segundos. Os dados ficam disponíveis apenas ao próprio aluno e não são usados para concluir treinos automaticamente. A configuração OAuth, migração e webhook estão em [STRAVA.md](STRAVA.md).

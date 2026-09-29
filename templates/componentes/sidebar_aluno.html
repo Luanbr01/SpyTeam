@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="/static/css/student-navigation.css?v=20260929-2">
 <aside class="app-sidebar student-sidebar">
 
     <a class="sidebar-brand" href="/aluno" aria-label="SPY TEAM - Área do aluno">
@@ -42,6 +43,15 @@
                 </svg>
             </span>
             <span>Histórico</span>
+        </a>
+
+        <a class="app-nav-item {% if request.url.path == '/aluno/strava' %}active{% endif %}" href="/aluno/strava">
+            <span class="app-nav-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 17l5-10 5 10M5 13h6M13 11l4 8 4-8"/>
+                </svg>
+            </span>
+            <span>Strava</span>
         </a>
 
         <span class="app-nav-section">CONTA</span>

@@ -16,7 +16,6 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
 <link rel="stylesheet" href="/static/css/style.css?v=20260925-avatarfix1">
     <script src="/static/js/security.js?v=20260922-security1"></script>
-    <link rel="stylesheet" href="/static/css/strava.css?v=20260929-1">
 </head>
 
 <body class="app-body" data-aluno-page="perfil">
@@ -185,23 +184,15 @@
                     </article>
                 </section>
 
-                <article class="dashboard-card strava-card" aria-labelledby="stravaTitle">
+                <article class="dashboard-card pwa-device-card">
                     <div class="section-heading-row">
                         <div>
                             <span class="eyebrow">INTEGRAÇÕES</span>
-                            <h2 id="stravaTitle">Suas atividades do Strava</h2>
-                            <p>Consulte suas 30 atividades mais recentes. Elas ficam visíveis somente para você.</p>
+                            <h2>Strava</h2>
+                            <p>Veja suas atividades, pace, distância, tempo e percurso em uma tela dedicada.</p>
                         </div>
                     </div>
-                    <p id="stravaStatus" role="status" aria-live="polite">Verificando conexão...</p>
-                    <div class="strava-actions">
-                        <button id="stravaConnect" class="btn strava-connect" type="button" hidden>Conectar com Strava</button>
-                        <button id="stravaSync" class="btn btn-primary" type="button" hidden>Atualizar atividades</button>
-                        <button id="stravaDisconnect" class="btn btn-secondary" type="button" hidden>Desconectar</button>
-                    </div>
-                    <p class="strava-hint">São consultadas atividades públicas e para seguidores. Atividades “Somente você” não são incluídas. Os treinos planejados no SpyTeam permanecem separados.</p>
-                    <div id="stravaActivities" class="strava-activities"></div>
-                    <p class="strava-attribution">Powered by Strava</p>
+                    <a class="btn btn-primary" href="/aluno/strava">Abrir minhas atividades</a>
                 </article>
 
                 <article class="dashboard-card pwa-device-card">
@@ -433,6 +424,5 @@ async function sair(event) {
 <script src="/static/js/perfil-conta.js?v=20260925-avatarfix1"></script>
 
 <script defer src="/static/js/pwa.js?v=20260923-pwa2"></script>
-<script defer src="/static/js/strava.js?v=20260929-1"></script>
 </body>
 </html>
