@@ -1,0 +1,21 @@
+<section class="provas-calendar-section" aria-labelledby="provasCalendarTitle">
+    <div class="provas-calendar-head">
+        <div><span class="eyebrow">VISÃO MENSAL</span><h2 id="provasCalendarTitle">Calendário{% if modo_provas == 'aluno' %} de provas{% endif %}</h2><p>Toque em um dia para ver os detalhes.</p></div>
+        <div class="provas-month-nav">
+            <button id="mesAnterior" class="btn btn-secondary" type="button" aria-label="Mês anterior">←</button>
+            <label class="provas-month-label"><span class="provas-sr-only">Mês do calendário</span><input type="month" id="mesCalendario" class="calendar-month-input" min="2000-01" max="2100-12" required></label>
+            <button id="mesSeguinte" class="btn btn-secondary" type="button" aria-label="Próximo mês">→</button>
+        </div>
+    </div>
+    <div class="provas-legend"><span><b class="provas-count-race">P</b> Provas</span>{% if modo_provas == 'professor' %}<span><b class="provas-count-workout">T</b> Treinos</span>{% endif %}</div>
+    <div class="dashboard-card calendar-card provas-calendar-card">
+        <div class="calendar-weekdays" aria-hidden="true"><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span></div>
+        <div id="calendarioGrid" class="calendar-month-grid" aria-label="Dias do mês"></div>
+        <p id="calendarioMensagem" class="provas-message" role="status"></p>
+    </div>
+</section>
+<dialog id="provaDiaDialog" class="provas-dialog" aria-labelledby="provaDiaTitulo">
+    <div class="provas-dialog-heading"><div><span class="eyebrow">AGENDA</span><h2 id="provaDiaTitulo">Eventos do dia</h2></div><button type="button" class="provas-close" data-close="provaDiaDialog" aria-label="Fechar detalhes">×</button></div>
+    <div class="provas-dialog-body"><div id="provaDiaLista" class="provas-day-list"></div>
+    {% if modo_provas == 'professor' %}<button id="provaNesteDia" class="btn btn-primary" type="button">Adicionar prova neste dia</button>{% endif %}</div>
+</dialog>

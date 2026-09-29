@@ -796,3 +796,16 @@ class StravaConexao(Base):
     session_hash = Column(String(64), nullable=True)
     state_expires = Column(Integer, nullable=False, default=0)
     last_sync = Column(Integer, nullable=False, default=0)
+
+
+class Prova(Base):
+    """Eventos divulgados pelo professor; inscrição é feita no organizador."""
+    __tablename__ = "provas"
+    id = Column(Integer, primary_key=True)
+    nome = Column(String(160), nullable=False)
+    data = Column(String(10), nullable=False, index=True)
+    modalidade = Column(String(30), nullable=False)
+    opcoes_json = Column(String, nullable=False)
+    link_inscricao = Column(String(2048), nullable=True)
+    criado_em = Column(Integer, nullable=False)
+    atualizado_em = Column(Integer, nullable=False)

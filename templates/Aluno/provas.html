@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.webmanifest?v=20260923-pwa1">
+    <meta name="theme-color" content="#3161CA">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SPY TEAM">
+    <link rel="apple-touch-icon" href="/static/img/pwa-192.png?v=20260923-pwa1">
+
+    <title>Provas - SPY TEAM</title>
+    
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon-spyteam.svg?v=20260920">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
+<link rel="stylesheet" href="/static/css/style.css?v=20260925-avatarfix1">
+    <script src="/static/js/security.js?v=20260922-security1"></script>
+    <link rel="stylesheet" href="/static/css/provas.css?v=20260929-1">
+</head>
+
+<body class="app-body provas-page" data-provas-mode="aluno">
+<div class="app-shell">
+
+    {% include "componentes/sidebar_aluno.html" %}
+
+    <div class="app-workspace">
+
+        <header class="app-topbar">
+            <div class="app-topbar-copy">
+                <strong>Provas</strong>
+                <span>Eventos da equipe</span>
+            </div>
+
+            <div class="app-topbar-actions">
+                <span class="top-status-dot" title="Online"></span>
+                <span class="top-avatar" id="topAvatar">A</span>
+                <button class="top-logout" onclick="sair(event)" title="Sair" aria-label="Sair">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M10 17l5-5-5-5"/>
+                        <path d="M15 12H3"/>
+                        <path d="M13 4h6a2 2 0 012 2v12a2 2 0 01-2 2h-6"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-content">
+            <a class="back-link" href="/aluno#agenda-semana">← Voltar à agenda</a>
+            <section class="dashboard-heading provas-heading"><div><span class="eyebrow">NOVOS DESAFIOS</span><h1>Provas da equipe</h1><p>Escolha seu próximo desafio e confira os detalhes da inscrição.</p></div></section>
+            <section aria-labelledby="provasListTitulo">
+                <div class="provas-list-heading"><h2 id="provasListTitulo">Próximas provas</h2><label class="provas-filter-label">Modalidade<select id="provasFiltro"><option value="">Todas</option><option>Corrida</option><option>Natação</option><option>Musculação</option></select></label></div>
+                <p id="provasMensagem" class="provas-message" role="status"></p>
+                <div id="provasLista" class="provas-list"><p>Carregando provas...</p></div>
+                <p class="provas-hint">A participação é opcional. A inscrição é realizada no site do organizador.</p>
+            </section>
+            {% set modo_provas = 'aluno' %}
+            {% include "componentes/provas_calendario.html" %}
+        </main>
+    </div>
+</div>
+
+
+<script>
+async function sair(event) {
+    if (event) event.preventDefault();
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
+}
+</script>
+<script defer src="/static/js/avatar-global.js?v=20260925-avatarfix1"></script>
+<script defer src="/static/js/provas.js?v=20260929-1"></script>
+
+<script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
+</body>
+</html>

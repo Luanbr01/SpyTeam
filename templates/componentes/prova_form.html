@@ -1,0 +1,20 @@
+<dialog id="provaFormDialog" class="provas-dialog" aria-labelledby="provaFormTitulo">
+    <div class="provas-dialog-heading"><div><span class="eyebrow">CALENDÁRIO DA EQUIPE</span><h2 id="provaFormTitulo">Adicionar prova</h2></div><button type="button" class="provas-close" data-close="provaFormDialog" aria-label="Fechar formulário">×</button></div>
+    <form id="provaForm" class="provas-dialog-body">
+        <div class="form-group"><label for="provaNome">Nome da prova</label><input id="provaNome" name="nome" type="text" minlength="2" maxlength="160" placeholder="Ex.: Corrida da Orla" required></div>
+        <div class="provas-form-row">
+            <div class="form-group"><label for="provaData">Data da prova</label><input id="provaData" name="data" type="date" min="2000-01-01" max="2100-12-31" required></div>
+            <div class="form-group"><label for="provaModalidade">Modalidade</label><select id="provaModalidade" name="modalidade" required><option value="">Selecione</option><option>Corrida</option><option>Natação</option><option>Musculação</option></select></div>
+        </div>
+        <fieldset id="provaOpcoesGrupo" class="provas-options" hidden>
+            <legend>Distâncias ou categorias</legend>
+            <p class="provas-hint">Selecione uma ou mais opções oferecidas nesta prova.</p>
+            <div id="provaOpcoes" class="provas-choice-list"></div>
+            <label for="provaOutra">Outra distância ou categoria</label>
+            <div class="provas-custom-row"><input id="provaOutra" type="text" maxlength="40" placeholder="Ex.: 3 km ou categoria livre"><button id="adicionarOpcao" class="btn btn-secondary" type="button">Adicionar</button></div>
+        </fieldset>
+        <div class="form-group"><label for="provaLink">Link de inscrição <span class="provas-optional">(opcional)</span></label><input id="provaLink" name="link_inscricao" type="url" maxlength="2048" placeholder="https://site-do-organizador.com/inscricao"><small>A inscrição será feita no site do organizador.</small></div>
+        <p id="provaFormMensagem" class="provas-message" role="alert"></p>
+        <div class="provas-form-actions"><button type="button" class="btn btn-secondary" data-close="provaFormDialog">Cancelar</button><button id="salvarProva" type="submit" class="btn btn-primary">Salvar prova</button></div>
+    </form>
+</dialog>

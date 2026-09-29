@@ -5430,3 +5430,15 @@ def concluir_treino(
 # Integração Strava: usa as mesmas dependências de sessão/aluno.
 from .strava import build_router as build_strava_router
 app.include_router(build_strava_router(require_aluno, get_db))
+
+
+from .provas import build_router as build_provas_router
+app.include_router(build_provas_router(get_current_user, require_professor, get_db))
+
+
+@app.get("/aluno/provas")
+def aluno_provas(request: Request, usuario: models.Usuario = Depends(require_aluno)):
+    if aluno_sem_email(usuario):
+        return RedirectResponse("/aluno/cadastrar-email", status_code=303)
+    return templates.TemplateResponse(request=request, name="Aluno/provas.html",
+                                      headers={"Cache-Control": "no-store"})

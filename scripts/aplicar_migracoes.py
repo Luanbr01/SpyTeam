@@ -45,7 +45,7 @@ def _validar_schema_existente() -> None:
     inspetor = inspect(engine)
     tabelas_existentes = set(inspetor.get_table_names())
     # Tabelas posteriores à baseline são criadas pelas revisões seguintes.
-    tabelas_esperadas = set(Base.metadata.tables.keys()) - {"strava_conexoes"}
+    tabelas_esperadas = set(Base.metadata.tables.keys()) - {"strava_conexoes", "provas"}
 
     faltando = sorted(tabelas_esperadas - tabelas_existentes)
     if faltando:
