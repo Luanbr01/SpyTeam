@@ -22,6 +22,29 @@
         href="/static/css/style.css?v=20260925-avatarfix1"
     >
     <script src="/static/js/security.js?v=20260922-security1"></script>
+    <style>
+        .treinos-filtros[hidden] { display: none; }
+        .treinos-filtros { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+        .treinos-filtro { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border: 1px solid #cbdcf7; border-radius: 12px; background: #f4f8ff; color: #234775; font: inherit; font-weight: 600; cursor: pointer; }
+        .treinos-filtro[aria-pressed="true"] { background: #3161CA; border-color: #3161CA; color: white; }
+        .treinos-filtro:focus-visible { outline: 3px solid #57C0FF; outline-offset: 3px; }
+        .treinos-contador { padding: 2px 7px; border-radius: 20px; background: rgba(49,97,202,.1); font-size: .85em; }
+        .treinos-filtro[aria-pressed="true"] .treinos-contador { background: rgba(255,255,255,.2); }
+        .treino-base-card { border: 1px solid #dce6f5; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+        .treino-base-cabecalho { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+        .treino-base-titulo { margin: 0 0 8px; overflow-wrap: anywhere; }
+        .treino-base-modalidade { display: inline-block; background: #edf4ff; color: #3161CA; padding: 5px 10px; border-radius: 8px; font-size: .85rem; font-weight: 600; }
+        .treino-base-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+        .treino-base-descricao { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .treinos-resumo { margin: 14px 0 0; color: #64748b; }
+        @media (max-width: 640px) {
+            .treinos-filtro { flex: 1 1 calc(50% - 10px); padding: 10px; }
+            .treino-base-cabecalho { flex-direction: column; gap: 14px; }
+            .treino-base-acoes { width: 100%; }
+            .treino-base-acoes .btn { flex: 1; padding: 10px; min-height: 44px; }
+            .treino-base-card { padding: 16px; }
+        }
+    </style>
 </head>
 
 <body class="app-body">
@@ -149,6 +172,9 @@
                 ></div>
 
 
+                <div id="filtrosTreinos" class="treinos-filtros" role="group" aria-label="Filtrar treinos por modalidade" hidden></div>
+                <p id="resumoTreinos" class="treinos-resumo" role="status"></p>
+
                 <div
                     id="listaTreinos"
                     style="margin-top: 24px;"
@@ -184,159 +210,76 @@ async function sair(event) {
 }
 
 
-async function carregarTreinos() {
+const modalidadesTreinos = ['Corrida', 'Natação', 'Musculação'];
+let todosTreinos = [];
+let modalidadeSelecionada = 'Todos';
 
-    const lista =
-        document.getElementById(
-            'listaTreinos'
-        );
+function normalizarModalidade(valor) {
+    return String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+}
 
-    try {
+function filtrarTreinos(modalidade) {
+    modalidadeSelecionada = modalidade;
+    renderizarTreinos();
+    [...document.querySelectorAll('.treinos-filtro')].find(botao => botao.getAttribute('aria-pressed') === 'true')?.focus();
+}
 
-        const resposta =
-            await fetch(
-                '/api/treinos-base'
-            );
-
-        const treinos =
-            await resposta.json();
-
-
-        if (!resposta.ok) {
-
-            throw new Error(
-                treinos.detail
-                || 'Erro ao carregar treinos.'
-            );
-        }
-
-
-        if (treinos.length === 0) {
-
-            lista.innerHTML = `
-                <p>
-                    Nenhum treino base cadastrado.
-                </p>
-            `;
-
-            return;
-        }
-
-
-        lista.innerHTML =
-            treinos.map(treino => `
-
-                <div
-                    style="
-                        border: 1px solid #ddd;
-                        border-radius: 12px;
-                        padding: 20px;
-                        margin-bottom: 16px;
-                    "
-                >
-
-                    <div
-                        style="
-                            display: flex;
-                            justify-content: space-between;
-                            gap: 20px;
-                            align-items: flex-start;
-                        "
-                    >
-
-                        <div>
-
-                            <h3
-                                style="
-                                    margin-top: 0;
-                                    margin-bottom: 8px;
-                                "
-                            >
-                                ${escapeHtml(
-                                    treino.titulo
-                                )}
-                            </h3>
-
-                            <strong>
-                                ${escapeHtml(
-                                    treino.modalidade
-                                )}
-                            </strong>
-
-                        </div>
-
-
-                        <div
-                            style="
-                                display: flex;
-                                gap: 8px;
-                            "
-                        >
-
-                            <a
-                                class="btn btn-secondary"
-                                href="/editar-treino-base/${treino.id}"
-                            >
-                                Editar
-                            </a>
-
-                            <button
-                                class="btn btn-secondary"
-                                onclick="copiarTreino(${treino.id})"
-                            >
-                                Copiar
-                            </button>
-
-                            <button
-                                class="btn btn-secondary"
-                                onclick="excluirTreino(${treino.id})"
-                            >
-                                Excluir
-                            </button>
-
-                        </div>
-
-                    </div>
-
-
-                    <p>
-                        ${escapeHtml(
-                            treino.descricao
-                        )}
-                    </p>
-
-
-                    ${
-                        treino.ritmo_alvo
-                        ? `
-                            <small>
-                                <strong>
-                                    Ritmo alvo:
-                                </strong>
-
-                                ${escapeHtml(
-                                    treino.ritmo_alvo
-                                )}
-                            </small>
-                        `
-                        : ''
-                    }
-
-                </div>
-
-            `).join('');
-
+function renderizarTreinos() {
+    const filtros = document.getElementById('filtrosTreinos');
+    filtros.hidden = false;
+    filtros.replaceChildren();
+    for (const modalidade of ['Todos', ...modalidadesTreinos]) {
+        const quantidade = modalidade === 'Todos' ? todosTreinos.length : todosTreinos.filter(t => normalizarModalidade(t.modalidade) === normalizarModalidade(modalidade)).length;
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'treinos-filtro';
+        botao.setAttribute('aria-pressed', String(modalidadeSelecionada === modalidade));
+        botao.addEventListener('click', () => filtrarTreinos(modalidade));
+        botao.append(document.createTextNode(modalidade + ' '));
+        const contador = document.createElement('span');
+        contador.className = 'treinos-contador';
+        contador.textContent = quantidade;
+        botao.append(contador);
+        filtros.append(botao);
     }
-
-    catch (erro) {
-
-        lista.innerHTML = `
-            <div class="message error">
-                ${escapeHtml(
-                    erro.message
-                )}
+    const treinos = modalidadeSelecionada === 'Todos' ? todosTreinos : todosTreinos.filter(t => normalizarModalidade(t.modalidade) === normalizarModalidade(modalidadeSelecionada));
+    document.getElementById('resumoTreinos').textContent = `${treinos.length} ${treinos.length === 1 ? 'treino disponível' : 'treinos disponíveis'}${modalidadeSelecionada === 'Todos' ? '' : ' em ' + modalidadeSelecionada}.`;
+    const lista = document.getElementById('listaTreinos');
+    if (!treinos.length) {
+        lista.innerHTML = `<p>${todosTreinos.length === 0 ? 'Nenhum treino base cadastrado.' : 'Nenhum treino base cadastrado em ' + escapeHtml(modalidadeSelecionada) + '.'}</p>`;
+        return;
+    }
+    lista.innerHTML = treinos.map(treino => `
+        <article class="treino-base-card">
+            <div class="treino-base-cabecalho">
+                <div>
+                    <h3 class="treino-base-titulo">${escapeHtml(treino.titulo)}</h3>
+                    <span class="treino-base-modalidade">${escapeHtml(treino.modalidade)}</span>
+                </div>
+                <div class="treino-base-acoes">
+                    <a class="btn btn-secondary" href="/editar-treino-base/${Number(treino.id)}">Editar</a>
+                    <button type="button" class="btn btn-secondary" onclick="copiarTreino(${Number(treino.id)})">Copiar</button>
+                    <button type="button" class="btn btn-secondary" onclick="excluirTreino(${Number(treino.id)})">Excluir</button>
+                </div>
             </div>
-        `;
+            <p class="treino-base-descricao">${escapeHtml(treino.descricao)}</p>
+            ${treino.ritmo_alvo ? `<small><strong>Ritmo alvo:</strong> ${escapeHtml(treino.ritmo_alvo)}</small>` : ''}
+        </article>
+    `).join('');
+}
+
+async function carregarTreinos() {
+    const lista = document.getElementById('listaTreinos');
+    try {
+        const resposta = await fetch('/api/treinos-base');
+        const treinos = await resposta.json();
+        if (!resposta.ok) throw new Error(treinos.detail || 'Erro ao carregar treinos.');
+        todosTreinos = treinos;
+        renderizarTreinos();
+    } catch (erro) {
+        document.getElementById('filtrosTreinos').hidden = true;
+        document.getElementById('resumoTreinos').textContent = '';
+        lista.innerHTML = `<div class="message error">${escapeHtml(erro.message)}</div>`;
     }
 }
 
