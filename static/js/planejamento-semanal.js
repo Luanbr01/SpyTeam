@@ -1,6 +1,102 @@
 const modalidades = ["Corrida", "Natação", "Musculação"];
 const dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
 let treinosBase = [];
+let rascunhoVersao = 0;
+let semanaAtual = '';
+let alteracoesPendentes = false;
+let operacaoPlanejamento = false;
+let enviandoPlanejamento = false;
+let destinatariosRevisados = {};
+
+async function requisicaoGestao(caminho, opcoes) {
+    const resposta = await fetch('/api/gestao-professor/' + caminho, opcoes);
+    if (resposta.status === 401 || resposta.status === 403) {
+        window.location.href = '/login';
+        throw new Error('Sua sessão expirou. Entre novamente.');
+    }
+    const dados = await resposta.json().catch(() => ({}));
+    if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível completar a operação.');
+    return dados;
+}
+
+function coletarSelecoes() {
+    const itens = [];
+    modalidades.forEach(modalidade => dias.forEach((_, dia) => {
+        const valor = document.getElementById(`${idModalidade(modalidade)}-${dia}`)?.value;
+        if (valor) itens.push({dia, treino_base_id: Number(valor)});
+    }));
+    return itens;
+}
+
+function marcarAlteracao() {
+    alteracoesPendentes = true;
+    document.getElementById('estadoRascunho').textContent = 'Há alterações não salvas. Salve o rascunho para continuar depois.';
+}
+
+function bloquearEditor(bloquear) {
+    operacaoPlanejamento = bloquear;
+    document.querySelectorAll('.select-treino').forEach(s => {
+        const modalidade = modalidades.find(m => s.id.startsWith(idModalidade(m) + '-'));
+        s.disabled = bloquear || !treinosBase.some(t => normalizarTexto(t.modalidade) === normalizarTexto(modalidade));
+    });
+    ['dataSegunda', 'btnSalvarRascunho', 'btnRestaurarRascunho', 'btnDuplicar', 'btnEnviar'].forEach(id => document.getElementById(id).disabled = bloquear);
+    if (!bloquear) atualizarResumo();
+}
+
+function aplicarSelecoes(itens) {
+    let indisponiveis = 0;
+    document.querySelectorAll('.select-treino').forEach(s => { s.value = ''; });
+    for (const item of itens) {
+        const treino = treinosBase.find(t => t.id === item.treino_base_id);
+        const select = treino && document.getElementById(`${idModalidade(treino.modalidade)}-${item.dia}`);
+        if (select && [...select.options].some(o => o.value === String(item.treino_base_id))) select.value = item.treino_base_id;
+        else indisponiveis++;
+    }
+    document.querySelectorAll('.select-treino').forEach(s => s.dispatchEvent(new Event('change')));
+    return indisponiveis;
+}
+
+async function salvarRascunho() {
+    if (operacaoPlanejamento || !semanaAtual) return;
+    if (rascunhoVersao === null) { mostrarMensagem('Carregue o rascunho antes de salvar.', true); return; }
+    bloquearEditor(true);
+    try {
+        const dados = await requisicaoGestao(`rascunho?data_segunda=${semanaAtual}`, {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({itens: coletarSelecoes(), versao: rascunhoVersao})
+        });
+        rascunhoVersao = dados.versao;
+        alteracoesPendentes = false;
+        document.getElementById('estadoRascunho').textContent = dados.mensagem;
+        mostrarMensagem(dados.mensagem);
+    } catch (erro) { mostrarMensagem(erro.message, true); }
+    finally { bloquearEditor(false); }
+}
+
+async function restaurarRascunho(inicial = false) {
+    if (operacaoPlanejamento || !semanaAtual) return;
+    if (!inicial && alteracoesPendentes && !confirm('Carregar o rascunho salvo e substituir as alterações desta tela?')) return;
+    bloquearEditor(true);
+    try {
+        const dados = await requisicaoGestao(`rascunho?data_segunda=${semanaAtual}`);
+        rascunhoVersao = dados.versao;
+        const faltantes = aplicarSelecoes(dados.itens);
+        alteracoesPendentes = Boolean(faltantes);
+        document.getElementById('estadoRascunho').textContent = faltantes
+            ? `${faltantes} treino(s) do rascunho não estão mais disponíveis. Revise e salve novamente.`
+            : dados.versao ? 'Rascunho carregado. Nenhum treino foi enviado.' : 'Esta semana ainda não tem rascunho salvo.';
+    } catch (erro) {
+        // Sem a versão do servidor não é seguro sobrescrever um rascunho.
+        rascunhoVersao = null;
+        document.getElementById('estadoRascunho').textContent = 'Não foi possível carregar o rascunho. Tente novamente.';
+        mostrarMensagem(erro.message, true);
+    } finally { bloquearEditor(false); }
+}
+
+window.addEventListener('beforeunload', event => {
+    if (alteracoesPendentes) { event.preventDefault(); event.returnValue = ''; }
+});
+
 
 function normalizarTexto(texto) {
     return String(texto || "")
@@ -80,7 +176,7 @@ function montarTabela() {
                 card.classList.toggle('has-workout', Boolean(treino));
                 atualizarResumo();
             };
-            select.addEventListener('change', atualizar);
+            select.addEventListener('change', () => { atualizar(); marcarAlteracao(); });
             preview.append(elemento('p', 'day-empty', 'Sem treino para enviar neste dia.'));
             card.append(cabecalho, label, select, preview); grade.append(card);
         }
@@ -89,9 +185,16 @@ function montarTabela() {
     formatarDatas(); atualizarResumo();
 }
 
-function revisarPlanejamento() {
+async function revisarPlanejamento() {
+    if (operacaoPlanejamento) return;
     const data = document.getElementById('dataSegunda').value;
     if (!data) { mostrarMensagem('Selecione a segunda-feira da semana.', true); return; }
+    bloquearEditor(true);
+    try {
+        const contexto = await requisicaoGestao(`semana?data_segunda=${data}`);
+        destinatariosRevisados = contexto.destinatarios;
+    } catch (erro) { mostrarMensagem(erro.message, true); return; }
+    finally { bloquearEditor(false); }
     const conteudo = document.getElementById('conteudoRevisao'); conteudo.replaceChildren();
     let total = 0;
     modalidades.forEach(modalidade => {
@@ -107,10 +210,20 @@ function revisarPlanejamento() {
             const dataDia = document.querySelector(`[data-dia="${i}"]`).textContent;
             card.append(elemento('h4', 'review-day', `${dia}-feira · ${dataDia}`), detalhesTreino(treino)); grupo.append(card);
         });
-        if (quantidade) conteudo.append(grupo);
+        if (quantidade) {
+            const alunos = destinatariosRevisados[modalidade] || [];
+            const detalhes = elemento('details', 'gestao-destinatarios');
+            detalhes.append(elemento('summary', '', `${alunos.length} aluno(s) receberão os ${quantidade} treino(s) de ${modalidade}`));
+            detalhes.append(elemento('p', '', alunos.length ? alunos.map(a => a.nome).join(' • ') : 'Não há alunos cadastrados nesta modalidade. Esses treinos não terão destinatários.'));
+            grupo.prepend(detalhes);
+            conteudo.append(grupo);
+        }
     });
     if (!total) { mostrarMensagem('Selecione pelo menos um treino.', true); return; }
     document.getElementById('resumoRevisao').textContent = `${total} treino(s) · Semana de ${data.split('-').reverse().join('/')}`;
+    const temDestinatarios = modalidades.some(m => (destinatariosRevisados[m] || []).length && coletarSelecoes().some(i => normalizarTexto(treinosBase.find(t => t.id === i.treino_base_id)?.modalidade) === normalizarTexto(m)));
+    document.getElementById('btnConfirmarEnvio').disabled = !temDestinatarios;
+    if (!temDestinatarios) conteudo.prepend(elemento('p', 'message error', 'Nenhum aluno receberia este planejamento. Confira as modalidades dos alunos.'));
     document.getElementById('revisaoSemana').showModal();
 }
 
@@ -124,6 +237,8 @@ async function carregarTreinos() {
         if (!resposta.ok) throw new Error("Não foi possível carregar os treinos base.");
         treinosBase = await resposta.json();
         montarTabela();
+        semanaAtual = document.getElementById('dataSegunda').value;
+        await restaurarRascunho(true);
     } catch (erro) {
         console.error(erro);
         mostrarMensagem("Erro ao carregar os treinos base.", true);
@@ -167,57 +282,42 @@ function definirSegundaAtual() {
     formatarDatas();
 }
 
-document.getElementById("dataSegunda").addEventListener("change", () => {
-    const input = document.getElementById("dataSegunda");
-    if (input.value) {
-        const corrigida = obterSegunda(input.value);
-        if (input.value !== corrigida) {
-            input.value = corrigida;
-            mostrarMensagem("A data foi ajustada para a segunda-feira da semana selecionada.", false);
-        }
+document.getElementById('dataSegunda').addEventListener('change', async () => {
+    const input = document.getElementById('dataSegunda');
+    if (!input.value) { input.value = semanaAtual; return; }
+    if (alteracoesPendentes && !confirm('Trocar de semana? As alterações não salvas desta tela serão descartadas.')) {
+        input.value = semanaAtual; return;
     }
+    input.value = obterSegunda(input.value);
+    semanaAtual = input.value;
+    aplicarSelecoes([]);
+    alteracoesPendentes = false;
     formatarDatas();
+    await restaurarRascunho(true);
 });
 
 async function duplicarSemanaAnterior() {
-    const dataSegunda = document.getElementById("dataSegunda").value;
-    if (!dataSegunda) {
-        mostrarMensagem("Selecione primeiro a semana de destino.", true);
-        return;
-    }
-
-    const [ano, mes, dia] = dataSegunda.split("-").map(Number);
-    const destino = new Date(ano, mes - 1, dia);
-    const origem = new Date(destino);
-    origem.setDate(origem.getDate() - 7);
-    const origemTexto = `${origem.getFullYear()}-${String(origem.getMonth()+1).padStart(2,"0")}-${String(origem.getDate()).padStart(2,"0")}`;
-
-    if (!confirm(`Duplicar os treinos da semana ${origemTexto} para ${dataSegunda}?`)) return;
-
-    const botao = document.getElementById("btnDuplicar");
+    if (operacaoPlanejamento || !semanaAtual) return;
+    if (alteracoesPendentes && !confirm('Substituir a seleção atual pelos treinos da semana anterior?')) return;
+    const [ano, mes, dia] = semanaAtual.split('-').map(Number);
+    const origem = new Date(ano, mes - 1, dia - 7);
+    const data = `${origem.getFullYear()}-${String(origem.getMonth()+1).padStart(2,'0')}-${String(origem.getDate()).padStart(2,'0')}`;
+    bloquearEditor(true);
     try {
-        botao.disabled = true;
-        botao.textContent = "Duplicando...";
-        const resposta = await fetch("/api/treinos/semana/duplicar", {
-            method: "POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({origem_segunda: origemTexto, destino_segunda: dataSegunda})
-        });
-        const resultado = await resposta.json().catch(() => ({}));
-        if (!resposta.ok) throw new Error(resultado.detail || "Não foi possível duplicar a semana.");
-        mostrarMensagem(`${resultado.mensagem} ${resultado.total_enviados} treinos enviados.`, false);
-    } catch (erro) {
-        mostrarMensagem(erro.message || "Erro ao duplicar semana.", true);
-    } finally {
-        botao.disabled = false;
-        botao.textContent = "Duplicar semana anterior";
-    }
+        const dados = await requisicaoGestao(`planejamento?data_segunda=${data}`);
+        if (dados.conflitos.length) throw new Error('A semana anterior possui mais de um treino no mesmo dia e modalidade. Monte a seleção manualmente para escolher quais reutilizar.');
+        if (!dados.itens.length) throw new Error('A semana anterior não tem treinos disponíveis para reutilizar.');
+        const faltantes = aplicarSelecoes(dados.itens);
+        marcarAlteracao();
+        mostrarMensagem(`Semana anterior carregada no editor. ${faltantes ? faltantes + ' treino(s) não estão mais disponíveis. ' : ''}Confira e use Revisar e enviar para enviar aos alunos.`);
+    } catch (erro) { mostrarMensagem(erro.message, true); }
+    finally { bloquearEditor(false); }
 }
 
 async function enviarPlanejamento() {
     const mensagem = document.getElementById("mensagem");
     const botao = document.getElementById("btnConfirmarEnvio");
-    if (botao.disabled) return;
+    if (botao.disabled || enviandoPlanejamento) return;
     const dataSegunda = document.getElementById("dataSegunda").value;
 
     mensagem.textContent = "";
@@ -246,6 +346,8 @@ async function enviarPlanejamento() {
     try {
         botao.disabled = true;
         botao.textContent = "Enviando...";
+        enviandoPlanejamento = true;
+        bloquearEditor(true);
 
         const resposta = await fetch(`/api/treinos/semana?data_segunda=${encodeURIComponent(dataSegunda)}`, {
             method: "POST",
@@ -263,6 +365,8 @@ async function enviarPlanejamento() {
         console.error(erro);
         mostrarMensagem(erro.message || "Erro ao enviar planejamento.", true);
     } finally {
+        enviandoPlanejamento = false;
+        bloquearEditor(false);
         botao.disabled = false;
         botao.textContent = "Confirmar envio";
         document.getElementById('revisaoSemana').close();
@@ -277,6 +381,8 @@ function mostrarMensagem(texto, erro = false) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    carregarTreinos();
     definirSegundaAtual();
+    carregarTreinos();
 });
+
+document.getElementById('revisaoSemana').addEventListener('cancel', event => { if (enviandoPlanejamento) event.preventDefault(); });

@@ -3321,3 +3321,14 @@ A opção Strava no menu do aluno abre uma tela própria com até 30 atividades 
 ## Provas da equipe
 
 O professor cadastra provas pelo calendário, com nome, data, modalidade, uma ou mais distâncias/categorias e link de inscrição opcional. Pode editar ou excluir pelo dia do evento. Na agenda do aluno, o botão Provas abre uma lista de próximos eventos e um calendário mensal, com filtro por modalidade. A inscrição é feita no site do organizador. Consulte [PROVAS.md](PROVAS.md) para aplicar a atualização e usar o recurso.
+
+
+## Gestão do professor — outubro de 2026
+
+- Treinos base: busca sem distinção de acentos por título/descrição, combinada com filtros por modalidade.
+- Alunos: busca por nome/usuário e filtro por modalidade; listagem em três consultas ao banco.
+- Planejamento: rascunho salvo explicitamente por professor e segunda-feira no banco; reabertura restaura o rascunho. Alterações não salvas geram aviso ao sair ou trocar de semana.
+- Reutilização: carregar semana anterior preenche o editor e não envia treinos. Casos com vários treinos na mesma modalidade/dia exigem seleção manual.
+- Revisão: mostra a quantidade e os nomes dos alunos da modalidade antes de confirmar o envio. Agendamentos idênticos já existentes continuam sendo ignorados pelo envio.
+- Painel: pendências da semana atual em São Paulo, de segunda a sexta. Cada modalidade é considerada coberta quando há pelo menos um treino naquela semana; não exige treino todos os dias.
+- Nenhuma funcionalidade de treino estruturado foi adicionada.

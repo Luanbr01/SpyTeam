@@ -3483,54 +3483,17 @@ def listar_alunos(
     Depends(require_professor)
 ):
 
-    alunos = (
-        db.query(models.Aluno)
-        .all()
-    )
-
-    resultado = []
-
-    for aluno in alunos:
-
-        # Procura o login desse aluno
-        usuario = (
-            db.query(models.Usuario)
-            .filter(
-                models.Usuario.aluno_id
-                == aluno.id
-            )
-            .first()
-        )
-
-        modalidades = obter_modalidades_aluno(
-            db,
-            aluno.id
-        )
-
-        resultado.append({
-
-            "id":
-                aluno.id,
-
-            "nome":
-                aluno.nome,
-
-            "nivel":
-                aluno.nivel,
-
-            "modalidades":
-                modalidades,
-
-            "modalidade":
-                " • ".join(modalidades),
-
-            "usuario":
-                usuario.usuario
-                if usuario
-                else None
-        })
-
-    return resultado
+    # Três consultas para toda a lista, evitando consultas por aluno.
+    alunos = db.query(models.Aluno).order_by(models.Aluno.nome, models.Aluno.id).all()
+    usuarios = {u.aluno_id: u.usuario for u in db.query(models.Usuario).filter(models.Usuario.aluno_id.isnot(None)).all()}
+    modalidades_por_aluno = {a.id: [] for a in alunos}
+    for vinculo in db.query(models.AlunoModalidade).all():
+        if vinculo.aluno_id in modalidades_por_aluno and vinculo.modalidade in MODALIDADES_PERMITIDAS:
+            modalidades_por_aluno[vinculo.aluno_id].append(vinculo.modalidade)
+    return [{"id": a.id, "nome": a.nome, "nivel": a.nivel,
+             "modalidades": sorted(modalidades_por_aluno[a.id]),
+             "modalidade": " • ".join(sorted(modalidades_por_aluno[a.id])),
+             "usuario": usuarios.get(a.id)} for a in alunos]
 
 
 # ============================================================
@@ -5442,3 +5405,7 @@ def aluno_provas(request: Request, usuario: models.Usuario = Depends(require_alu
         return RedirectResponse("/aluno/cadastrar-email", status_code=303)
     return templates.TemplateResponse(request=request, name="Aluno/provas.html",
                                       headers={"Cache-Control": "no-store"})
+
+
+from .gestao_professor import build_router as build_gestao_professor_router
+app.include_router(build_gestao_professor_router(require_professor, get_db))

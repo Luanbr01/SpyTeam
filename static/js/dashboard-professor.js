@@ -332,3 +332,29 @@ async function sair(event) {
 
 document.getElementById('dashboardPeriodo')?.addEventListener('change', carregarDashboardProfessor);
 carregarDashboardProfessor();
+
+async function carregarPendenciasSemana() {
+    const container = document.getElementById('pendenciasSemana');
+    try {
+        const resposta = await fetch('/api/gestao-professor/semana');
+        if (resposta.status === 401 || resposta.status === 403) { window.location.href = '/login'; return; }
+        if (!resposta.ok) throw new Error();
+        const dados = await resposta.json();
+        const [ano, mes, dia] = dados.data_segunda.split('-').map(Number);
+        const fim = new Date(ano, mes - 1, dia + 4);
+        document.getElementById('semanaPendencias').textContent = `Semana de ${String(dia).padStart(2,'0')}/${String(mes).padStart(2,'0')} a ${fim.toLocaleDateString('pt-BR')} · ${dados.total_agendamentos} treinos agendados`;
+        const pendencias = dados.pendencias;
+        if (!dados.total_alunos) { container.innerHTML = '<p>Cadastre os primeiros alunos para começar o planejamento.</p>'; return; }
+        if (!pendencias.length) { container.innerHTML = '<p>✓ Todos os alunos têm pelo menos um treino nesta semana em cada modalidade cadastrada.</p>'; return; }
+        const semTreino = pendencias.filter(a => a.sem_treino).length;
+        const parciais = pendencias.filter(a => !a.sem_treino && !a.sem_modalidade).length;
+        const semModalidade = pendencias.filter(a => a.sem_modalidade).length;
+        container.innerHTML = `<p>${semTreino} aluno(s) sem treino · ${parciais} com modalidade sem treino · ${semModalidade} sem modalidade cadastrada.</p><details><summary>Ver ${pendencias.length} aluno(s) com pendência</summary>${pendencias.map(a => `<div class="gestao-pendencia"><div><strong>${escapeDashboard(a.nome)}</strong><small>${a.sem_modalidade ? 'Cadastre uma modalidade para planejar os treinos.' : 'Sem treino em: ' + escapeDashboard(a.modalidades_sem_treino.join(' • '))}</small></div><a href="/alunos?aluno=${Number(a.id)}">Ver aluno →</a></div>`).join('')}</details><p class="gestao-resumo">Considera treinos de segunda a sexta. Uma modalidade fica pendente quando não tem nenhum treino na semana.</p>`;
+    } catch (_) {
+        container.replaceChildren();
+        const texto = document.createElement('p'); texto.textContent = 'Não foi possível carregar as pendências.';
+        const botao = document.createElement('button'); botao.type = 'button'; botao.className = 'btn btn-secondary'; botao.textContent = 'Tentar novamente'; botao.addEventListener('click', carregarPendenciasSemana);
+        container.append(texto, botao);
+    }
+}
+carregarPendenciasSemana();

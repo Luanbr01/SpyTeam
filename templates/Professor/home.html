@@ -16,6 +16,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
     <link rel="stylesheet" href="/static/css/style.css?v=20260925-avatarfix1">
     <script src="/static/js/security.js?v=20260922-security1"></script>
+<link rel="stylesheet" href="/static/css/gestao-professor.css?v=20261010-1">
 </head>
 <body class="app-body professor-dashboard-page">
 <div class="app-shell">
@@ -73,6 +74,7 @@
                 </div>
             </section>
 
+            <section class="dashboard-card gestao-pendencias" aria-labelledby="tituloPendencias"><span class="eyebrow">PLANEJAMENTO</span><h2 id="tituloPendencias">Pendências da semana</h2><p id="semanaPendencias" class="gestao-resumo"></p><div id="pendenciasSemana" role="status">Carregando pendências...</div><div class="gestao-acoes"><a class="btn btn-primary" href="/planejamento-semanal">Planejar semana</a><a class="btn btn-secondary" href="/treinos-base">Treinos base</a><a class="btn btn-secondary" href="/alunos">Consultar alunos</a></div></section>
             <section class="dashboard-kpi-grid" aria-label="Indicadores principais">
                 <article class="analytics-kpi-card">
                     <span class="analytics-kpi-icon kpi-blue">
@@ -206,7 +208,7 @@
     </div>
 </div>
 
-<script src="/static/js/dashboard-professor.js?v=20260922-dashboard2"></script>
+<script src="/static/js/dashboard-professor.js?v=20261010-1"></script>
 
 <script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
 </body>

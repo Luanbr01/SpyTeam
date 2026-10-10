@@ -1,0 +1,15 @@
+
+.gestao-filtros { display:flex; flex-wrap:wrap; gap:16px; align-items:end; margin:20px 0; }
+.gestao-filtros label { display:flex; flex-direction:column; gap:8px; flex:1 1 220px; color:#234775; font-weight:600; }
+.gestao-filtros input,.gestao-filtros select { width:100%; min-height:46px; border:1px solid #cbdcf7; border-radius:12px; padding:12px; background:white; color:#17385f; font:inherit; box-sizing:border-box; }
+.gestao-filtros input:focus-visible,.gestao-filtros select:focus-visible { outline:3px solid #57C0FF; outline-offset:2px; }
+.gestao-resumo { color:#64748b; margin:12px 0; }
+.gestao-acoes { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0; }
+.gestao-pendencias { margin-bottom:24px; }
+.gestao-pendencias summary { cursor:pointer; padding:14px 0; color:#234775; font-weight:600; }
+.gestao-pendencia { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid #e0e8f5; padding:14px 0; }
+.gestao-pendencia small { display:block; color:#64748b; margin-top:6px; }
+.gestao-pendencia a { color:#3161CA; font-weight:600; }
+.gestao-destinatarios { white-space:normal; overflow-wrap:anywhere; padding:12px; background:#edf4ff; border-radius:10px; }
+#estadoRascunho { margin:0; color:#64748b; }
+@media(max-width:640px) { .gestao-acoes .btn { flex:1 1 180px; min-height:44px; } .gestao-filtros { gap:12px; } }

@@ -809,3 +809,14 @@ class Prova(Base):
     link_inscricao = Column(String(2048), nullable=True)
     criado_em = Column(Integer, nullable=False)
     atualizado_em = Column(Integer, nullable=False)
+
+
+class PlanejamentoRascunho(Base):
+    """Seleções ainda não enviadas, isoladas por professor e semana."""
+    __tablename__ = 'planejamento_rascunhos'
+    __table_args__ = (UniqueConstraint('professor_id', 'data_segunda', name='uq_rascunho_professor_semana'),)
+    id = Column(Integer, primary_key=True)
+    professor_id = Column(Integer, ForeignKey('usuarios.id'), nullable=False, index=True)
+    data_segunda = Column(String(10), nullable=False)
+    itens_json = Column(String, nullable=False)
+    versao = Column(Integer, nullable=False, default=1)

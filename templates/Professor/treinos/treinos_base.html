@@ -45,6 +45,7 @@
             .treino-base-card { padding: 16px; }
         }
     </style>
+<link rel="stylesheet" href="/static/css/gestao-professor.css?v=20261010-1">
 </head>
 
 <body class="app-body">
@@ -172,6 +173,7 @@
                 ></div>
 
 
+                <div class="gestao-filtros"><label for="buscaTreinos">Buscar treino<input id="buscaTreinos" type="search" placeholder="Título ou descrição" autocomplete="off"></label></div>
                 <div id="filtrosTreinos" class="treinos-filtros" role="group" aria-label="Filtrar treinos por modalidade" hidden></div>
                 <p id="resumoTreinos" class="treinos-resumo" role="status"></p>
 
@@ -242,11 +244,12 @@ function renderizarTreinos() {
         botao.append(contador);
         filtros.append(botao);
     }
-    const treinos = modalidadeSelecionada === 'Todos' ? todosTreinos : todosTreinos.filter(t => normalizarModalidade(t.modalidade) === normalizarModalidade(modalidadeSelecionada));
+    const busca = normalizarModalidade(document.getElementById('buscaTreinos').value);
+    const treinos = todosTreinos.filter(t => (modalidadeSelecionada === 'Todos' || normalizarModalidade(t.modalidade) === normalizarModalidade(modalidadeSelecionada)) && normalizarModalidade(`${t.titulo} ${t.descricao}`).includes(busca));
     document.getElementById('resumoTreinos').textContent = `${treinos.length} ${treinos.length === 1 ? 'treino disponível' : 'treinos disponíveis'}${modalidadeSelecionada === 'Todos' ? '' : ' em ' + modalidadeSelecionada}.`;
     const lista = document.getElementById('listaTreinos');
     if (!treinos.length) {
-        lista.innerHTML = `<p>${todosTreinos.length === 0 ? 'Nenhum treino base cadastrado.' : 'Nenhum treino base cadastrado em ' + escapeHtml(modalidadeSelecionada) + '.'}</p>`;
+        lista.innerHTML = `<p>${todosTreinos.length === 0 ? 'Nenhum treino base cadastrado.' : (busca ? 'Nenhum treino encontrado com os filtros selecionados.' : 'Nenhum treino base cadastrado em ' + escapeHtml(modalidadeSelecionada) + '.')}</p>`;
         return;
     }
     lista.innerHTML = treinos.map(treino => `
@@ -380,6 +383,7 @@ function escapeHtml(valor) {
 }
 
 
+document.getElementById('buscaTreinos').addEventListener('input', renderizarTreinos);
 carregarTreinos();
 
 </script>
