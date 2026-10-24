@@ -10,7 +10,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png?v=20260920">
 <link rel="stylesheet" href="/static/css/style.css?v=20260925-avatarfix1">    <script src="/static/js/security.js?v=20260922-security1"></script>
 <link rel="stylesheet" href="/static/css/gestao-professor.css?v=20261010-1">
-</head><body class="app-body"><div class="app-shell"><aside class="app-sidebar professor-sidebar">
+<link rel="stylesheet" href="/static/css/professor-design.css?v=20261010-design1">
+</head><body class="app-body professor-design"><div class="app-shell"><aside class="app-sidebar professor-sidebar">
         <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
             <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
         </a>
@@ -184,9 +185,7 @@ function mostrarAlunos() {
 
         container.innerHTML =
 
-            '<p>' +
-            (alunos.length ? 'Nenhum aluno encontrado com os filtros selecionados.' : 'Nenhum aluno cadastrado.') +
-            '</p>';
+            `<div class="empty-state"><strong>${alunos.length ? 'Nenhum aluno encontrado' : 'Sua equipe começa aqui'}</strong><p>${alunos.length ? 'Experimente outro nome ou selecione todas as modalidades.' : 'Cadastre um aluno para começar a planejar os treinos.'}</p>${alunos.length ? '' : '<a class="btn btn-primary" href="/novo-aluno">Cadastrar aluno</a>'}</div>`;
 
         return;
     }
@@ -201,13 +200,7 @@ function mostrarAlunos() {
 
                 <div class="aluno-card">
 
-                    <h2>
-                        ${escapeHtml(
-                            aluno.nome
-                        )}
-                    </h2>
-
-                    
+                    <div class="student-card-heading"><span class="student-card-avatar" aria-hidden="true">${escapeHtml(String(aluno.nome || 'A').charAt(0).toUpperCase())}</span><h2>${escapeHtml(aluno.nome)}</h2></div>
                     <p>
 
                         <strong>
@@ -221,19 +214,7 @@ function mostrarAlunos() {
                     </p>
 
 
-                    <p>
-
-                        <strong>
-                            Modalidades:
-                        </strong>
-
-                        ${escapeHtml(
-                            (Array.isArray(aluno.modalidades) && aluno.modalidades.length
-                                ? aluno.modalidades.join(' • ')
-                                : (aluno.modalidade || '-'))
-                        )}
-
-                    </p>
+                    <div class="student-modalities" aria-label="Modalidades">${(Array.isArray(aluno.modalidades) && aluno.modalidades.length ? aluno.modalidades : [aluno.modalidade || 'Sem modalidade']).map(m => `<span class="student-modality">${escapeHtml(m)}</span>`).join('')}</div>
 
                     <p>
 

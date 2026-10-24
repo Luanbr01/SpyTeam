@@ -35,6 +35,7 @@ function marcarAlteracao() {
 
 function bloquearEditor(bloquear) {
     operacaoPlanejamento = bloquear;
+    document.getElementById('corpoTabela').setAttribute('aria-busy', String(bloquear));
     document.querySelectorAll('.select-treino').forEach(s => {
         const modalidade = modalidades.find(m => s.id.startsWith(idModalidade(m) + '-'));
         s.disabled = bloquear || !treinosBase.some(t => normalizarTexto(t.modalidade) === normalizarTexto(modalidade));
@@ -59,6 +60,9 @@ function aplicarSelecoes(itens) {
 async function salvarRascunho() {
     if (operacaoPlanejamento || !semanaAtual) return;
     if (rascunhoVersao === null) { mostrarMensagem('Carregue o rascunho antes de salvar.', true); return; }
+    const botaoSalvar = document.getElementById('btnSalvarRascunho');
+    botaoSalvar.textContent = 'Salvando...';
+    botaoSalvar.setAttribute('aria-busy', 'true');
     bloquearEditor(true);
     try {
         const dados = await requisicaoGestao(`rascunho?data_segunda=${semanaAtual}`, {
@@ -70,7 +74,7 @@ async function salvarRascunho() {
         document.getElementById('estadoRascunho').textContent = dados.mensagem;
         mostrarMensagem(dados.mensagem);
     } catch (erro) { mostrarMensagem(erro.message, true); }
-    finally { bloquearEditor(false); }
+    finally { bloquearEditor(false); botaoSalvar.textContent = 'Salvar rascunho'; botaoSalvar.removeAttribute('aria-busy'); }
 }
 
 async function restaurarRascunho(inicial = false) {
@@ -346,6 +350,7 @@ async function enviarPlanejamento() {
     try {
         botao.disabled = true;
         botao.textContent = "Enviando...";
+        botao.setAttribute("aria-busy", "true");
         enviandoPlanejamento = true;
         bloquearEditor(true);
 
@@ -369,6 +374,7 @@ async function enviarPlanejamento() {
         bloquearEditor(false);
         botao.disabled = false;
         botao.textContent = "Confirmar envio";
+        botao.removeAttribute("aria-busy");
         document.getElementById('revisaoSemana').close();
         document.getElementById('mensagem').scrollIntoView({behavior: 'smooth', block: 'center'});
     }

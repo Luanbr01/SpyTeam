@@ -11,7 +11,8 @@
 <link rel="stylesheet" href="/static/css/style.css?v=20260925-avatarfix1">    <script src="/static/js/security.js?v=20260922-security1"></script>
 <link rel="stylesheet" href="/static/css/planejamento-semanal.css?v=20261010-1">
 <link rel="stylesheet" href="/static/css/gestao-professor.css?v=20261010-1">
-</head><body class="app-body"><div class="app-shell"><aside class="app-sidebar professor-sidebar">
+<link rel="stylesheet" href="/static/css/professor-design.css?v=20261010-design1">
+</head><body class="app-body professor-design"><div class="app-shell"><aside class="app-sidebar professor-sidebar">
         <a class="sidebar-brand" href="/home" aria-label="SPY TEAM - Dashboard">
             <img src="/static/img/logo-spy-team.svg" alt="SPY TEAM" class="sidebar-logo">
         </a>
@@ -34,7 +35,7 @@
         </div>
     </header><main class="app-content"><section class="form-page-heading"><a href="/home" class="back-link">← Voltar</a><span class="eyebrow">PLANEJAMENTO</span><h1>Planejamento semanal</h1><p>Monte a semana, confira o conteúdo de cada treino e revise antes de enviar aos alunos.</p></section>
 <section class="dashboard-card planning-header-card"><div class="planning-date"><label for="dataSegunda">Segunda-feira da semana</label><input type="date" id="dataSegunda"></div><div class="hint"><strong>Segunda a sexta</strong><span>Corrida vai para alunos de Corrida; Natação para Natação e assim por diante.</span></div><button id="btnDuplicar" class="btn btn-secondary" type="button" onclick="duplicarSemanaAnterior()">Carregar semana anterior</button></section>
-<section class="dashboard-card"><div class="gestao-acoes"><button type="button" class="btn btn-secondary" id="btnSalvarRascunho" onclick="salvarRascunho()">Salvar rascunho</button><button type="button" class="btn btn-secondary" id="btnRestaurarRascunho" onclick="restaurarRascunho()">Carregar rascunho</button></div><p id="estadoRascunho" role="status">Carregando rascunho da semana...</p></section>
+<section class="dashboard-card draft-card"><h2>Continue de onde parou</h2><p class="gestao-resumo">Salve sua seleção para retomar o planejamento desta semana.</p><div class="gestao-acoes"><button type="button" class="btn btn-secondary" id="btnSalvarRascunho" onclick="salvarRascunho()">Salvar rascunho</button><button type="button" class="btn btn-secondary" id="btnRestaurarRascunho" onclick="restaurarRascunho()">Carregar rascunho</button></div><p id="estadoRascunho" role="status">Carregando rascunho da semana...</p></section>
 <section class="dashboard-card weekly-planner">
     <div class="planner-heading"><div><span class="eyebrow">MONTE A SEMANA</span><h2>O que os alunos vão treinar?</h2></div><p>Escolha a modalidade e confira o treino de cada dia.</p></div>
     <div id="modalidadesPlanner" class="planner-modalities" role="group" aria-label="Escolha a modalidade"></div>
@@ -48,6 +49,6 @@
     <div id="conteudoRevisao"></div>
     <div class="review-actions"><button class="btn btn-secondary" type="button" onclick="if (!enviandoPlanejamento) document.getElementById('revisaoSemana').close()">Voltar e editar</button><button id="btnConfirmarEnvio" class="btn btn-primary" type="button" onclick="enviarPlanejamento()">Confirmar envio</button></div>
 </dialog>
-</main></div></div><script>async function sair(event){if(event)event.preventDefault();await fetch('/api/logout',{method:'POST'});window.location.href='/login';}</script><script src="/static/js/planejamento-semanal.js?v=20261010-1"></script>
+</main></div></div><script>async function sair(event){if(event)event.preventDefault();await fetch('/api/logout',{method:'POST'});window.location.href='/login';}</script><script src="/static/js/planejamento-semanal.js?v=20261010-design1"></script>
 <script defer src="/static/js/pwa.js?v=20260923-pwa1"></script>
 </body></html>

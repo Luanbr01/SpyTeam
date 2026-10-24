@@ -46,9 +46,10 @@
         }
     </style>
 <link rel="stylesheet" href="/static/css/gestao-professor.css?v=20261010-1">
+<link rel="stylesheet" href="/static/css/professor-design.css?v=20261010-design1">
 </head>
 
-<body class="app-body">
+<body class="app-body professor-design">
 
 <div class="app-shell">
 
@@ -169,6 +170,7 @@
 
                 <div
                     id="mensagem"
+                    role="status"
                     class="message"
                 ></div>
 
@@ -249,7 +251,7 @@ function renderizarTreinos() {
     document.getElementById('resumoTreinos').textContent = `${treinos.length} ${treinos.length === 1 ? 'treino disponível' : 'treinos disponíveis'}${modalidadeSelecionada === 'Todos' ? '' : ' em ' + modalidadeSelecionada}.`;
     const lista = document.getElementById('listaTreinos');
     if (!treinos.length) {
-        lista.innerHTML = `<p>${todosTreinos.length === 0 ? 'Nenhum treino base cadastrado.' : (busca ? 'Nenhum treino encontrado com os filtros selecionados.' : 'Nenhum treino base cadastrado em ' + escapeHtml(modalidadeSelecionada) + '.')}</p>`;
+        lista.innerHTML = `<div class="empty-state"><strong>${todosTreinos.length ? 'Nenhum treino encontrado' : 'Monte sua biblioteca de treinos'}</strong><p>${todosTreinos.length ? 'Experimente outra busca ou escolha uma modalidade diferente.' : 'Crie seu primeiro treino para usá-lo no planejamento semanal.'}</p>${todosTreinos.length ? '' : '<a class="btn btn-primary" href="/novo-treino-base">Criar primeiro treino</a>'}</div>`;
         return;
     }
     lista.innerHTML = treinos.map(treino => `
@@ -261,8 +263,8 @@ function renderizarTreinos() {
                 </div>
                 <div class="treino-base-acoes">
                     <a class="btn btn-secondary" href="/editar-treino-base/${Number(treino.id)}">Editar</a>
-                    <button type="button" class="btn btn-secondary" onclick="copiarTreino(${Number(treino.id)})">Copiar</button>
-                    <button type="button" class="btn btn-secondary" onclick="excluirTreino(${Number(treino.id)})">Excluir</button>
+                    <button type="button" class="btn btn-secondary" onclick="copiarTreino(${Number(treino.id)}, this)">Copiar</button>
+                    <button type="button" class="btn btn-secondary btn-danger-soft" onclick="excluirTreino(${Number(treino.id)}, this)">Excluir</button>
                 </div>
             </div>
             <p class="treino-base-descricao">${escapeHtml(treino.descricao)}</p>
@@ -287,89 +289,32 @@ async function carregarTreinos() {
 }
 
 
-async function copiarTreino(id) {
+const treinosEmOperacao = new Set();
+async function executarAcaoTreino(id, botao, acao) {
+    if (treinosEmOperacao.has(id)) return;
+    if (acao === 'excluir' && !confirm('Tem certeza que deseja excluir este treino base?')) return;
+    treinosEmOperacao.add(id);
+    const textoOriginal = botao?.textContent;
+    if (botao) { botao.disabled = true; botao.textContent = acao === 'copiar' ? 'Copiando...' : 'Excluindo...'; botao.setAttribute('aria-busy', 'true'); }
+    const mensagem = document.getElementById('mensagem');
     try {
-        const resposta = await fetch(`/api/treinos-base/${id}/copiar`, {method: 'POST'});
+        const resposta = await fetch(acao === 'copiar' ? `/api/treinos-base/${id}/copiar` : `/api/treinos-base/${id}`, {method: acao === 'copiar' ? 'POST' : 'DELETE'});
         const retorno = await resposta.json().catch(() => ({}));
-        if (!resposta.ok) throw new Error(retorno.detail || 'Não foi possível copiar o treino.');
-
-        const mensagem = document.getElementById('mensagem');
+        if (!resposta.ok) throw new Error(retorno.detail || 'Não foi possível completar a ação. Tente novamente.');
         mensagem.className = 'message success';
-        mensagem.textContent = retorno.mensagem || 'Treino copiado com sucesso.';
+        mensagem.textContent = retorno.mensagem || (acao === 'copiar' ? 'Treino copiado com sucesso.' : 'Treino excluído.');
         await carregarTreinos();
+        mensagem.scrollIntoView({behavior: 'smooth', block: 'nearest'});
     } catch (erro) {
-        const mensagem = document.getElementById('mensagem');
         mensagem.className = 'message error';
         mensagem.textContent = erro.message;
+    } finally {
+        treinosEmOperacao.delete(id);
+        if (botao) { botao.disabled = false; botao.textContent = textoOriginal; botao.removeAttribute('aria-busy'); }
     }
 }
-
-async function excluirTreino(id) {
-
-    const confirmar =
-        confirm(
-            'Tem certeza que deseja excluir este treino base?'
-        );
-
-    if (!confirmar) {
-        return;
-    }
-
-
-    try {
-
-        const resposta =
-            await fetch(
-                `/api/treinos-base/${id}`,
-                {
-                    method: 'DELETE'
-                }
-            );
-
-
-        const retorno =
-            await resposta.json();
-
-
-        if (!resposta.ok) {
-
-            throw new Error(
-                retorno.detail
-                || 'Não foi possível excluir o treino.'
-            );
-        }
-
-
-        const mensagem =
-            document.getElementById(
-                'mensagem'
-            );
-
-        mensagem.className =
-            'message success';
-
-        mensagem.textContent =
-            retorno.mensagem;
-
-
-        carregarTreinos();
-
-    }
-
-    catch (erro) {
-
-        const mensagem =
-            document.getElementById(
-                'mensagem'
-            );
-
-        mensagem.className =
-            'message error';
-
-        mensagem.textContent =
-            erro.message;
-    }
-}
+async function copiarTreino(id, botao) { await executarAcaoTreino(id, botao, 'copiar'); }
+async function excluirTreino(id, botao) { await executarAcaoTreino(id, botao, 'excluir'); }
 
 
 function escapeHtml(valor) {

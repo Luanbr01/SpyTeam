@@ -1,0 +1,126 @@
+/* Camada visual das telas de gestão, sem alterar o layout das demais páginas. */
+:root {
+    --gestao-primary: #3161CA;
+    --gestao-accent: #57C0FF;
+    --gestao-ink: #16345B;
+    --gestao-muted: #5C6D83;
+    --gestao-border: #DEE7F3;
+    --gestao-surface: #FFFFFF;
+    --gestao-soft: #F3F7FD;
+    --gestao-radius: 18px;
+}
+.professor-design { background: #F3F7FD; }
+.professor-design .app-workspace { min-width: 0; }
+.professor-design .app-content { max-width: 1500px; width: 100%; margin-inline: auto; }
+.professor-design .app-topbar { background: rgba(255,255,255,.97); border-bottom: 1px solid var(--gestao-border); }
+.professor-design .app-topbar-copy strong { color: var(--gestao-ink); }
+.professor-design .app-topbar-copy span { color: var(--gestao-muted); }
+.professor-design .dashboard-heading, .professor-design .form-page-heading { margin-bottom: 24px; }
+.professor-design .dashboard-heading h1, .professor-design .form-page-heading h1 { font-size: clamp(1.7rem, 2.9vw, 2.45rem); line-height: 1.18; letter-spacing: -.045em; color: var(--gestao-ink); margin: 10px 0 12px; }
+.professor-design .dashboard-heading p, .professor-design .form-page-heading p { max-width: 740px; color: var(--gestao-muted); font-size: .96rem; line-height: 1.65; }
+.professor-design .eyebrow { font-size: .7rem; letter-spacing: .12em; color: var(--gestao-primary); }
+.professor-design .back-link { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 8px; color: var(--gestao-primary); }
+.professor-design .dashboard-card, .professor-design .aluno-card, .professor-design .analytics-kpi-card { background: var(--gestao-surface); border: 1px solid var(--gestao-border); border-radius: var(--gestao-radius); box-shadow: 0 4px 18px rgba(22,52,91,.035); }
+.professor-design .dashboard-card { padding: clamp(18px, 2.4vw, 28px); }
+.professor-design .dashboard-card h2 { color: var(--gestao-ink); line-height: 1.35; }
+.professor-design .btn, .professor-design .btn-ver, .professor-design .btn-excluir {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 11px 17px;
+    border-radius: 12px; font-size: .85rem; font-weight: 650; line-height: 1.35; text-decoration: none; text-align: center;
+    transition: background-color .16s, border-color .16s, box-shadow .16s; white-space: normal;
+}
+.professor-design .btn-primary { background: var(--gestao-primary); color: #fff; border: 1px solid var(--gestao-primary); box-shadow: 0 4px 10px rgba(49,97,202,.12); }
+.professor-design .btn-primary:hover { background: #244FAF; border-color: #244FAF; }
+.professor-design .btn-secondary, .professor-design .btn-ver { background: #F4F8FE; border: 1px solid #CFDDF2; color: #2757B8; box-shadow: none; }
+.professor-design .btn-secondary:hover, .professor-design .btn-ver:hover { background: #EAF1FC; border-color: #AFC7EC; }
+.professor-design .btn-excluir, .professor-design .btn-danger-soft { background: #FFF7F7; color: #AA3434; border: 1px solid #F1D8D8; box-shadow: none; }
+.professor-design .btn:hover, .professor-design button:hover { transform: none; }
+.professor-design button:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; transform: none; }
+.professor-design button:focus-visible, .professor-design a:focus-visible, .professor-design summary:focus-visible { outline: 3px solid var(--gestao-accent); outline-offset: 3px; }
+.professor-design input, .professor-design select, .professor-design textarea { min-height: 46px; border-radius: 12px; border-color: #CFDCEC; font-size: 16px; color: var(--gestao-ink); }
+.professor-design input::placeholder { color: #6A7B92; opacity: 1; }
+.professor-design .gestao-filtros { gap: 16px; margin: 0; }
+.professor-design .gestao-filtros label { font-size: .8rem; font-weight: 650; color: var(--gestao-ink); margin: 0; }
+.professor-design .gestao-resumo, .professor-design .treinos-resumo { color: var(--gestao-muted); font-size: .83rem; line-height: 1.6; }
+.professor-design .form-actions { padding: 0; margin-bottom: 24px; }
+.professor-design .treinos-filtros { gap: 8px; }
+.professor-design .treinos-filtro { border-radius: 12px; padding: 10px 15px; color: #345373; background: #F5F8FD; min-height: 44px; font-size: .83rem; }
+.professor-design .treinos-filtro[aria-pressed="true"] { color: white; background: var(--gestao-primary); border-color: var(--gestao-primary); }
+.professor-design .treino-base-card { padding: 22px; border: 1px solid var(--gestao-border); border-radius: 16px; background: #fff; }
+.professor-design .treino-base-titulo { color: var(--gestao-ink); font-size: 1.05rem; line-height: 1.45; }
+.professor-design .treino-base-modalidade, .professor-design .student-modality { display: inline-flex; padding: 5px 10px; border-radius: 8px; background: #EBF2FF; color: #2857AC; font-size: .75rem; font-weight: 650; line-height: 1.35; }
+.professor-design .treino-base-descricao { white-space: pre-wrap; font-size: .93rem; line-height: 1.8; color: #334D6D; padding-top: 16px; margin-top: 18px; border-top: 1px solid #EBF0F7; }
+.professor-design .treino-base-card small { display: inline-block; padding: 8px 12px; background: var(--gestao-soft); border-radius: 9px; color: #345373; line-height: 1.6; }
+.professor-design .alunos-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 16px; margin-top: 20px; }
+.professor-design .aluno-card { padding: 22px; overflow-wrap: anywhere; }
+.professor-design .aluno-card::before { display: none; }
+.professor-design .student-card-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.professor-design .student-card-avatar { flex: 0 0 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: #EAF2FF; color: var(--gestao-primary); font-size: 1.05rem; font-weight: 750; }
+.professor-design .student-card-heading h2 { font-size: 1.03rem; margin: 0; padding: 0; color: var(--gestao-ink); line-height: 1.45; }
+.professor-design .aluno-card p { font-size: .84rem; line-height: 1.6; margin: 10px 0; color: var(--gestao-muted); }
+.professor-design .student-modalities { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+.professor-design .aluno-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; border-top: 1px solid #EBF0F7; padding-top: 16px; }
+.professor-design .aluno-acoes .btn-ver:first-child { flex: 1 1 100%; background: #EBF2FF; border-color: #C5D7F5; }
+.professor-design .aluno-acoes > :not(:first-child) { flex: 1 1 100px; font-size: .78rem; }
+.professor-design .student-detail .treino-card p, .professor-design .feedback p { white-space: pre-wrap; line-height: 1.75; overflow-wrap: anywhere; }
+.professor-design .planning-header-card { gap: 18px; }
+.professor-design .planning-date label { color: var(--gestao-ink); font-size: .8rem; }
+.professor-design .planning-header-card .hint { color: var(--gestao-muted); font-size: .84rem; line-height: 1.6; }
+.professor-design .draft-card { background: #F9FBFF; }
+.professor-design .draft-card h2 { font-size: 1.03rem; margin-bottom: 6px; }
+.professor-design .draft-card .gestao-acoes { margin-top: 16px; }
+.professor-design #estadoRascunho { font-size: .83rem; line-height: 1.65; }
+.professor-design .planner-modality { background: #F5F8FD; color: #355477; border-color: var(--gestao-border); }
+.professor-design .planner-modality[aria-pressed="true"] { background: var(--gestao-primary); color: #fff; border-color: var(--gestao-primary); }
+.professor-design .modality-count { padding: 3px 7px; border-radius: 6px; background: rgba(49,97,202,.07); }
+.professor-design .planner-modality[aria-pressed="true"] .modality-count { background: rgba(255,255,255,.16); }
+.professor-design .planner-day { border-color: var(--gestao-border); background: #FCFDFF; }
+.professor-design .planner-day.has-workout { border-color: #B9CDF1; background: #fff; }
+.professor-design .day-heading h3 { color: var(--gestao-ink); }
+.professor-design .workout-description { color: #334D6D; line-height: 1.8; }
+.professor-design .planner-footer { background: #F8FAFE; border: 1px solid var(--gestao-border); border-radius: 14px; padding: 16px; }
+.professor-design .planner-footer p { margin: 0; }
+.professor-design .planner-review { box-shadow: 0 22px 65px rgba(8,21,47,.25); }
+.professor-design .review-actions { position: sticky; bottom: -24px; padding: 16px 0; background: #fff; border-top: 1px solid var(--gestao-border); z-index: 2; }
+.professor-design .review-workout { border-color: var(--gestao-border); background: #FCFDFF; }
+.professor-design .gestao-destinatarios { border: 1px solid #D9E5FB; background: #F1F6FF; line-height: 1.6; font-size: .85rem; }
+.professor-design .gestao-destinatarios summary { cursor: pointer; color: #2857AC; font-weight: 650; }
+.professor-design .gestao-destinatarios p { margin: 12px 0 0; color: #334D6D; }
+.professor-design .gestao-pendencias { border-top: 3px solid var(--gestao-primary); }
+.professor-design .pending-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 18px 0; }
+.professor-design .pending-summary-item { padding: 16px; border-radius: 12px; background: #F4F7FC; border: 1px solid #E5ECF6; color: var(--gestao-muted); font-size: .8rem; line-height: 1.5; }
+.professor-design .pending-summary-item strong { display: block; font-size: 1.6rem; color: var(--gestao-ink); margin-bottom: 4px; }
+.professor-design .gestao-pendencias > h2 { margin: 8px 0; font-size: 1.2rem; }
+.professor-design .gestao-pendencia { padding: 16px 0; font-size: .88rem; }
+.professor-design .gestao-pendencia a { display: inline-flex; align-items: center; min-height: 44px; }
+.professor-design .message:empty { display: none; }
+.professor-design .message:not(:empty) { padding: 13px 16px; border-radius: 12px; font-size: .87rem; line-height: 1.65; }
+.professor-design .message.success:not(:empty) { background: #EFFAF3; border: 1px solid #CBE8D5; color: #22663D; }
+.professor-design .message.error:not(:empty) { background: #FFF3F3; border: 1px solid #F0D1D1; color: #A32C2C; }
+.professor-design .empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 36px 20px; border: 1px dashed #C9D8ED; border-radius: 16px; background: #F8FAFE; color: var(--gestao-muted); line-height: 1.65; }
+.professor-design .empty-state strong { color: var(--gestao-ink); font-size: 1rem; }
+.professor-design .empty-state p { margin: 0; font-size: .87rem; }
+@media (max-width: 640px) {
+    .professor-design .app-content { padding: 20px 14px 32px; }
+    .professor-design .dashboard-heading, .professor-design .form-page-heading { margin-bottom: 20px; }
+    .professor-design .dashboard-heading p, .professor-design .form-page-heading p { font-size: .9rem; }
+    .professor-design .dashboard-card { padding: 18px; }
+    .professor-design .gestao-filtros { gap: 14px; }
+    .professor-design .treino-base-card { padding: 17px; }
+    .professor-design .treino-base-acoes .btn { min-height: 44px; padding: 10px 8px; font-size: .8rem; }
+    .professor-design .aluno-card { padding: 18px; }
+    .professor-design .treinos-filtro { flex: 1 1 calc(50% - 8px); }
+    .professor-design .planner-footer { position: sticky; bottom: 12px; z-index: 3; box-shadow: 0 6px 22px rgba(22,52,91,.12); gap: 10px; }
+    .professor-design .planner-review .review-actions { bottom: -18px; padding-bottom: max(14px,env(safe-area-inset-bottom)); }
+    .professor-design .pending-summary { gap: 8px; }
+    .professor-design .pending-summary-item { padding: 12px 8px; font-size: .72rem; }
+    .professor-design .pending-summary-item strong { font-size: 1.35rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .professor-design *, .professor-design *::before, .professor-design *::after { scroll-behavior: auto !important; transition: none !important; }
+}
+.professor-design .alunos-grid > .empty-state { grid-column: 1 / -1; }
+.professor-design .pending-summary-item { overflow-wrap: anywhere; }
+.professor-design .btn[aria-busy="true"]::after { content: ''; flex: 0 0 14px; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: gestao-spin .8s linear infinite; }
+@keyframes gestao-spin { to { transform: rotate(360deg); } }
+@media(max-width:640px) { .professor-design .planner-footer { bottom: max(12px,env(safe-area-inset-bottom)); } }
+@media(prefers-reduced-motion:reduce) { .professor-design .btn[aria-busy="true"]::after { animation: none; } }
